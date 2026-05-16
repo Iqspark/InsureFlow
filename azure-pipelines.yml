@@ -1,0 +1,116 @@
+# ============================================================
+# Azure DevOps Pipeline — Vacant Home Insurance Quote App
+# ============================================================
+# Use this file if you are using Azure DevOps Repos + Pipelines
+# instead of GitHub. For GitHub, use .github/workflows/azure-deploy.yml.
+#
+# PIPELINE VARIABLES (Pipelines → Library → Variable Group: "vhi-production"):
+#   AZURE_WEBAPP_NAME          The App Service name
+#   DATABASE_URL               Production PostgreSQL connection string (mark as secret)
+#
+# SERVICE CONNECTIONS (Project Settings → Service Connections):
+#   AzureServiceConnection     An Azure Resource Manager service connection
+# ============================================================
+
+trigger:
+  branches:
+    include:
+      - main
+
+pr:
+  branches:
+    include:
+      - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  nodeVersion: "20.x"
+  isPR: $[eq(variables['Build.Reason'], 'PullRequest')]
+
+stages:
+  # ─────────────────────────────────────────────────────────────
+  # STAGE 1: BUILD
+  # ─────────────────────────────────────────────────────────────
+  - stage: Build
+    displayName: Build & Verify
+    jobs:
+      - job: BuildJob
+        displayName: Install, Type-check, Build
+        steps:
+          - task: NodeTool@0
+            displayName: Set up Node.js $(nodeVersion)
+            inputs:
+              versionSpec: $(nodeVersion)
+
+          - script: npm ci
+            displayName: Install dependencies
+
+          - script: npx prisma generate
+            displayName: Generate Prisma Client
+
+          - script: npx tsc --noEmit
+            displayName: TypeScript type-check
+
+          - script: npm run build
+            displayName: Build Next.js (standalone)
+            env:
+              DATABASE_URL: $(DATABASE_URL)
+
+          # Assemble the deployment package
+          - script: |
+              mkdir -p $(Build.ArtifactStagingDirectory)/deploy
+              cp -r .next/standalone/. $(Build.ArtifactStagingDirectory)/deploy/
+              mkdir -p $(Build.ArtifactStagingDirectory)/deploy/.next/static
+              cp -r .next/static/. $(Build.ArtifactStagingDirectory)/deploy/.next/static/
+              cp -r public/. $(Build.ArtifactStagingDirectory)/deploy/public/
+              cp -r prisma $(Build.ArtifactStagingDirectory)/deploy/prisma
+              cp startup.sh $(Build.ArtifactStagingDirectory)/deploy/startup.sh
+              chmod +x $(Build.ArtifactStagingDirectory)/deploy/startup.sh
+            displayName: Assemble deployment package
+
+          - task: PublishBuildArtifacts@1
+            displayName: Publish deployment artifact
+            inputs:
+              PathtoPublish: $(Build.ArtifactStagingDirectory)/deploy
+              ArtifactName: nextjs-standalone
+              publishLocation: Container
+
+  # ─────────────────────────────────────────────────────────────
+  # STAGE 2: DEPLOY
+  # Only runs on commits to main — not on PRs
+  # ─────────────────────────────────────────────────────────────
+  - stage: Deploy
+    displayName: Deploy to Azure
+    dependsOn: Build
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'), ne(variables.isPR, true))
+
+    jobs:
+      - deployment: DeployToAzure
+        displayName: Deploy to Azure App Service
+        environment: production
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - task: DownloadBuildArtifacts@1
+                  displayName: Download deployment artifact
+                  inputs:
+                    buildType: current
+                    downloadType: single
+                    artifactName: nextjs-standalone
+                    downloadPath: $(System.ArtifactsDirectory)
+
+                - task: AzureWebApp@1
+                  displayName: Deploy to Azure App Service
+                  inputs:
+                    azureSubscription: AzureServiceConnection
+                    appType: webAppLinux
+                    appName: $(AZURE_WEBAPP_NAME)
+                    package: $(System.ArtifactsDirectory)/nextjs-standalone
+                    startUpCommand: bash startup.sh
+                    appSettings: |
+                      -DATABASE_URL "$(DATABASE_URL)"
+                      -NODE_ENV "production"
+                      -WEBSITES_PORT "3000"

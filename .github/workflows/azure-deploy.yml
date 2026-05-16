@@ -1,0 +1,118 @@
+# ============================================================
+# CI/CD Pipeline — Vacant Home Insurance Quote App
+# Platform: GitHub Actions → Azure App Service
+# ============================================================
+#
+# REQUIRED GITHUB SECRETS (Settings → Secrets → Actions):
+#   AZURE_WEBAPP_NAME          The App Service name (e.g. "vhi-quote-app")
+#   AZURE_WEBAPP_PUBLISH_PROFILE  Download from Azure Portal → App Service → Get publish profile
+#   DATABASE_URL               Production PostgreSQL connection string
+#
+# OPTIONAL (for PR comment with build status):
+#   GITHUB_TOKEN               Automatically available — no setup needed
+# ============================================================
+
+name: CI / Deploy to Azure
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  NODE_VERSION: "20.x"
+
+jobs:
+  # ─────────────────────────────────────────────────────────────
+  # JOB 1: BUILD
+  # Runs on every push and every PR.
+  # ─────────────────────────────────────────────────────────────
+  build:
+    name: Build & Type-check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: TypeScript type-check
+        run: npx tsc --noEmit
+
+      - name: Build Next.js (standalone output)
+        run: npm run build
+        env:
+          # Build-time DATABASE_URL — only needed if you use Prisma at build time.
+          # For runtime-only usage (API routes), this can be a placeholder.
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'file:./prisma/submissions.db' }}
+
+      # Assemble the deployment package from the standalone output.
+      # standalone/ already contains a trimmed node_modules — no install needed on Azure.
+      - name: Assemble deployment package
+        run: |
+          mkdir -p deploy
+          # Core server files
+          cp -r .next/standalone/. deploy/
+          # Static assets (CSS, JS chunks, images)
+          mkdir -p deploy/.next/static
+          cp -r .next/static/. deploy/.next/static/
+          # Public folder (favicon, robots.txt, etc.)
+          cp -r public/. deploy/public/
+          # Prisma schema + migrations (needed for migrate deploy on startup)
+          cp -r prisma deploy/prisma
+          # Startup script
+          cp startup.sh deploy/startup.sh
+          chmod +x deploy/startup.sh
+
+      - name: Upload deployment artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nextjs-standalone
+          path: deploy/
+          retention-days: 1
+
+  # ─────────────────────────────────────────────────────────────
+  # JOB 2: DEPLOY
+  # Runs only when code is pushed/merged to main.
+  # Skipped on PRs — PRs only run the build job above.
+  # ─────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Azure App Service
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    environment:
+      name: production
+      url: https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net
+
+    steps:
+      - name: Download deployment artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nextjs-standalone
+          path: ./deploy
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./deploy
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployed successfully"
+          echo "🌐 URL: https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"

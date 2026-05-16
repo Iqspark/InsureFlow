@@ -1,0 +1,224 @@
+"use client";
+
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  useRef,
+  ReactNode,
+} from "react";
+import { Answer, AppPhase, QuoteDetails, ConversationMessage } from "@/types";
+import { QUESTIONS, FIRST_QUESTION_ID, TOTAL_QUESTIONS } from "@/data/questions";
+import { calculateQuote } from "@/engine/quoteCalculator";
+
+// ── Routing helper ───────────────────────────────────────────
+function resolveNextQuestionId(
+  questionId: string,
+  value: string | number | boolean,
+  answers: Record<string, Answer>
+): string {
+  const question = QUESTIONS.find((q) => q.id === questionId);
+  if (!question) return "__SUBMIT__";
+
+  if (question.conditionalBranches?.length) {
+    for (const branch of question.conditionalBranches) {
+      const compareValue = branch.when.questionId
+        ? answers[branch.when.questionId]?.value
+        : value;
+      if (compareValue === branch.when.value) {
+        return branch.nextQuestionId;
+      }
+    }
+  }
+  return question.defaultNextQuestionId ?? "__SUBMIT__";
+}
+
+// ── Context shape ────────────────────────────────────────────
+interface QuoteContextValue {
+  phase: AppPhase;
+  answers: Record<string, Answer>;
+  currentQuestionId: string;
+  conversationMessages: ConversationMessage[];
+  quoteDetails: QuoteDetails | null;
+  progress: number;
+  canGoBack: boolean;
+  startConversation: () => void;
+  submitAnswer: (
+    questionId: string,
+    value: string | number | boolean,
+    displayValue: string
+  ) => void;
+  goBack: () => void;
+  confirmSummary: () => void;
+  restart: () => void;
+  addBrokerMessage: (text: string, questionId: string) => void;
+}
+
+const QuoteContext = createContext<QuoteContextValue | null>(null);
+
+export function useQuote() {
+  const ctx = useContext(QuoteContext);
+  if (!ctx) throw new Error("useQuote must be used within QuoteProvider");
+  return ctx;
+}
+
+// ── Provider ─────────────────────────────────────────────────
+export function QuoteProvider({ children }: { children: ReactNode }) {
+  // Unique ID for this browser session — lets us correlate partial
+  // sessions with completed ones in analytics.
+  const sessionId = useRef<string>(
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+  );
+
+  const [phase, setPhase] = useState<AppPhase>("intro");
+  const [answers, setAnswers] = useState<Record<string, Answer>>({});
+  const [questionHistory, setQuestionHistory] = useState<string[]>([
+    FIRST_QUESTION_ID,
+  ]);
+  const [currentQuestionId, setCurrentQuestionId] =
+    useState(FIRST_QUESTION_ID);
+  const [conversationMessages, setConversationMessages] = useState<
+    ConversationMessage[]
+  >([]);
+  const [quoteDetails, setQuoteDetails] = useState<QuoteDetails | null>(null);
+
+  const historyIndex = questionHistory.indexOf(currentQuestionId);
+  const progress = Math.min(
+    Math.round((historyIndex / TOTAL_QUESTIONS) * 100),
+    95
+  );
+  const canGoBack = historyIndex > 0;
+
+  const addBrokerMessage = useCallback(
+    (text: string, questionId: string) => {
+      setConversationMessages((prev) => [
+        ...prev,
+        {
+          id: `broker-${questionId}-${Date.now()}`,
+          type: "broker",
+          text,
+          questionId,
+        },
+      ]);
+    },
+    []
+  );
+
+  const startConversation = useCallback(() => {
+    setPhase("conversation");
+  }, []);
+
+  const submitAnswer = useCallback(
+    (
+      questionId: string,
+      value: string | number | boolean,
+      displayValue: string
+    ) => {
+      const newAnswers = {
+        ...answers,
+        [questionId]: { questionId, value, displayValue },
+      };
+      setAnswers(newAnswers);
+
+      setConversationMessages((prev) => [
+        ...prev,
+        {
+          id: `user-${questionId}-${Date.now()}`,
+          type: "user",
+          text: displayValue,
+          questionId,
+        },
+      ]);
+
+      const nextId = resolveNextQuestionId(questionId, value, newAnswers);
+
+      if (nextId === "__SUBMIT__") {
+        setPhase("summary");
+        return;
+      }
+
+      const currentIdx = questionHistory.indexOf(questionId);
+      setQuestionHistory((prev) => {
+        const trimmed = prev.slice(0, currentIdx + 1);
+        return [...trimmed, nextId];
+      });
+      setCurrentQuestionId(nextId);
+    },
+    [answers, questionHistory]
+  );
+
+  const goBack = useCallback(() => {
+    const idx = questionHistory.indexOf(currentQuestionId);
+    if (idx <= 0) return;
+
+    const prevId = questionHistory[idx - 1];
+
+    // Remove messages related to the current question (broker + user)
+    setConversationMessages((prev) =>
+      prev.filter((m) => m.questionId !== currentQuestionId)
+    );
+
+    // Remove the current question's answer
+    setAnswers((prev) => {
+      const next = { ...prev };
+      delete next[currentQuestionId];
+      return next;
+    });
+
+    setCurrentQuestionId(prevId);
+    // Re-trigger the broker message for the previous question by
+    // removing it from conversation so ConversationView re-adds it.
+    setConversationMessages((prev) =>
+      prev.filter((m) => m.questionId !== prevId)
+    );
+  }, [currentQuestionId, questionHistory]);
+
+  const confirmSummary = useCallback(() => {
+    const result = calculateQuote(answers);
+    setQuoteDetails(result);
+    setPhase("result");
+
+    // Persist to database — fire-and-forget (does not block the UI).
+    void fetch("/api/submissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        answers,
+        quoteDetails: result,
+        sessionId: sessionId.current,
+      }),
+    }).catch((err) => console.error("[DB save failed]", err));
+  }, [answers]);
+
+  const restart = useCallback(() => {
+    setPhase("intro");
+    setAnswers({});
+    setQuestionHistory([FIRST_QUESTION_ID]);
+    setCurrentQuestionId(FIRST_QUESTION_ID);
+    setConversationMessages([]);
+    setQuoteDetails(null);
+  }, []);
+
+  return (
+    <QuoteContext.Provider
+      value={{
+        phase,
+        answers,
+        currentQuestionId,
+        conversationMessages,
+        quoteDetails,
+        progress,
+        canGoBack,
+        startConversation,
+        submitAnswer,
+        goBack,
+        confirmSummary,
+        restart,
+        addBrokerMessage,
+      }}
+    >
+      {children}
+    </QuoteContext.Provider>
+  );
+}

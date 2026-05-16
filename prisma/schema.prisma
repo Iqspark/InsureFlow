@@ -1,0 +1,81 @@
+// ============================================================
+// PRISMA SCHEMA — Vacant Home Insurance (Canada)
+// ============================================================
+// Database: SQLite (local dev) — change provider to "postgresql"
+//           and update DATABASE_URL in .env for production.
+//
+// After any schema change run:
+//   npx prisma migrate dev --name <description>
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Submission {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // ── Contact info ─────────────────────────────────────────
+  applicantName String?
+  contactEmail  String?
+  sessionId     String?
+
+  // ── Property location ────────────────────────────────────
+  province     String?
+  propertyType String?
+
+  // ── Property details ─────────────────────────────────────
+  yearBuilt     Int?
+  squareFootage Int?
+  propertyValue Float?
+
+  // ── Coverage choices ─────────────────────────────────────
+  coveragePercent String?
+  deductible      Float?
+
+  // ── Vacancy ──────────────────────────────────────────────
+  vacancyDuration String?
+  vacancyReason   String?
+
+  // ── Property management ──────────────────────────────────
+  inspectionFrequency String?
+  utilitiesWinterized String?
+  securityFeatures    String?
+
+  // ── Property features ────────────────────────────────────
+  hasPool    String?  // "yes" | "no"
+  poolFenced String?  // "yes" | "no"
+
+  // ── Loss history ─────────────────────────────────────────
+  priorDamage    String?  // "yes" | "no"
+  damageType     String?
+  priorClaims    String?  // "0" | "1" | "2" | "3+"
+  priorInsurance String?  // "yes" | "no"
+
+  // ── All raw answers (JSON) ───────────────────────────────
+  // Full answers blob for maximum query flexibility
+  allAnswers String // JSON — Record<string, Answer>
+
+  // ── Underwriting result ──────────────────────────────────
+  decision        String  // "accept" | "decline" | "refer"
+  annualPremium   Float?
+  monthlyPremium  Float?
+  coverageAmount  Float?
+  declineReasons  String? // JSON array of strings
+  referralReasons String? // JSON array of strings
+
+  // ── Indexes for analytics queries ───────────────────────
+  @@index([createdAt])
+  @@index([decision])
+  @@index([province])
+  @@index([contactEmail])
+  @@index([vacancyDuration])
+  @@index([propertyType])
+}
