@@ -59,7 +59,7 @@ jobs:
       - name: Build Next.js (standalone output)
         run: npm run build
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'file:./prisma/dev.db' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://user:pass@localhost:5432/db' }}
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'build-time-placeholder' }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'build-time-placeholder' }}

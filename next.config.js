@@ -10,7 +10,9 @@ const nextConfig = {
   // Keep Node.js-only packages out of the client/edge bundles.
   // pdfjs-dist must be listed too — pdf-parse uses it internally and its .mjs
   // file breaks webpack's module system if bundled.
-  serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  experimental: {
+    serverComponentsExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  },
 
   webpack: (config, { isServer }) => {
     if (!isServer) {
