@@ -106,7 +106,7 @@ jobs:
 
     environment:
       name: production
-      url: https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net
+      url: https://insureflow-demo.azurewebsites.net
 
     steps:
       - name: Download deployment artifact
@@ -125,4 +125,4 @@ jobs:
       - name: Deployment summary
         run: |
           echo "✅ Deployed successfully"
-          echo "🌐 URL: https://${{ secrets.AZURE_WEBAPP_NAME }}.azurewebsites.net"
+          echo "🌐 URL: https://insureflow-demo.azurewebsites.net"
