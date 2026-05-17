@@ -86,6 +86,9 @@ jobs:
           # Startup script
           cp startup.sh deploy/startup.sh
           chmod +x deploy/startup.sh
+          # Override the start script so Azure's default "npm start" runs startup.sh
+          # (Next.js copies root package.json to standalone which has "next start")
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('deploy/package.json','utf8')); p.scripts.start='bash startup.sh'; fs.writeFileSync('deploy/package.json',JSON.stringify(p,null,2))"
 
       - name: Upload deployment artifact
         uses: actions/upload-artifact@v4
@@ -122,7 +125,6 @@ jobs:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./deploy
-          startup-command: "bash startup.sh"
 
       - name: Deployment summary
         run: |
