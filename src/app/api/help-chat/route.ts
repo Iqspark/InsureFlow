@@ -26,8 +26,11 @@ async function loadKnowledgeBase(): Promise<string> {
       const filePath = path.join(knowledgeDir, file);
       try {
         if (file.toLowerCase().endsWith(".pdf")) {
-          // Dynamic import avoids top-level module init issues with pdf-parse
-          const { default: pdfParse } = await import("pdf-parse");
+          // pdf-parse ships CJS; .default may or may not exist depending on bundler
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const mod = await import("pdf-parse");
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const pdfParse = ((mod as any).default ?? mod) as (buf: Buffer) => Promise<{ text: string }>;
           const buffer = fs.readFileSync(filePath);
           const data = await pdfParse(buffer);
           return `### Source: ${file}\n\n${data.text}`;
