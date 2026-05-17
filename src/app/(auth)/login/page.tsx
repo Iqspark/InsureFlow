@@ -100,7 +100,7 @@ export default function LoginPage() {
             {[
               "Instant underwriting decisions in under 5 minutes",
               "13 provinces covered across Canada",
-              "6 vacant property policy types",
+              "6 insurance policy types available",
               "Full quote history and policy management",
               "Email confirmations sent automatically",
             ].map((f) => (
