@@ -153,7 +153,7 @@ export default function LoginPage() {
         {/* Form card — overlaps hero on mobile, elevated card on desktop */}
         <div className="
           bg-white rounded-t-3xl shadow-2xl shadow-slate-900/10
-          -mt-6 px-6 pt-7 pb-10 flex-1
+          -mt-6 px-6 pt-12 pb-10 flex-1
           lg:rounded-2xl lg:shadow-2xl lg:shadow-indigo-100/60 lg:border lg:border-slate-100
           lg:mt-0 lg:flex-none lg:w-full lg:max-w-sm lg:px-8 lg:py-10
         ">
