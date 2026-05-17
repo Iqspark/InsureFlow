@@ -91,7 +91,7 @@ export default function LoginPage() {
               <span className="text-indigo-400">Close faster.</span>
             </h1>
             <p className="text-slate-400 text-base leading-relaxed">
-              The broker portal built for vacant home insurance — instant decisions, no paperwork.
+              Manage quotes, bind policies, and serve your clients — all in one place.
             </p>
           </div>
 
