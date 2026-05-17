@@ -62,8 +62,8 @@ export default function LoginPage() {
 
   const stats = [
     { label: "Provinces", value: "13" },
-    { label: "Quote Time", value: "< 5 min" },
     { label: "Policies", value: "1,200+" },
+    { label: "Quote Time", value: "< 5 min" },
   ];
 
   return (
