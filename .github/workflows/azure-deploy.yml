@@ -64,9 +64,11 @@ jobs:
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'build-time-placeholder' }}
 
-      - name: Apply database schema
+      - name: Apply database schema and seed
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-        run: npx prisma db push --accept-data-loss
+        run: |
+          npx prisma db push --accept-data-loss
+          node prisma/seed.js
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
 
@@ -89,9 +91,6 @@ jobs:
           cp -r prisma/migrations deploy/prisma/migrations 2>/dev/null || true
           # Knowledge base documents for Help Navigator
           cp -r knowledge deploy/knowledge
-          # Generated Prisma client (prisma generate output — not included in standalone by default)
-          mkdir -p deploy/node_modules/.prisma
-          cp -r node_modules/.prisma/client deploy/node_modules/.prisma/client
           # Startup script
           cp startup.sh deploy/startup.sh
           chmod +x deploy/startup.sh
