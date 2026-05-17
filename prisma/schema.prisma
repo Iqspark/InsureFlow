@@ -1,8 +1,7 @@
 // ============================================================
 // PRISMA SCHEMA — Vacant Home Insurance (Canada)
 // ============================================================
-// Database: SQLite (local dev) — change provider to "postgresql"
-//           and update DATABASE_URL in .env for production.
+// Database: PostgreSQL (Neon). Update DATABASE_URL in .env for local dev.
 //
 // After any schema change run:
 //   npx prisma migrate dev --name <description>
@@ -13,7 +12,7 @@ generator client {
 }
 
 datasource db {
-  provider = env("DATABASE_PROVIDER")
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
