@@ -24,7 +24,7 @@ body {
 
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background: linear-gradient(135deg, #f8faff 0%, #eef2ff 50%, #f0fdf4 100%);
+  background: #f8faff;
   min-height: 100vh;
   color: #1e1b4b;
   /* Safe area padding for notched phones (iPhone X+, Android with cutouts) */
@@ -52,6 +52,16 @@ body {
     linear-gradient(rgba(30, 58, 138, 0.035) 1px, transparent 1px),
     linear-gradient(90deg, rgba(30, 58, 138, 0.035) 1px, transparent 1px);
   background-size: 44px 44px;
+}
+
+/* App-wide background — soft gradient used on all protected pages */
+.app-bg {
+  background-color: #f8faff;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(99, 102, 241, 0.08) 0%, transparent 60%),
+    linear-gradient(rgba(99, 102, 241, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.025) 1px, transparent 1px);
+  background-size: auto, 48px 48px, 48px 48px;
 }
 
 /* Quote shell height — fills the space between header and footer */

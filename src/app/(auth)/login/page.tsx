@@ -61,7 +61,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-slate-900">
+    <div className="min-h-screen flex bg-white">
       {/* Left panel — branding */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
         {/* Background pattern */}
@@ -116,28 +116,24 @@ export default function LoginPage() {
       </div>
 
       {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-slate-950 lg:bg-white">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
             <ShieldLogo />
-            <span className="text-white text-xl font-bold">InsureFlow</span>
+            <span className="text-slate-900 text-xl font-bold">InsureFlow</span>
           </div>
 
-          <div className="lg:text-slate-900">
-            <h2 className="text-2xl font-bold text-white lg:text-slate-900 mb-1">
-              Sign in
-            </h2>
-            <p className="text-sm text-slate-400 lg:text-slate-500 mb-8">
-              Enter your broker credentials to continue
-            </p>
-          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Sign in</h2>
+          <p className="text-sm text-slate-500 mb-8">
+            Enter your broker credentials to continue
+          </p>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label
                 htmlFor="email"
-                className="block text-xs font-medium text-slate-400 lg:text-slate-600 mb-1.5 uppercase tracking-wide"
+                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
               >
                 Email address
               </label>
@@ -149,14 +145,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="broker@example.com"
-                className="w-full px-4 py-3 rounded-xl bg-slate-800 lg:bg-slate-100 text-white lg:text-slate-900 placeholder-slate-500 lg:placeholder-slate-400 border border-slate-700 lg:border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition text-sm"
               />
             </div>
 
             <div>
               <label
                 htmlFor="password"
-                className="block text-xs font-medium text-slate-400 lg:text-slate-600 mb-1.5 uppercase tracking-wide"
+                className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide"
               >
                 Password
               </label>
@@ -168,14 +164,14 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl bg-slate-800 lg:bg-slate-100 text-white lg:text-slate-900 placeholder-slate-500 border border-slate-700 lg:border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition text-sm"
               />
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-500/10 border border-red-500/20">
+              <div className="flex items-center gap-2 p-3 rounded-xl bg-red-50 border border-red-200">
                 <svg
-                  className="w-4 h-4 text-red-400 shrink-0"
+                  className="w-4 h-4 text-red-500 shrink-0"
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -185,14 +181,14 @@ export default function LoginPage() {
                     clipRule="evenodd"
                   />
                 </svg>
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-600">{error}</p>
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm flex items-center justify-center gap-2"
+              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-indigo-100"
             >
               {loading ? (
                 <>
@@ -218,24 +214,24 @@ export default function LoginPage() {
                   Signing in…
                 </>
               ) : (
-                "Sign in"
+                "Sign in →"
               )}
             </button>
           </form>
 
-          <div className="mt-6 p-4 rounded-xl bg-slate-800/50 lg:bg-slate-50 border border-slate-700 lg:border-slate-200">
-            <p className="text-xs text-slate-400 lg:text-slate-500 font-medium mb-1">
+          <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+            <p className="text-xs text-indigo-700 font-semibold mb-1">
               Demo credentials
             </p>
-            <p className="text-xs text-slate-400 lg:text-slate-500">
+            <p className="text-xs text-slate-500">
               Email:{" "}
-              <span className="text-indigo-400 lg:text-indigo-600 font-mono">
+              <span className="text-indigo-600 font-mono">
                 broker@demo.com
               </span>
             </p>
-            <p className="text-xs text-slate-400 lg:text-slate-500">
+            <p className="text-xs text-slate-500">
               Password:{" "}
-              <span className="text-indigo-400 lg:text-indigo-600 font-mono">
+              <span className="text-indigo-600 font-mono">
                 Demo1234!
               </span>
             </p>
