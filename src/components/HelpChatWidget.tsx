@@ -63,7 +63,7 @@ export default function HelpChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-20 right-5 z-50 flex flex-col items-end gap-3">
+    <div className="fixed bottom-24 right-4 sm:bottom-20 sm:right-5 z-50 flex flex-col items-end gap-3">
       {/* ── Chat panel ──────────────────────────────────────────── */}
       <AnimatePresence>
         {open && (

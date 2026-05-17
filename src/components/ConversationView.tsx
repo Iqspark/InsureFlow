@@ -197,7 +197,7 @@ export default function ConversationView() {
 
         {/* Change-an-answer input — only shown once at least one question is answered */}
         {Object.keys(answers).length > 0 && (
-          <div className="mt-2 pt-2 border-t border-slate-100">
+          <div className="mt-2 pt-2 border-t border-slate-100 pr-20 sm:pr-0">
             <p className="text-[10px] text-slate-400 mb-1.5 px-0.5">Want to change a previous answer?</p>
             <div className="flex gap-2">
               <input
