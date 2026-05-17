@@ -63,7 +63,6 @@ export default function LoginPage() {
   const stats = [
     { label: "Provinces", value: "13" },
     { label: "Quote Time", value: "< 5 min" },
-    { label: "Quote Types", value: "6" },
     { label: "Policies", value: "1,200+" },
   ];
 
@@ -100,7 +99,7 @@ export default function LoginPage() {
             {[
               "Instant underwriting decisions in under 5 minutes",
               "13 provinces covered across Canada",
-              "6 insurance policy types available",
+              "Instant policy binding with email confirmation",
               "Full quote history and policy management",
               "Email confirmations sent automatically",
             ].map((f) => (
