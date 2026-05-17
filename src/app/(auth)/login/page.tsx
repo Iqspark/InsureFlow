@@ -71,54 +71,70 @@ export default function LoginPage() {
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
       {/* ── Desktop left panel (hidden on mobile) ─────────────── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
-        {/* Background pattern */}
-        <div
-          className="absolute inset-0 opacity-10"
-          style={{
-            backgroundImage:
-              "linear-gradient(rgba(99,102,241,0.4) 1px, transparent 1px), linear-gradient(90deg, rgba(99,102,241,0.4) 1px, transparent 1px)",
-            backgroundSize: "40px 40px",
-          }}
-        />
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <ShieldLogo />
-            <span className="text-white text-2xl font-bold tracking-tight">
-              InsureFlow
-            </span>
-          </div>
+        {/* Grid pattern */}
+        <div className="absolute inset-0 opacity-10 login-left-pattern" />
+        {/* Decorative glow orbs */}
+        <div className="absolute -top-24 -left-24 w-96 h-96 rounded-full bg-indigo-600/25 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-violet-600/20 blur-3xl pointer-events-none" />
+
+        {/* Logo */}
+        <div className="relative flex items-center gap-3">
+          <ShieldLogo />
+          <span className="text-white text-2xl font-bold tracking-tight">InsureFlow</span>
         </div>
-        <div className="relative">
-          <h1 className="text-4xl font-bold text-white leading-tight mb-4">
-            Your insurance
-            <br />
-            <span className="text-indigo-400">broker portal.</span>
-          </h1>
-          <p className="text-slate-400 text-lg leading-relaxed">
-            Manage quotes, track policies, and serve your clients — all in one
-            place.
-          </p>
-          <div className="mt-8 grid grid-cols-2 gap-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="bg-white/5 rounded-xl p-4 border border-white/10"
-              >
-                <p className="text-2xl font-bold text-indigo-400">
-                  {stat.value}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5">{stat.label}</p>
-              </div>
+
+        {/* Middle — headline + features */}
+        <div className="relative space-y-8">
+          <div>
+            <h1 className="text-5xl font-bold text-white leading-tight mb-4">
+              Quote smarter.<br />
+              <span className="text-indigo-400">Close faster.</span>
+            </h1>
+            <p className="text-slate-400 text-base leading-relaxed">
+              The broker portal built for vacant home insurance — instant decisions, no paperwork.
+            </p>
+          </div>
+
+          {/* Feature checklist */}
+          <ul className="space-y-3">
+            {[
+              "Instant underwriting decisions in under 5 minutes",
+              "13 provinces covered across Canada",
+              "6 vacant property policy types",
+              "Full quote history and policy management",
+              "Email confirmations sent automatically",
+            ].map((f) => (
+              <li key={f} className="flex items-start gap-3">
+                <span className="mt-0.5 w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-2.5 h-2.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 12 12">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 6l3 3 5-5" />
+                  </svg>
+                </span>
+                <span className="text-slate-300 text-sm leading-relaxed">{f}</span>
+              </li>
             ))}
+          </ul>
+
+          {/* Social proof */}
+          <div className="flex items-center gap-3 pt-2">
+            <div className="flex -space-x-2">
+              {(["bg-indigo-500","bg-violet-500","bg-cyan-500","bg-emerald-500"] as const).map((bg, i) => (
+                <div key={i} className={`w-7 h-7 rounded-full border-2 border-slate-800 flex items-center justify-center text-[10px] font-bold text-white ${bg}`}>
+                  {String.fromCharCode(65 + i)}
+                </div>
+              ))}
+            </div>
+            <p className="text-slate-400 text-xs">Trusted by brokers across Canada</p>
           </div>
         </div>
+
         <p className="relative text-xs text-slate-600">
           © {new Date().getFullYear()} InsureFlow. Broker use only.
         </p>
       </div>
 
       {/* ── Right side: mobile hero + form ─────────────────────── */}
-      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-12">
+      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-16 lg:bg-gradient-to-br lg:from-slate-50 lg:via-white lg:to-indigo-50/40">
 
         {/* Mobile hero banner — hidden on desktop */}
         <div className="lg:hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-8 pt-14 pb-24 text-center relative overflow-hidden">
@@ -144,14 +160,21 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Form card — overlaps hero on mobile, plain on desktop */}
+        {/* Form card — overlaps hero on mobile, elevated card on desktop */}
         <div className="
           bg-white rounded-t-3xl shadow-2xl shadow-slate-900/10
           -mt-8 px-6 pt-8 pb-10 flex-1
-          lg:rounded-xl lg:shadow-none lg:mt-0 lg:flex-none lg:max-w-sm lg:w-full lg:p-0
+          lg:rounded-2xl lg:shadow-2xl lg:shadow-indigo-100/60 lg:border lg:border-slate-100
+          lg:mt-0 lg:flex-none lg:w-full lg:max-w-sm lg:px-8 lg:py-10
         ">
+          {/* Desktop logo above form */}
+          <div className="hidden lg:flex items-center gap-2 mb-7">
+            <ShieldLogo />
+            <span className="text-slate-800 font-bold text-lg tracking-tight">InsureFlow</span>
+          </div>
+
           <h2 className="text-2xl font-bold text-slate-900 mb-1">Sign in</h2>
-          <p className="text-sm text-slate-500 mb-8">
+          <p className="text-sm text-slate-500 mb-7">
             Enter your broker credentials to continue
           </p>
 
@@ -261,6 +284,14 @@ export default function LoginPage() {
                 Demo1234!
               </span>
             </p>
+          </div>
+
+          {/* Security badge — desktop only */}
+          <div className="hidden lg:flex items-center justify-center gap-1.5 mt-6 text-slate-400">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span className="text-[11px]">256-bit encrypted · Broker use only</span>
           </div>
         </div>
       </div>
