@@ -54,6 +54,14 @@ body {
   background-size: 44px 44px;
 }
 
+/* Mobile login hero grid pattern */
+.login-hero-pattern {
+  background-image:
+    linear-gradient(rgba(255,255,255,0.3) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.3) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
 /* App-wide background — soft gradient used on all protected pages */
 .app-bg {
   background-color: #f8faff;

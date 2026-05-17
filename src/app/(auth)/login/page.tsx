@@ -60,9 +60,16 @@ export default function LoginPage() {
     }
   }
 
+  const stats = [
+    { label: "Provinces", value: "13" },
+    { label: "Quote Time", value: "< 5 min" },
+    { label: "Quote Types", value: "6" },
+    { label: "Policies", value: "1,200+" },
+  ];
+
   return (
-    <div className="min-h-screen flex bg-white">
-      {/* Left panel — branding */}
+    <div className="min-h-screen flex flex-col lg:flex-row bg-white">
+      {/* ── Desktop left panel (hidden on mobile) ─────────────── */}
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
         {/* Background pattern */}
         <div
@@ -92,12 +99,7 @@ export default function LoginPage() {
             place.
           </p>
           <div className="mt-8 grid grid-cols-2 gap-4">
-            {[
-              { label: "Policies Managed", value: "1,200+" },
-              { label: "Quote Types", value: "6" },
-              { label: "Provinces Covered", value: "13" },
-              { label: "Avg. Quote Time", value: "< 5 min" },
-            ].map((stat) => (
+            {stats.map((stat) => (
               <div
                 key={stat.label}
                 className="bg-white/5 rounded-xl p-4 border border-white/10"
@@ -115,15 +117,39 @@ export default function LoginPage() {
         </p>
       </div>
 
-      {/* Right panel — form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-12 bg-white">
-        <div className="w-full max-w-sm">
-          {/* Mobile logo */}
-          <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <ShieldLogo />
-            <span className="text-slate-900 text-xl font-bold">InsureFlow</span>
-          </div>
+      {/* ── Right side: mobile hero + form ─────────────────────── */}
+      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-12">
 
+        {/* Mobile hero banner — hidden on desktop */}
+        <div className="lg:hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-8 pt-14 pb-24 text-center relative overflow-hidden">
+          <div className="absolute inset-0 opacity-10 login-hero-pattern" />
+          <div className="relative">
+            <div className="flex justify-center mb-3">
+              <ShieldLogo />
+            </div>
+            <h1 className="text-3xl font-bold text-white tracking-tight mb-1">
+              InsureFlow
+            </h1>
+            <p className="text-indigo-200 text-sm">
+              Your insurance broker portal
+            </p>
+            <div className="mt-6 grid grid-cols-4 gap-2 max-w-xs mx-auto">
+              {stats.map((stat) => (
+                <div key={stat.label} className="bg-white/10 rounded-xl p-2.5 border border-white/10">
+                  <p className="text-lg font-bold text-white leading-none">{stat.value}</p>
+                  <p className="text-[9px] text-indigo-200 mt-0.5 leading-tight">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Form card — overlaps hero on mobile, plain on desktop */}
+        <div className="
+          bg-white rounded-t-3xl shadow-2xl shadow-slate-900/10
+          -mt-8 px-6 pt-8 pb-10 flex-1
+          lg:rounded-xl lg:shadow-none lg:mt-0 lg:flex-none lg:max-w-sm lg:w-full lg:p-0
+        ">
           <h2 className="text-2xl font-bold text-slate-900 mb-1">Sign in</h2>
           <p className="text-sm text-slate-500 mb-8">
             Enter your broker credentials to continue
