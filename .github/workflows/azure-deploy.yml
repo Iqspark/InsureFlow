@@ -79,12 +79,21 @@ jobs:
           mkdir -p deploy
           # Core Next.js standalone server
           cp -r .next/standalone/. deploy/
+          # Copy .next build artifacts that standalone server requires at runtime
+          mkdir -p deploy/.next
+          cp .next/BUILD_ID deploy/.next/
+          for f in build-manifest.json routes-manifest.json react-loadable-manifest.json \
+                   app-build-manifest.json app-path-routes-manifest.json \
+                   next-minimal-server.js.nft.json; do
+            [ -f ".next/$f" ] && cp ".next/$f" "deploy/.next/$f" || true
+          done
+          [ -d .next/server ] && cp -r .next/server deploy/.next/server
           # Static assets (CSS, JS chunks, images)
           mkdir -p deploy/.next/static
           cp -r .next/static/. deploy/.next/static/
           # Public folder (PWA manifest, icons, robots.txt, etc.)
           cp -r public/. deploy/public/
-          # Prisma schema + migrations (needed for prisma migrate deploy on startup)
+          # Prisma schema + migrations
           mkdir -p deploy/prisma
           cp prisma/schema.prisma deploy/prisma/
           cp prisma/seed.js deploy/prisma/
@@ -95,7 +104,6 @@ jobs:
           cp startup.sh deploy/startup.sh
           chmod +x deploy/startup.sh
           # Override the start script so Azure's default "npm start" runs startup.sh
-          # (Next.js copies root package.json to standalone which has "next start")
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('deploy/package.json','utf8')); p.scripts.start='bash startup.sh'; fs.writeFileSync('deploy/package.json',JSON.stringify(p,null,2))"
 
       - name: Upload deployment artifact
