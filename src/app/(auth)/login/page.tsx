@@ -135,24 +135,17 @@ export default function LoginPage() {
       <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-16 lg:bg-gradient-to-br lg:from-slate-50 lg:via-white lg:to-indigo-50/40">
 
         {/* Mobile hero banner — hidden on desktop */}
-        <div className="lg:hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-8 pt-14 pb-24 text-center relative overflow-hidden">
+        <div className="lg:hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-8 pt-10 pb-16 text-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 login-hero-pattern" />
-          <div className="relative">
-            <div className="flex justify-center mb-3">
-              <ShieldLogo />
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight mb-1">
-              InsureFlow
-            </h1>
-            <p className="text-indigo-200 text-sm">
-              Your insurance broker portal
-            </p>
-            <div className="mt-6 grid grid-cols-4 gap-2 max-w-xs mx-auto">
+          <div className="relative flex flex-col items-center gap-2">
+            <ShieldLogo />
+            <h1 className="text-2xl font-bold text-white tracking-tight">InsureFlow</h1>
+            <p className="text-indigo-200 text-sm">Your insurance broker portal</p>
+            <div className="flex items-center gap-2 mt-2 flex-wrap justify-center">
               {stats.map((stat) => (
-                <div key={stat.label} className="bg-white/10 rounded-xl p-2.5 border border-white/10">
-                  <p className="text-lg font-bold text-white leading-none">{stat.value}</p>
-                  <p className="text-[9px] text-indigo-200 mt-0.5 leading-tight">{stat.label}</p>
-                </div>
+                <span key={stat.label} className="text-xs text-indigo-100 bg-white/10 rounded-full px-3 py-1 border border-white/10">
+                  <strong>{stat.value}</strong> {stat.label}
+                </span>
               ))}
             </div>
           </div>
@@ -161,7 +154,7 @@ export default function LoginPage() {
         {/* Form card — overlaps hero on mobile, elevated card on desktop */}
         <div className="
           bg-white rounded-t-3xl shadow-2xl shadow-slate-900/10
-          -mt-8 px-6 pt-8 pb-10 flex-1
+          -mt-6 px-6 pt-7 pb-10 flex-1
           lg:rounded-2xl lg:shadow-2xl lg:shadow-indigo-100/60 lg:border lg:border-slate-100
           lg:mt-0 lg:flex-none lg:w-full lg:max-w-sm lg:px-8 lg:py-10
         ">
