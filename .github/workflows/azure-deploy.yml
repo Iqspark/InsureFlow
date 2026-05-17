@@ -87,7 +87,6 @@ jobs:
                    next-minimal-server.js.nft.json; do
             [ -f ".next/$f" ] && cp ".next/$f" "deploy/.next/$f" || true
           done
-          [ -d .next/server ] && cp -r .next/server deploy/.next/server
           # Static assets (CSS, JS chunks, images)
           mkdir -p deploy/.next/static
           cp -r .next/static/. deploy/.next/static/
