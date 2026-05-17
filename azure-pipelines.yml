@@ -26,7 +26,7 @@ pool:
   vmImage: ubuntu-latest
 
 variables:
-  nodeVersion: "20.x"
+  nodeVersion: "22.x"
   isPR: $[eq(variables['Build.Reason'], 'PullRequest')]
 
 stages:

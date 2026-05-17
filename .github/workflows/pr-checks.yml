@@ -11,7 +11,8 @@ on:
     types: [opened, synchronize, reopened]
 
 env:
-  NODE_VERSION: "20.x"
+  NODE_VERSION: "22.x"
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   lint-and-typecheck:
@@ -61,7 +62,7 @@ jobs:
       - name: Next.js build
         run: npm run build
         env:
-          DATABASE_URL: "file:./prisma/dev.db"
+          DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
 
       - name: Verify build output
         run: |
