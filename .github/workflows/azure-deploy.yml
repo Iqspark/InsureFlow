@@ -105,11 +105,22 @@ jobs:
           # Override the start script so Azure's default "npm start" runs startup.sh
           node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('deploy/package.json','utf8')); p.scripts.start='bash startup.sh'; fs.writeFileSync('deploy/package.json',JSON.stringify(p,null,2))"
 
+      - name: Verify BUILD_ID is present
+        run: |
+          echo "--- deploy/.next contents ---"
+          ls -la deploy/.next/
+          echo "--- BUILD_ID value ---"
+          cat deploy/.next/BUILD_ID
+          echo "--- ✅ BUILD_ID confirmed ---"
+
+      - name: Create deployment zip
+        run: cd deploy && zip -r ../deploy.zip .
+
       - name: Upload deployment artifact
         uses: actions/upload-artifact@v4
         with:
           name: nextjs-standalone
-          path: deploy/
+          path: deploy.zip
           retention-days: 1
 
   # ─────────────────────────────────────────────────────────────
@@ -132,14 +143,14 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: nextjs-standalone
-          path: ./deploy
+          path: .
 
       - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: ./deploy
+          package: ./deploy.zip
 
       - name: Deployment summary
         run: |
