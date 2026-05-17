@@ -64,6 +64,12 @@ jobs:
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'build-time-placeholder' }}
 
+      - name: Apply database schema
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: npx prisma db push --accept-data-loss
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
       # Assemble the deployment package from the standalone output.
       # standalone/ already contains a trimmed node_modules — no npm install needed on Azure.
       - name: Assemble deployment package
