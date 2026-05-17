@@ -25,7 +25,8 @@ This guide walks you through the complete process:
 12. [Environment Promotion (Dev → Staging → Prod)](#environment-promotion-dev--staging--prod)
 13. [Rollback](#rollback)
 14. [Cost Estimate](#cost-estimate)
-15. [Troubleshooting](#troubleshooting)
+15. [Demo Day — Scale Up for One Day](#demo-day--scale-up-for-one-day)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -163,7 +164,7 @@ az webapp create \
   --name $WEBAPP_NAME \
   --resource-group $RESOURCE_GROUP \
   --plan $APP_SERVICE_PLAN \
-  --runtime "NODE:20-lts"
+  --runtime "NODE:22-lts"
 ```
 
 ### 2e. Configure startup command
@@ -524,16 +525,67 @@ az postgres flexible-server restore \
 
 ## Cost Estimate
 
-Monthly cost for a production deployment (Canada Central):
+### Zero-cost setup (recommended for demos)
 
-| Resource | SKU | Estimated CAD/month |
+| Resource | SKU | Cost |
 |---|---|---|
-| App Service | B1 (dev) / P1v3 (prod) | $13 – $75 |
-| PostgreSQL Flexible Server | Standard_B1ms | $16 |
+| App Service | F1 (Free) | $0 |
+| Database | Neon free tier (PostgreSQL) | $0 |
+| **Total** | | **$0 / month** |
+
+**Trade-off:** On F1, the app sleeps after ~20 min of inactivity. The first request after sleep takes 10–30 seconds to wake up. Fine for development and low-traffic use.
+
+**Database:** Sign up at [neon.tech](https://neon.tech), create a project, and use the provided connection string as `DATABASE_URL`. No credit card required.
+
+To provision on F1, use `--sku F1` instead of `--sku B1` in Step 2c.
+
+### Monthly cost for always-on production
+
+| Resource | SKU | Estimated USD/month |
+|---|---|---|
+| App Service | B1 | ~$13 |
+| App Service | P1v3 (high traffic) | ~$75 |
+| Database | Neon free tier | $0 |
 | Bandwidth | First 5 GB free | $0 – $5 |
-| **Total** | | **~$29 – $96 / month** |
+| **Total (B1)** | | **~$13 / month** |
 
 Use the [Azure Pricing Calculator](https://azure.microsoft.com/en-ca/pricing/calculator/) to model your specific usage.
+
+---
+
+## Demo Day — Scale Up for One Day
+
+Azure bills by the hour, so you can run on the free F1 tier normally and temporarily scale up to B1 only for your demo. B1 costs ~$0.018/hour — a full demo day costs under $0.50.
+
+### Scale up the night before your demo
+
+```bash
+az appservice plan update \
+  --name plan-vhi-prod \
+  --resource-group rg-vhi-quote-prod \
+  --sku B1
+```
+
+This takes ~2 minutes and has zero downtime. The app will no longer sleep and cold starts are eliminated.
+
+### Scale back down after the demo
+
+```bash
+az appservice plan update \
+  --name plan-vhi-prod \
+  --resource-group rg-vhi-quote-prod \
+  --sku F1
+```
+
+### Cost breakdown
+
+| Duration | Approximate cost |
+|---|---|
+| 8 hours (demo session only) | ~$0.15 |
+| 24 hours (full demo day) | ~$0.43 |
+| 48 hours (day before + demo day) | ~$0.86 |
+
+The database (Neon free tier) requires no changes — it handles both scenarios.
 
 ---
 
