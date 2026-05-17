@@ -61,7 +61,7 @@ jobs:
       - name: Next.js build
         run: npm run build
         env:
-          DATABASE_URL: "file:./prisma/submissions.db"
+          DATABASE_URL: "file:./prisma/dev.db"
 
       - name: Verify build output
         run: |

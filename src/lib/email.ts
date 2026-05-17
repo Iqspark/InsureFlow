@@ -1,0 +1,217 @@
+import nodemailer from "nodemailer";
+
+// ── Transporter ───────────────────────────────────────────────
+// Uses real SMTP when SMTP_USER + SMTP_PASS are set.
+// Falls back to a free Ethereal test account otherwise —
+// no configuration needed; you get a browser preview URL back.
+
+async function buildTransporter(): Promise<{
+  transport: nodemailer.Transporter;
+  isTest: boolean;
+}> {
+  if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    return {
+      transport: nodemailer.createTransport({
+        host:   process.env.SMTP_HOST ?? "smtp.gmail.com",
+        port:   parseInt(process.env.SMTP_PORT ?? "587"),
+        secure: false,
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS,
+        },
+      }),
+      isTest: false,
+    };
+  }
+
+  // Auto-create a free Ethereal test account
+  const testAccount = await nodemailer.createTestAccount();
+  return {
+    transport: nodemailer.createTransport({
+      host:   "smtp.ethereal.email",
+      port:   587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass,
+      },
+    }),
+    isTest: true,
+  };
+}
+
+// ── Types ────────────────────────────────────────────────────
+export interface PolicyEmailData {
+  to:              string;
+  applicantName:   string;
+  appId:           string;
+  policyType:      string;
+  province:        string;
+  annualPremium:   number;
+  monthlyPremium:  number;
+  coverageAmount:  number;
+  deductible:      number;
+  brokerName:      string;
+  brokerEmail:     string;
+}
+
+export interface SendResult {
+  sentTo:      string;
+  previewUrl?: string; // set when using Ethereal test mode
+}
+
+// ── HTML template ─────────────────────────────────────────────
+function buildHtml(d: PolicyEmailData): string {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", {
+      style: "currency",
+      currency: "CAD",
+      maximumFractionDigits: 0,
+    }).format(n);
+
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">${label}</td>
+      <td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${value}</td>
+    </tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <!-- Header -->
+    <tr>
+      <td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center">
+        <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px">InsureFlow</p>
+        <p style="margin:6px 0 0;font-size:13px;color:#a5b4fc">Broker Portal · Policy Confirmation</p>
+      </td>
+    </tr>
+
+    <!-- Success banner -->
+    <tr>
+      <td style="background:#ffffff;padding:36px 32px 20px;text-align:center">
+        <div style="display:inline-block;width:72px;height:72px;background:#d1fae5;border-radius:50%;line-height:72px;font-size:34px;margin-bottom:20px">✓</div>
+        <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0f172a">Your Policy is Confirmed!</h1>
+        <p style="margin:0;font-size:14px;color:#64748b">
+          Dear ${d.applicantName}, your <strong>${d.policyType}</strong> policy has been successfully issued.
+        </p>
+      </td>
+    </tr>
+
+    <!-- App ID pill -->
+    <tr>
+      <td style="background:#ffffff;padding:0 32px 24px;text-align:center">
+        <div style="display:inline-block;background:#f0f4ff;border:1px solid #c7d2fe;border-radius:8px;padding:10px 20px">
+          <span style="font-size:11px;color:#6366f1;font-weight:600;text-transform:uppercase;letter-spacing:1px">Application ID</span><br>
+          <span style="font-size:18px;font-weight:700;color:#4f46e5;font-family:monospace,monospace">${d.appId}</span>
+        </div>
+      </td>
+    </tr>
+
+    <!-- Premium highlight -->
+    <tr>
+      <td style="background:#ffffff;padding:0 32px 28px">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+          <tr>
+            <td style="padding:16px;text-align:center;border-right:1px solid #e2e8f0;width:50%">
+              <p style="margin:0 0 4px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Monthly Premium</p>
+              <p style="margin:0;font-size:26px;font-weight:700;color:#4f46e5">${fmt(d.monthlyPremium)}</p>
+              <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">CAD / month</p>
+            </td>
+            <td style="padding:16px;text-align:center;width:50%">
+              <p style="margin:0 0 4px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Annual Premium</p>
+              <p style="margin:0;font-size:26px;font-weight:700;color:#0f172a">${fmt(d.annualPremium)}</p>
+              <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">CAD / year</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Policy details table -->
+    <tr>
+      <td style="background:#ffffff;padding:0 32px 28px">
+        <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Policy Details</p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+          ${row("Policy Type",       d.policyType)}
+          ${row("Province",          d.province)}
+          ${row("Coverage Amount",   fmt(d.coverageAmount))}
+          ${row("Deductible",        fmt(d.deductible))}
+          ${row("Policy Term",       "12 months")}
+        </table>
+      </td>
+    </tr>
+
+    <!-- Next steps -->
+    <tr>
+      <td style="padding:0 32px 28px;background:#ffffff">
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff7ed;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:16px 20px">
+          <tr>
+            <td style="font-size:13px;color:#92400e">
+              <strong>What happens next?</strong><br><br>
+              Your assigned broker <strong>${d.brokerName}</strong> will contact you at
+              <a href="mailto:${d.to}" style="color:#b45309">${d.to}</a> within 1 business day
+              to finalise your policy documents and payment details.
+              You can also reach them at <a href="mailto:${d.brokerEmail}" style="color:#b45309">${d.brokerEmail}</a>.
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+
+    <!-- Footer -->
+    <tr>
+      <td style="background:#0f172a;border-radius:0 0 12px 12px;padding:24px 32px;text-align:center">
+        <p style="margin:0 0 4px;font-size:13px;font-weight:600;color:#e2e8f0">InsureFlow Broker Portal</p>
+        <p style="margin:0;font-size:11px;color:#475569">
+          This is an automated confirmation. Please do not reply to this email.<br>
+          © ${new Date().getFullYear()} InsureFlow. All rights reserved.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ── Public API ────────────────────────────────────────────────
+export async function sendPolicyConfirmationEmail(
+  data: PolicyEmailData
+): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      data.to,
+    subject: `Policy Confirmed — ${data.policyType} (${data.appId})`,
+    html:    buildHtml(data),
+    text: [
+      `Policy Confirmed — InsureFlow`,
+      ``,
+      `Dear ${data.applicantName},`,
+      `Your ${data.policyType} policy has been confirmed.`,
+      ``,
+      `Application ID : ${data.appId}`,
+      `Monthly Premium: ${new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(data.monthlyPremium)}`,
+      `Annual Premium : ${new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(data.annualPremium)}`,
+      `Coverage       : ${new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(data.coverageAmount)}`,
+      `Deductible     : ${new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(data.deductible)}`,
+      ``,
+      `Your broker ${data.brokerName} (${data.brokerEmail}) will contact you shortly.`,
+      ``,
+      `— InsureFlow`,
+    ].join("\n"),
+  });
+
+  const previewUrl = isTest
+    ? (nodemailer.getTestMessageUrl(info) || undefined)
+    : undefined;
+
+  if (previewUrl) {
+    // Log to server console so developer can open it during demos
+    console.log(`\n📧 [Ethereal] Preview email at: ${previewUrl}\n`);
+  }
+
+  return { sentTo: data.to, previewUrl };
+}

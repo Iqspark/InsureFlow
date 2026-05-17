@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/rotate-session.js",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -10,19 +11,33 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:seed": "node prisma/seed.js"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.96.0",
+    "@ducanh2912/next-pwa": "^10.2.9",
     "@prisma/client": "5.22.0",
+    "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "framer-motion": "^11.3.8",
     "next": "^14.2.30",
+    "next-auth": "^4.24.14",
+    "nodemailer": "^7.0.13",
+    "openai": "^6.38.0",
+    "pdf-parse": "^2.4.5",
     "prisma": "5.22.0",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
+    "@types/nodemailer": "^8.0.0",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",

@@ -4,6 +4,53 @@ A one-page cheat sheet for the most common tasks. Keep this open when editing th
 
 ---
 
+## Demo Login Credentials
+
+```
+URL:      http://localhost:3000
+Email:    broker@demo.com
+Password: Demo1234!
+```
+
+Run `npm run db:seed` to create this account if it doesn't exist.
+
+---
+
+## Required Environment Variables
+
+| Variable | Required | Description |
+|---|---|---|
+| `DATABASE_URL` | Yes | `"file:./prisma/dev.db"` for local dev |
+| `NEXTAUTH_SECRET` | Yes | Any long random string (32+ chars) |
+| `NEXTAUTH_URL` | Yes | `"http://localhost:3000"` for local dev |
+| `OPENAI_API_KEY` | Yes | Powers Help Navigator + change-answer AI |
+| `SMTP_HOST` | Optional | SMTP server (e.g. `smtp.gmail.com`) |
+| `SMTP_PORT` | Optional | SMTP port (e.g. `587`) |
+| `SMTP_USER` | Optional | SMTP login email |
+| `SMTP_PASS` | Optional | SMTP password or App Password |
+| `SMTP_FROM` | Optional | Sender display name + address |
+
+> **Email fallback:** If SMTP vars are absent, the app uses Ethereal (free test inbox). A preview URL is returned by the API and shown in the UI.
+
+---
+
+## Knowledge Base — Help Navigator Documents
+
+Drop `.md` or `.txt` files here and they are read automatically on each API call (no restart needed):
+
+```
+knowledge/
+  general-faq.md   ← already exists (sample FAQ)
+  your-faq.md      ← add your own files here
+```
+
+**Full path (this machine):**
+```
+c:\Users\gurin\OneDrive\Desktop\Ai_Agent\FormBuilder\knowledge\
+```
+
+---
+
 ## Adding a New Question
 
 1. Open `src/data/questions.ts`
@@ -92,7 +139,7 @@ defaultNextQuestionId: "default_if_no_branch_matches",
 
 ```
 Premium = $500 (base)
-  × state_factor
+  × province_factor
   × vacancy_duration_factor
   × property_type_factor
   × property_value_factor
@@ -114,11 +161,13 @@ Handlers live in `src/engine/quoteCalculator.ts`.
 
 | Outcome | When | Screen |
 |---|---|---|
-| **Accept** | No UW rules triggered | Premium breakdown + Buy button |
+| **Accept** | No UW rules triggered | Premium breakdown + Buy This Policy button |
 | **Decline** | Any `decision: "decline"` rule fires | Polite rejection + reason(s) |
 | **Refer** | Only `decision: "refer"` rules fire | "Specialist will call" + next steps |
 
 Decline always beats Refer if both are triggered.
+
+When a broker clicks **Buy This Policy**, a confirmation email is sent (Ethereal preview in dev, real SMTP in production) and a full-screen confirmation card replaces the quote result.
 
 ---
 
@@ -148,9 +197,12 @@ Set the last question's `defaultNextQuestionId` to `"__SUBMIT__"`:
 ## Running the App
 
 ```bash
-npm run dev      # Development — http://localhost:3000
-npm run build    # Production build (checks for errors)
-npm start        # Run the production build
+npm run dev        # Development — http://localhost:3000
+npm run db:seed    # Create demo broker account (broker@demo.com / Demo1234!)
+npm run build      # Production build (checks for errors)
+npm start          # Run the production build
+npx prisma studio  # Visual database browser at http://localhost:5555
+npx prisma generate  # Regenerate Prisma client after schema changes
 ```
 
 ---
@@ -168,9 +220,18 @@ npm start        # Run the production build
 | Typing delay (ms) | `src/components/ConversationView.tsx` → `TYPING_DELAY_MS` |
 | Progress bar | `src/components/ProgressBar.tsx` |
 | Summary screen | `src/components/SummaryScreen.tsx` |
-| Result screens | `src/components/QuoteResult.tsx` |
+| Result screens (Accept/Decline/Refer) | `src/components/QuoteResult.tsx` |
+| Buy This Policy email flow | `src/app/api/buy-policy/route.ts` |
 | Broker avatar / name ("Alex") | `src/components/ConversationView.tsx`, `ChatBubble.tsx` |
 | App colours | `tailwind.config.ts` + inline Tailwind classes |
 | Welcome screen | `src/components/IntroScreen.tsx` |
 | Page-level layout | `src/app/page.tsx` |
 | Fonts / metadata | `src/app/layout.tsx` |
+| Help Navigator FAQ documents | `knowledge/` folder (drop `.md` or `.txt` files) |
+| Help Navigator chat widget | `src/components/HelpChatWidget.tsx` |
+| Help Navigator API | `src/app/api/help-chat/route.ts` |
+| Change-answer AI feature | `src/app/api/chat-intent/route.ts` |
+| Authentication config | `src/lib/auth.ts` |
+| Email sending | `src/lib/email.ts` |
+| Database schema | `prisma/schema.prisma` |
+| Demo broker account | `prisma/seed.js` |

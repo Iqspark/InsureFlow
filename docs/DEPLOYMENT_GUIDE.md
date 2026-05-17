@@ -308,7 +308,7 @@ Copy the entire XML output as the secret value.
 
 ## Step 5 — Set App Service Environment Variables
 
-The App Service needs the `DATABASE_URL` at runtime (for `prisma migrate deploy` and the API routes). Set it via CLI:
+The App Service needs all runtime environment variables. Set them via CLI:
 
 ```bash
 az webapp config appsettings set \
@@ -316,11 +316,36 @@ az webapp config appsettings set \
   --resource-group $RESOURCE_GROUP \
   --settings \
     DATABASE_URL="postgresql://vhiadmin:YourStr0ngP@ssword!@pg-vhi-prod.postgres.database.azure.com:5432/vhi_submissions?sslmode=require" \
+    NEXTAUTH_SECRET="generate-a-strong-32+-char-random-string" \
+    NEXTAUTH_URL="https://your-app.azurewebsites.net" \
+    OPENAI_API_KEY="sk-proj-..." \
     NODE_ENV="production" \
     WEBSITES_PORT="3000"
 ```
 
 Or via Portal: App Service → **Configuration** → **Application settings** → **+ New application setting**.
+
+### Full list of required environment variables
+
+| Variable | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | PostgreSQL connection string |
+| `NEXTAUTH_SECRET` | Yes | Run `openssl rand -base64 32` to generate |
+| `NEXTAUTH_URL` | Yes | Full public URL of the app (e.g. `https://vhi-quote-app.azurewebsites.net`) |
+| `OPENAI_API_KEY` | Yes | Needed for Help Navigator + change-answer AI |
+| `SMTP_HOST` | Optional | For real email (Gmail: `smtp.gmail.com`) |
+| `SMTP_PORT` | Optional | Usually `587` |
+| `SMTP_USER` | Optional | SMTP login email |
+| `SMTP_PASS` | Optional | App Password (Gmail) or SMTP password |
+| `SMTP_FROM` | Optional | Display name + address: `"InsureFlow <noreply@yourapp.com>"` |
+
+> **Email in production:** If SMTP vars are not set, the app falls back to Ethereal (test mode). Set all five SMTP vars to send real confirmation emails.
+
+### knowledge/ folder in production
+
+The Help Navigator reads `.md` and `.txt` files from the `knowledge/` folder at runtime. This folder must be present in the deployed package. It is included automatically by the build process as long as it exists in the repository.
+
+If you add or update FAQ documents after deployment, you must redeploy (push to `main`) for changes to take effect on Azure.
 
 ---
 

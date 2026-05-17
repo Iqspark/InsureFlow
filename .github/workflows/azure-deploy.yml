@@ -1,15 +1,19 @@
 # ============================================================
-# CI/CD Pipeline — Vacant Home Insurance Quote App
+# CI/CD Pipeline — InsureFlow Broker Portal
 # Platform: GitHub Actions → Azure App Service
 # ============================================================
 #
-# REQUIRED GITHUB SECRETS (Settings → Secrets → Actions):
-#   AZURE_WEBAPP_NAME          The App Service name (e.g. "vhi-quote-app")
-#   AZURE_WEBAPP_PUBLISH_PROFILE  Download from Azure Portal → App Service → Get publish profile
-#   DATABASE_URL               Production PostgreSQL connection string
+# REQUIRED GITHUB SECRETS (Settings → Secrets and variables → Actions):
 #
-# OPTIONAL (for PR comment with build status):
-#   GITHUB_TOKEN               Automatically available — no setup needed
+#   AZURE_WEBAPP_NAME            App Service name (e.g. "insureflow-demo")
+#   AZURE_WEBAPP_PUBLISH_PROFILE Download from Azure Portal → App Service → Get publish profile
+#   DATABASE_URL                 PostgreSQL connection string (see DEPLOYMENT_GUIDE.md)
+#   NEXTAUTH_SECRET              Random 32+ char string — run: openssl rand -base64 32
+#   NEXTAUTH_URL                 Full app URL e.g. https://insureflow-demo.azurewebsites.net
+#   OPENAI_API_KEY               OpenAI key for Help Navigator + change-answer features
+#
+# OPTIONAL SECRETS (email sending — leave out to use Ethereal test mode):
+#   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM
 # ============================================================
 
 name: CI / Deploy to Azure
@@ -54,24 +58,30 @@ jobs:
       - name: Build Next.js (standalone output)
         run: npm run build
         env:
-          # Build-time DATABASE_URL — only needed if you use Prisma at build time.
-          # For runtime-only usage (API routes), this can be a placeholder.
-          DATABASE_URL: ${{ secrets.DATABASE_URL || 'file:./prisma/submissions.db' }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'file:./prisma/dev.db' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'build-time-placeholder' }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'build-time-placeholder' }}
 
       # Assemble the deployment package from the standalone output.
-      # standalone/ already contains a trimmed node_modules — no install needed on Azure.
+      # standalone/ already contains a trimmed node_modules — no npm install needed on Azure.
       - name: Assemble deployment package
         run: |
           mkdir -p deploy
-          # Core server files
+          # Core Next.js standalone server
           cp -r .next/standalone/. deploy/
           # Static assets (CSS, JS chunks, images)
           mkdir -p deploy/.next/static
           cp -r .next/static/. deploy/.next/static/
-          # Public folder (favicon, robots.txt, etc.)
+          # Public folder (PWA manifest, icons, robots.txt, etc.)
           cp -r public/. deploy/public/
-          # Prisma schema + migrations (needed for migrate deploy on startup)
-          cp -r prisma deploy/prisma
+          # Prisma schema + migrations (needed for prisma migrate deploy on startup)
+          mkdir -p deploy/prisma
+          cp prisma/schema.prisma deploy/prisma/
+          cp prisma/seed.js deploy/prisma/
+          cp -r prisma/migrations deploy/prisma/migrations 2>/dev/null || true
+          # Knowledge base documents for Help Navigator
+          cp -r knowledge deploy/knowledge
           # Startup script
           cp startup.sh deploy/startup.sh
           chmod +x deploy/startup.sh

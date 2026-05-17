@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Answer, QuoteDetails } from "@/types";
 
@@ -22,6 +24,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Attach the authenticated broker to the submission
+    const authSession = await getServerSession(authOptions);
+    const brokerId    = authSession?.user?.id ?? null;
+
     const get = (id: string) => answers[id]?.value;
     const getString = (id: string) => String(get(id) ?? "");
     const getNumber = (id: string) => {
@@ -31,6 +37,8 @@ export async function POST(req: NextRequest) {
 
     const submission = await prisma.submission.create({
       data: {
+        brokerId:  brokerId,
+        policyType: "Vacant Home Insurance",
         sessionId: sessionId ?? null,
 
         // Contact

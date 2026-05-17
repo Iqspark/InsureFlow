@@ -13,14 +13,36 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = env("DATABASE_PROVIDER")
   url      = env("DATABASE_URL")
 }
 
+// ── Broker (authenticated users) ────────────────────────────
+model Broker {
+  id         String       @id @default(cuid())
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  name       String
+  email      String       @unique
+  password   String       // bcrypt hash
+  licenseId  String?
+
+  submissions Submission[]
+
+  @@index([email])
+}
+
+// ── Submission (quote / policy) ──────────────────────────────
 model Submission {
   id        String   @id @default(cuid())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // ── Broker who created this quote ────────────────────────
+  brokerId   String?
+  broker     Broker?  @relation(fields: [brokerId], references: [id])
+  policyType String   @default("Vacant Home Insurance")
 
   // ── Contact info ─────────────────────────────────────────
   applicantName String?
@@ -60,7 +82,6 @@ model Submission {
   priorInsurance String?  // "yes" | "no"
 
   // ── All raw answers (JSON) ───────────────────────────────
-  // Full answers blob for maximum query flexibility
   allAnswers String // JSON — Record<string, Answer>
 
   // ── Underwriting result ──────────────────────────────────
@@ -78,4 +99,5 @@ model Submission {
   @@index([contactEmail])
   @@index([vacancyDuration])
   @@index([propertyType])
+  @@index([brokerId])
 }

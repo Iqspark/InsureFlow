@@ -65,6 +65,10 @@ export interface Question {
   max?: number;
   prefix?: string;                      // e.g. "$"
   suffix?: string;                      // e.g. "sq ft"
+  inputType?: "email" | "name" | "text"; // Drives validation mode for text questions
+  minLength?: number;
+  maxLength?: number;
+  mustBeInteger?: boolean;              // For number questions: reject decimals
 }
 
 // ──────────────────────────────────────────────────────────

@@ -1,6 +1,6 @@
 # Database Guide
 
-This document explains how form submissions are saved, how to query the data, how to run analytics, and how to migrate from the local SQLite database to a production PostgreSQL database.
+This document explains how the authentication system works, how form submissions are saved, how to query the data, how to run analytics, and how to migrate from the local SQLite database to a production PostgreSQL database.
 
 ---
 
@@ -9,72 +9,117 @@ This document explains how form submissions are saved, how to query the data, ho
 1. [Overview](#overview)
 2. [Local Setup (SQLite — zero config)](#local-setup-sqlite--zero-config)
 3. [Database Schema](#database-schema)
-4. [API Endpoints](#api-endpoints)
+   - [Broker Model](#broker-model)
+   - [Submission Model](#submission-model)
+4. [Seeding the Database](#seeding-the-database)
+5. [API Endpoints](#api-endpoints)
    - [POST /api/submissions](#post-apisubmissions)
    - [GET /api/submissions](#get-apisubmissions)
+   - [POST /api/buy-policy](#post-apibuy-policy)
    - [GET /api/analytics](#get-apianalytics)
-5. [Viewing Data with Prisma Studio](#viewing-data-with-prisma-studio)
-6. [Analytics — What You Can Measure](#analytics--what-you-can-measure)
-7. [Exporting Data to Excel](#exporting-data-to-excel)
-8. [Migrating to PostgreSQL (Production)](#migrating-to-postgresql-production)
-9. [Schema Changes — Adding a Column](#schema-changes--adding-a-column)
-10. [Troubleshooting](#troubleshooting)
+6. [Viewing Data with Prisma Studio](#viewing-data-with-prisma-studio)
+7. [Analytics — What You Can Measure](#analytics--what-you-can-measure)
+8. [Exporting Data to Excel](#exporting-data-to-excel)
+9. [Migrating to PostgreSQL (Production)](#migrating-to-postgresql-production)
+10. [Schema Changes — Adding a Column](#schema-changes--adding-a-column)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Overview
 
-Every time a user clicks **"Calculate My Quote"** on the Summary screen, the app:
+The database has two models:
+- **Broker** — authenticated users (insurance brokers). Created once via seed script.
+- **Submission** — one row per completed quote, linked to the broker who created it.
 
-1. Calculates the quote and shows the result (immediate — not blocked by the save)
+Every time a broker clicks **"Confirm & Get Quote"** on the Summary screen, the app:
+
+1. Calculates the quote and shows the result immediately (not blocked by the save)
 2. Calls `POST /api/submissions` in the background
-3. The API route saves all answers + the underwriting result to the database
+3. The API route saves all answers + the underwriting result to the database, tagged with the broker's ID
 
-The save is **non-blocking** — if it fails, the user still sees their quote. Errors are logged to the server console.
+The save is **non-blocking** — if it fails, the broker still sees their quote. Errors are logged to the server console.
 
 ```
-User clicks "Calculate My Quote"
+Broker clicks "Confirm & Get Quote"
   │
   ├─ (sync) calculateQuote(answers) → show result screen
   │
   └─ (async, non-blocking)
-       fetch("POST /api/submissions", { answers, quoteDetails, sessionId })
-         └─ prisma.submission.create(...)
-              └─ submissions.db  (or PostgreSQL in production)
+       fetch("POST /api/submissions", { answers, quoteDetails })
+         └─ prisma.submission.create({ brokerId: session.user.id, ... })
+              └─ prisma/dev.db  (or PostgreSQL in production)
 ```
 
 ---
 
 ## Local Setup (SQLite — zero config)
 
-Everything is already configured. When you ran `npm install` and `npx prisma migrate dev`, it:
+Everything is already configured. The database file is at:
 
-1. Created `prisma/submissions.db` — a SQLite database file on your machine
-2. Created the `Submission` table with all columns and indexes
-3. Generated the Prisma Client (the TypeScript ORM wrapper)
+```
+prisma/dev.db
+```
 
-**Your database file:** `prisma/submissions.db`
+If it doesn't exist yet, run:
 
-> Add `prisma/submissions.db` to your `.gitignore` if you want to avoid committing test data.
-> It's already covered by the existing `.gitignore` pattern `*.db`.
+```bash
+npx prisma db push          # Create tables from schema (no migration history)
+npm run db:seed             # Create the demo broker account
+```
+
+Or, for a tracked migration:
+
+```bash
+npx prisma migrate dev --name init
+npm run db:seed
+```
+
+> The file `prisma/dev.db` is covered by the `.gitignore` pattern `*.db` — it will not be committed.
+
+### Important: DATABASE_URL path
+
+In `.env`:
+```
+DATABASE_URL="file:./prisma/dev.db"
+```
+
+This path is relative to the **project root**, which is where Next.js resolves it. The Prisma CLI also resolves it correctly from the project root when you pass `--schema` or run from the root directory.
 
 ---
 
 ## Database Schema
 
-Each form submission creates one row in the `Submission` table.
+### Broker Model
 
-### Full Column Reference
+Each row is a broker (an authenticated user of the portal).
+
+| Column | Type | Description |
+|---|---|---|
+| `id` | String (CUID) | Unique broker ID |
+| `createdAt` | DateTime | Account creation time |
+| `updatedAt` | DateTime | Last modification |
+| `name` | String | Broker's display name |
+| `email` | String (unique) | Login email |
+| `password` | String | bcrypt-hashed password |
+| `licenseId` | String? | Optional broker license number |
+
+### Submission Model
+
+Each row is one completed insurance quote, linked to the broker who ran it.
 
 | Column | Type | Description |
 |---|---|---|
 | `id` | String (CUID) | Unique submission ID — auto-generated |
 | `createdAt` | DateTime | When the quote was submitted |
 | `updatedAt` | DateTime | Last modification timestamp |
+| **Ownership** | | |
+| `brokerId` | String? | Foreign key → `Broker.id` |
+| `policyType` | String | Default: `"Vacant Home Insurance"` |
 | **Contact** | | |
 | `applicantName` | String? | Answer to "What's your name?" |
-| `contactEmail` | String? | Answer to "What email should we send this to?" |
-| `sessionId` | String? | Browser session ID (correlates multiple runs) |
+| `contactEmail` | String? | Answer to "What email should we use?" |
+| `sessionId` | String? | Browser session ID |
 | **Property** | | |
 | `province` | String? | Province/territory code (e.g. "ON", "BC") |
 | `propertyType` | String? | e.g. "single_family", "condo" |
@@ -100,7 +145,7 @@ Each form submission creates one row in the `Submission` table.
 | `priorClaims` | String? | "0", "1", "2", "3+" |
 | `priorInsurance` | String? | "yes" or "no" |
 | **Raw Data** | | |
-| `allAnswers` | String | Full JSON blob of all answers — for flexibility |
+| `allAnswers` | String | Full JSON blob of all answers |
 | **Result** | | |
 | `decision` | String | "accept", "decline", or "refer" |
 | `annualPremium` | Float? | Calculated annual premium in CAD (null if not accepted) |
@@ -111,18 +156,41 @@ Each form submission creates one row in the `Submission` table.
 
 ### Indexes
 
-The following columns are indexed for fast analytics queries:
-
 - `createdAt` — time-series queries
 - `decision` — filter by outcome
 - `province` — geographic analysis
 - `contactEmail` — look up a specific applicant
 - `vacancyDuration` — duration analysis
 - `propertyType` — property mix analysis
+- `brokerId` — broker isolation (all queries filter by this)
+
+---
+
+## Seeding the Database
+
+The seed script creates the demo broker account. Run it once after setting up the database:
+
+```bash
+npm run db:seed
+```
+
+This creates:
+```
+Name:      John Clarke
+Email:     broker@demo.com
+Password:  Demo1234!
+LicenseId: BRK-001
+```
+
+The seed uses `upsert` — running it multiple times is safe.
+
+**Seed file:** `prisma/seed.js`
 
 ---
 
 ## API Endpoints
+
+All submission and policy endpoints require an authenticated session. Unauthenticated requests return HTTP 401.
 
 ### POST /api/submissions
 
@@ -131,6 +199,7 @@ The following columns are indexed for fast analytics queries:
 ```
 POST /api/submissions
 Content-Type: application/json
+Cookie: next-auth.session-token=...
 
 {
   "answers": { ... },       // Record<string, Answer>
@@ -144,11 +213,13 @@ Content-Type: application/json
 { "success": true, "id": "clxxxxxxxxxxxxxx" }
 ```
 
+Broker isolation: the submission is saved with `brokerId` from the active session.
+
 ---
 
 ### GET /api/submissions
 
-Retrieve a paginated list of submissions. Use this to build a management dashboard or export data.
+Retrieve the authenticated broker's submissions (paginated). Brokers cannot see each other's data.
 
 ```
 GET /api/submissions?page=1&limit=20&decision=accept&province=ON
@@ -194,9 +265,36 @@ GET /api/submissions?page=1&limit=20&decision=accept&province=ON
 
 ---
 
+### POST /api/buy-policy
+
+Sends the policy confirmation email for an accepted quote. Called when the broker clicks "Buy This Policy".
+
+```
+POST /api/buy-policy
+Content-Type: application/json
+Cookie: next-auth.session-token=...
+
+{
+  "submissionId": "clxxxxxxxxxxxxxx"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "sentTo": "applicant@example.com",
+  "previewUrl": "https://ethereal.email/message/..."   // only in dev (Ethereal mode)
+}
+```
+
+The route verifies the session and confirms the submission belongs to the authenticated broker before sending email.
+
+---
+
 ### GET /api/analytics
 
-Returns pre-aggregated analytics across all submissions. No parameters required.
+Returns pre-aggregated analytics across the authenticated broker's submissions.
 
 ```
 GET /api/analytics
@@ -230,8 +328,7 @@ GET /api/analytics
     { "duration": "6-12m", "count": 45 }
   ],
   "topDeclineReasons": [
-    { "reason": "Properties vacant for more than 5 years...", "count": 18 },
-    { "reason": "Mobile and manufactured homes...", "count": 12 }
+    { "reason": "Properties vacant for more than 5 years...", "count": 18 }
   ],
   "topReferReasons": [
     { "reason": "Properties with no regular inspections...", "count": 14 }
@@ -244,11 +341,6 @@ GET /api/analytics
 }
 ```
 
-**Using this data:**
-- Connect to this endpoint from any BI tool (Power BI, Tableau, Metabase)
-- Fetch from a spreadsheet via the built-in `=WEBSERVICE()` formula (Excel) or `IMPORTDATA()` (Google Sheets)
-- Build a custom React dashboard page at `/dashboard`
-
 ---
 
 ## Viewing Data with Prisma Studio
@@ -260,7 +352,7 @@ npx prisma studio
 ```
 
 This opens a browser at `http://localhost:5555` where you can:
-- View all submissions in a table
+- View all Broker and Submission records
 - Filter and sort by any column
 - Edit individual records
 - Export selected rows to CSV
@@ -269,31 +361,24 @@ This opens a browser at `http://localhost:5555` where you can:
 
 ## Analytics — What You Can Measure
 
-With the data saved, you can run analytics on:
-
 ### Conversion & Outcomes
 - Accept / Decline / Refer rate over time
 - How rates change by province
 - Which underwriting rules fire most often (top decline reasons)
-- What % of applications are referred vs declined in each province
 
 ### Pricing
 - Average, min, max annual premium by province
 - Premium distribution histogram
 - Impact of deductible choice on final premium
-- How property value correlates with premium
 
 ### Risk Profile
 - Most common property types
 - Vacancy duration distribution
 - Security measure adoption rates
-- Pool prevalence by province
 
 ### Operational
 - Daily/weekly submission volume
-- Time-of-day submission patterns
 - Email domains (corporate vs personal)
-- Session abandonment (sessions with no matching submission)
 
 ---
 
@@ -306,7 +391,7 @@ With the data saved, you can run analytics on:
 
 **Option 2 — Direct SQLite query**
 
-Install DB Browser for SQLite (free, open source) and open `prisma/submissions.db`. Run any SQL query and export results to CSV.
+Install DB Browser for SQLite (free, open source) and open `prisma/dev.db`. Run any SQL query and export results to CSV.
 
 ```sql
 -- All accepted quotes with key details
@@ -373,7 +458,7 @@ Copy the `DATABASE_URL` connection string from your provider's dashboard.
 
 ```bash
 # Change this line:
-DATABASE_URL="file:./prisma/submissions.db"
+DATABASE_URL="file:./prisma/dev.db"
 
 # To your PostgreSQL connection string:
 DATABASE_URL="postgresql://user:password@host:5432/dbname?sslmode=require"
@@ -396,7 +481,7 @@ datasource db {
 npx prisma migrate deploy
 ```
 
-This applies all existing migrations to your new PostgreSQL database. Your data is now in the cloud.
+This applies all existing migrations to your new PostgreSQL database.
 
 > **Tip:** To migrate existing SQLite data to PostgreSQL, use [pgloader](https://pgloader.io/) or export to CSV and re-import.
 
@@ -421,13 +506,17 @@ model Submission {
 npx prisma migrate dev --name add_heating_type
 ```
 
-3. Extract and save the value in `src/app/api/submissions/route.ts`:
+3. Regenerate the Prisma client:
+
+```bash
+npx prisma generate
+```
+
+4. Extract and save the value in `src/app/api/submissions/route.ts`:
 
 ```typescript
 heatingType: getString("heating_type") || null,
 ```
-
-That's it — no other files need changing.
 
 ---
 
@@ -436,9 +525,11 @@ That's it — no other files need changing.
 | Problem | Solution |
 |---|---|
 | `PrismaClientInitializationError` | Run `npx prisma generate` then restart `npm run dev` |
-| `DATABASE_URL` not found | Make sure `.env` exists in the project root with `DATABASE_URL=...` |
-| Migration fails | Check that the `prisma/` directory is writable and `submissions.db` isn't locked |
+| `DATABASE_URL` not found | Make sure `.env` exists in the project root with `DATABASE_URL="file:./prisma/dev.db"` |
+| `dev.db` not found | Run `npx prisma db push` then `npm run db:seed` |
+| Migration fails | Check that the `prisma/` directory is writable and `dev.db` isn't locked |
+| API returns 401 | Session cookie expired — log out and log back in at `/login` |
 | API returns 500 | Check the terminal running `npm run dev` for the full error message |
-| Data not saving in prod | Ensure the server process can write to the database file (SQLite) or that `DATABASE_URL` is set as an environment variable on the server |
-| `submissions.db` not found | Run `npx prisma migrate dev --name init` to create the database |
+| Data not saving in prod | Ensure `DATABASE_URL` is set as an environment variable on the server |
 | Prisma Client out of sync | Run `npx prisma generate` after any schema change |
+| Login fails with correct credentials | Run `npm run db:seed` — the demo account may not exist yet |

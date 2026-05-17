@@ -41,6 +41,7 @@ interface QuoteContextValue {
   currentQuestionId: string;
   conversationMessages: ConversationMessage[];
   quoteDetails: QuoteDetails | null;
+  submissionId: string | null;
   progress: number;
   canGoBack: boolean;
   startConversation: () => void;
@@ -50,6 +51,7 @@ interface QuoteContextValue {
     displayValue: string
   ) => void;
   goBack: () => void;
+  goToQuestion: (questionId: string) => void;
   confirmSummary: () => void;
   restart: () => void;
   addBrokerMessage: (text: string, questionId: string) => void;
@@ -82,6 +84,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     ConversationMessage[]
   >([]);
   const [quoteDetails, setQuoteDetails] = useState<QuoteDetails | null>(null);
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
 
   const historyIndex = questionHistory.indexOf(currentQuestionId);
   const progress = Math.min(
@@ -174,12 +177,30 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     );
   }, [currentQuestionId, questionHistory]);
 
+  const goToQuestion = useCallback((targetId: string) => {
+    const idx = questionHistory.indexOf(targetId);
+    if (idx === -1) return;
+
+    // Clear messages and answers for targetId and everything after it
+    const toRemove = new Set(questionHistory.slice(idx));
+    setConversationMessages((prev) =>
+      prev.filter((m) => !m.questionId || !toRemove.has(m.questionId))
+    );
+    setAnswers((prev) => {
+      const next = { ...prev };
+      toRemove.forEach((qId) => delete next[qId]);
+      return next;
+    });
+    setQuestionHistory((prev) => prev.slice(0, idx + 1));
+    setCurrentQuestionId(targetId);
+  }, [questionHistory]);
+
   const confirmSummary = useCallback(() => {
     const result = calculateQuote(answers);
     setQuoteDetails(result);
     setPhase("result");
 
-    // Persist to database — fire-and-forget (does not block the UI).
+    // Persist to database — capture the returned ID for the buy-policy flow.
     void fetch("/api/submissions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -188,7 +209,12 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         quoteDetails: result,
         sessionId: sessionId.current,
       }),
-    }).catch((err) => console.error("[DB save failed]", err));
+    })
+      .then((res) => res.json())
+      .then((data: { id?: string }) => {
+        if (data.id) setSubmissionId(data.id);
+      })
+      .catch((err) => console.error("[DB save failed]", err));
   }, [answers]);
 
   const restart = useCallback(() => {
@@ -198,6 +224,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     setCurrentQuestionId(FIRST_QUESTION_ID);
     setConversationMessages([]);
     setQuoteDetails(null);
+    setSubmissionId(null);
   }, []);
 
   return (
@@ -208,11 +235,13 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         currentQuestionId,
         conversationMessages,
         quoteDetails,
+        submissionId,
         progress,
         canGoBack,
         startConversation,
         submitAnswer,
         goBack,
+        goToQuestion,
         confirmSummary,
         restart,
         addBrokerMessage,

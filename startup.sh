@@ -1,17 +1,19 @@
 #!/bin/bash
 # Azure App Service startup script
 # ─────────────────────────────────────────────────────────────────
-# 1. Apply any pending database migrations (safe to run on every start)
-# 2. Start the Next.js production server
-#
-# Set this file as the startup command in Azure App Service:
-#   Configuration → General settings → Startup Command: bash startup.sh
+# Runs on every cold start / redeploy.
+# 1. Push schema to the database (creates tables if they don't exist)
+# 2. Seed the demo broker account (upsert — safe to run multiple times)
+# 3. Start the Next.js production server
 # ─────────────────────────────────────────────────────────────────
 
-set -e  # Exit immediately if any command fails
+set -e
 
-echo "==> Running database migrations..."
-npx prisma migrate deploy
+echo "==> Applying database schema..."
+npx prisma db push --accept-data-loss
+
+echo "==> Seeding demo broker account..."
+node prisma/seed.js
 
 echo "==> Starting Next.js server..."
 node server.js

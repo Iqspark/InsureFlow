@@ -50,6 +50,7 @@ export default function InputRenderer({ question, onSubmit }: Props) {
           min={question.min}
           max={question.max}
           suffix={question.suffix}
+          mustBeInteger={question.mustBeInteger}
           onSubmit={(v, d) => submit(v, d)}
         />
       );
@@ -73,6 +74,9 @@ export default function InputRenderer({ question, onSubmit }: Props) {
         <TextInput
           placeholder={question.placeholder}
           required={question.required}
+          inputType={question.inputType}
+          minLength={question.minLength}
+          maxLength={question.maxLength}
           onSubmit={(v, d) => submit(v, d)}
         />
       );

@@ -25,6 +25,7 @@ export const QUESTIONS: Question[] = [
   {
     id: "applicant_name",
     type: "text",
+    inputType: "name",
     brokerText:
       "Hi there! 👋 I'm Alex, your virtual insurance broker. I can get you a quote for your vacant home in just a few minutes. What's your name?",
     helperText: "Just your first name is perfectly fine.",
@@ -476,6 +477,7 @@ export const QUESTIONS: Question[] = [
   {
     id: "contact_email",
     type: "text",
+    inputType: "email",
     brokerText:
       "Excellent! We're almost done, {{applicant_name}}. What email address should we send your quote to?",
     helperText: "We'll email you a copy of your full quote summary.",

@@ -21,8 +21,13 @@ export default function ConversationView() {
     canGoBack,
     submitAnswer,
     goBack,
+    goToQuestion,
     addBrokerMessage,
   } = useQuote();
+
+  const [changeText, setChangeText] = useState("");
+  const [changeLoading, setChangeLoading] = useState(false);
+  const changeInputRef = useRef<HTMLInputElement>(null);
 
   const [showTyping, setShowTyping] = useState(true);
   const [inputReady, setInputReady] = useState(false);
@@ -72,6 +77,46 @@ export default function ConversationView() {
     setInputReady(false);
     submitAnswer(currentQuestionId, value, displayValue);
   };
+
+  async function handleChangeRequest() {
+    const text = changeText.trim();
+    if (!text || changeLoading) return;
+
+    setChangeText("");
+    setChangeLoading(true);
+
+    // Show the user's message in chat
+    addBrokerMessage(`You asked: "${text}"`, `change-user-${Date.now()}`);
+
+    const answeredQuestions = QUESTIONS
+      .filter((q) => answers[q.id])
+      .map((q) => ({
+        id: q.id,
+        label: q.brokerText.replace(/{{.*?}}/g, "").slice(0, 80),
+        currentAnswer: answers[q.id]?.displayValue ?? "",
+      }));
+
+    try {
+      const res = await fetch("/api/chat-intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text, questions: answeredQuestions }),
+      });
+      const data = await res.json() as { questionId: string | null; reply: string };
+
+      addBrokerMessage(data.reply ?? "Let me take you back to that question.", `change-reply-${Date.now()}`);
+
+      if (data.questionId) {
+        await new Promise((r) => setTimeout(r, 800));
+        goToQuestion(data.questionId);
+      }
+    } catch {
+      addBrokerMessage("Sorry, something went wrong. Please use the back button to navigate.", `change-err-${Date.now()}`);
+    } finally {
+      setChangeLoading(false);
+      changeInputRef.current?.focus();
+    }
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -142,11 +187,48 @@ export default function ConversationView() {
         {/* Back button */}
         {canGoBack && (
           <button
+            type="button"
             onClick={goBack}
             className="text-xs text-slate-400 hover:text-indigo-500 transition-colors mt-1"
           >
             ← Go back
           </button>
+        )}
+
+        {/* Change-an-answer input — only shown once at least one question is answered */}
+        {Object.keys(answers).length > 0 && (
+          <div className="mt-2 pt-2 border-t border-slate-100">
+            <p className="text-[10px] text-slate-400 mb-1.5 px-0.5">Want to change a previous answer?</p>
+            <div className="flex gap-2">
+              <input
+                ref={changeInputRef}
+                type="text"
+                value={changeText}
+                onChange={(e) => setChangeText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleChangeRequest()}
+                placeholder='e.g. "change my province to Quebec"'
+                disabled={changeLoading}
+                className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleChangeRequest}
+                disabled={!changeText.trim() || changeLoading}
+                className="w-8 h-8 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+              >
+                {changeLoading ? (
+                  <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />
+                  </svg>
+                )}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>

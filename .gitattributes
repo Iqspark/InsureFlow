@@ -1,0 +1,14 @@
+# Normalise line endings to LF in the repo; convert to CRLF on Windows checkout.
+* text=auto eol=lf
+
+# Shell scripts must always be LF (bash fails on CRLF)
+*.sh text eol=lf
+
+# Binary files — no conversion
+*.db         binary
+*.db-journal binary
+*.png        binary
+*.jpg        binary
+*.ico        binary
+*.woff       binary
+*.woff2      binary
