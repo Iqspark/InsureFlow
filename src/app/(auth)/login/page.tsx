@@ -118,10 +118,8 @@ export default function LoginPage() {
           {/* Social proof */}
           <div className="flex items-center gap-3 pt-2">
             <div className="flex -space-x-2">
-              {(["bg-indigo-500","bg-violet-500","bg-cyan-500","bg-emerald-500"] as const).map((bg, i) => (
-                <div key={i} className={`w-7 h-7 rounded-full border-2 border-slate-800 flex items-center justify-center text-[10px] font-bold text-white ${bg}`}>
-                  {String.fromCharCode(65 + i)}
-                </div>
+              {(["bg-indigo-400","bg-violet-400","bg-cyan-400","bg-emerald-400"] as const).map((bg, i) => (
+                <div key={i} className={`w-7 h-7 rounded-full border-2 border-slate-800 ${bg}`} />
               ))}
             </div>
             <p className="text-slate-400 text-xs">Trusted by brokers across Canada</p>
