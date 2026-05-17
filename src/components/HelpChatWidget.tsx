@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue } from "framer-motion";
 
 interface Message {
   role: "user" | "assistant";
@@ -21,6 +21,8 @@ export default function HelpChatWidget() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -63,7 +65,13 @@ export default function HelpChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-24 right-4 sm:bottom-20 sm:right-5 z-50 flex flex-col items-end gap-3">
+    <motion.div
+      drag={!open}
+      dragMomentum={false}
+      dragElastic={0.05}
+      style={{ x, y, touchAction: "none" }}
+      className="fixed bottom-24 right-4 sm:bottom-20 sm:right-5 z-50 flex flex-col items-end gap-3"
+    >
       {/* ── Chat panel ──────────────────────────────────────────── */}
       <AnimatePresence>
         {open && (
@@ -92,6 +100,7 @@ export default function HelpChatWidget() {
               <button
                 type="button"
                 onClick={() => setOpen(false)}
+                aria-label="Close help chat"
                 className="text-indigo-200 hover:text-white transition-colors p-1"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -165,6 +174,7 @@ export default function HelpChatWidget() {
                 type="button"
                 onClick={handleSend}
                 disabled={!input.trim() || loading}
+                aria-label="Send message"
                 className="w-9 h-9 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -222,6 +232,6 @@ export default function HelpChatWidget() {
           <span className="absolute inset-0 rounded-full bg-indigo-400 animate-ping opacity-25 pointer-events-none" />
         )}
       </motion.button>
-    </div>
+    </motion.div>
   );
 }
