@@ -164,8 +164,7 @@ export default function LoginPage() {
             <span className="text-slate-800 font-bold text-lg tracking-tight">InsureFlow</span>
           </div>
 
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Sign in</h2>
-          <p className="text-sm text-slate-500 mb-7">
+          <p className="text-slate-500 mb-7">
             Enter your broker credentials to continue
           </p>
 
