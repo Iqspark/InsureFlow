@@ -91,7 +91,7 @@ jobs:
           mkdir -p deploy/.next/static
           cp -r .next/static/. deploy/.next/static/
           # Public folder (PWA manifest, icons, robots.txt, etc.)
-          cp -r public/. deploy/public/
+          [ -d "public" ] && cp -r public/. deploy/public/ || true
           # Prisma schema + migrations
           mkdir -p deploy/prisma
           cp prisma/schema.prisma deploy/prisma/
