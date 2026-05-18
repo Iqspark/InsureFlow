@@ -50,6 +50,7 @@ export async function GET(req: NextRequest) {
         applicantName: true,
         policyType: true,
         decision: true,
+        status: true,
         province: true,
         annualPremium: true,
       },

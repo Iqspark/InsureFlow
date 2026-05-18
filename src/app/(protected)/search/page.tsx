@@ -8,12 +8,20 @@ type SearchResult = {
   createdAt: string;
   applicantName: string | null;
   policyType: string;
-  decision: string;
+  decision: string | null;
+  status: string;
   province: string | null;
   annualPremium: number | null;
 };
 
-function DecisionBadge({ decision }: { decision: string }) {
+function DecisionBadge({ decision, status }: { decision: string | null; status: string }) {
+  if (status === "draft") {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+        Draft
+      </span>
+    );
+  }
   const styles: Record<string, string> = {
     accept:  "bg-emerald-100 text-emerald-700 border border-emerald-200",
     decline: "bg-red-100 text-red-700 border border-red-200",
@@ -24,10 +32,11 @@ function DecisionBadge({ decision }: { decision: string }) {
     decline: "Declined",
     refer: "Referred",
   };
-  const cls = styles[decision] ?? "bg-slate-100 text-slate-600 border border-slate-200";
+  const d = decision ?? "";
+  const cls = styles[d] ?? "bg-slate-100 text-slate-600 border border-slate-200";
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      {labels[decision] ?? decision}
+      {labels[d] ?? d}
     </span>
   );
 }
@@ -253,14 +262,14 @@ export default function SearchPage() {
                           })}
                         </td>
                         <td className="px-5 py-3.5">
-                          <DecisionBadge decision={r.decision} />
+                          <DecisionBadge decision={r.decision} status={r.status} />
                         </td>
                         <td className="px-5 py-3.5 text-right whitespace-nowrap w-10">
                           <Link
-                            href={`/policy/${r.id}`}
+                            href={r.status === "draft" ? `/new-quote/vacant-home?resume=${r.id}` : `/policy/${r.id}`}
                             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            View
+                            {r.status === "draft" ? "Resume" : "View"}
                             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                             </svg>
