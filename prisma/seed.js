@@ -7,19 +7,31 @@ const prisma = new PrismaClient();
 async function main() {
   const hashedPassword = bcrypt.hashSync("Demo1234!", 10);
 
-  const broker = await prisma.broker.upsert({
-    where: { email: "broker@demo.com" },
-    update: { password: hashedPassword },
-    create: {
-      name: "John Clarke",
-      email: "broker@demo.com",
-      password: hashedPassword,
-      licenseId: "BRK-001",
-    },
-  });
+  const brokers = await Promise.all([
+    prisma.broker.upsert({
+      where: { email: "broker@demo.com" },
+      update: { password: hashedPassword },
+      create: {
+        name: "John Clarke",
+        email: "broker@demo.com",
+        password: hashedPassword,
+        licenseId: "BRK-001",
+      },
+    }),
+    prisma.broker.upsert({
+      where: { email: "harpreet.singh@insureflow.com" },
+      update: { password: hashedPassword },
+      create: {
+        name: "Harpreet Singh",
+        email: "harpreet.singh@insureflow.com",
+        password: hashedPassword,
+        licenseId: "BRK-002",
+      },
+    }),
+  ]);
 
-  console.log(
-    `\n✓ Demo broker seeded\n  Email:    ${broker.email}\n  Password: Demo1234!\n  Name:     ${broker.name}\n`
+  brokers.forEach((b) =>
+    console.log(`\n✓ Seeded: ${b.name} <${b.email}>`)
   );
 }
 
