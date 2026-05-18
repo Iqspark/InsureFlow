@@ -36,13 +36,13 @@ function yesNo(v: string | null | undefined): string {
   return fmt(v);
 }
 
-function DecisionBanner({ decision, reasons }: { decision: string; reasons: string[] }) {
+function DecisionBanner({ decision, reasons }: { decision: string | null; reasons: string[] }) {
   const cfg: Record<string, { bg: string; border: string; text: string; icon: string; label: string }> = {
     accept:  { bg: "bg-emerald-50", border: "border-emerald-200", text: "text-emerald-800", icon: "✓", label: "Accepted" },
     decline: { bg: "bg-red-50",     border: "border-red-200",     text: "text-red-800",     icon: "✕", label: "Declined" },
     refer:   { bg: "bg-amber-50",   border: "border-amber-200",   text: "text-amber-800",   icon: "⚑", label: "Referred" },
   };
-  const s = cfg[decision] ?? cfg.refer;
+  const s = (decision ? cfg[decision] : null) ?? cfg.refer;
   return (
     <div className={`rounded-xl border px-5 py-4 ${s.bg} ${s.border}`}>
       <div className="flex items-center gap-3 mb-1">
@@ -201,7 +201,7 @@ export default async function PolicyDetailPage({
         <Section title="Record Information">
           <Field label="Application ID"         value={appId} />
           <Field label="Policy Type"            value={sub.policyType} />
-          <Field label="Decision"               value={sub.decision.charAt(0).toUpperCase() + sub.decision.slice(1)} />
+          <Field label="Decision"               value={sub.decision ? sub.decision.charAt(0).toUpperCase() + sub.decision.slice(1) : "Draft"} />
           <Field label="Submitted"              value={fmtDate(sub.createdAt)} />
           <Field label="Last Updated"           value={fmtDate(sub.updatedAt)} />
         </Section>
