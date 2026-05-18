@@ -1,25 +1,38 @@
 "use client";
 
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { QuoteProvider, useQuote } from "@/context/QuoteContext";
 import IntroScreen from "@/components/IntroScreen";
 import ConversationView from "@/components/ConversationView";
 import SummaryScreen from "@/components/SummaryScreen";
 import QuoteResult from "@/components/QuoteResult";
+import { Answer } from "@/types";
 
 function QuoteShell() {
-  const { phase } = useQuote();
+  const { phase, resumeFromDraft } = useQuote();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const resumeId = searchParams.get("resume");
+    if (!resumeId) return;
+
+    fetch(`/api/drafts/${resumeId}`)
+      .then((res) => res.json())
+      .then((data: { answers?: Record<string, Answer> }) => {
+        if (data.answers) resumeFromDraft(data.answers, resumeId);
+      })
+      .catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
-    // Fills the flex-1 main area provided by the protected layout
     <div className="flex-1 flex items-center justify-center sm:p-4 min-h-0">
       <div className="app-shell quote-shell-height w-full sm:max-w-md bg-white/60 backdrop-blur-md sm:rounded-3xl sm:shadow-2xl sm:shadow-indigo-200/40 overflow-hidden sm:border sm:border-white/80 flex flex-col">
         <AnimatePresence mode="wait">
           {phase === "intro" && (
-            <motion.div
-              key="intro"
-              className="flex-1 flex flex-col overflow-hidden"
-            >
+            <motion.div key="intro" className="flex-1 flex flex-col overflow-hidden">
               <IntroScreen />
             </motion.div>
           )}

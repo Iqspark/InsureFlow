@@ -11,6 +11,7 @@ import React, {
 import { Answer, AppPhase, QuoteDetails, ConversationMessage } from "@/types";
 import { QUESTIONS, FIRST_QUESTION_ID, TOTAL_QUESTIONS } from "@/data/questions";
 import { calculateQuote } from "@/engine/quoteCalculator";
+import { interpolate } from "@/utils/interpolate";
 
 // ── Routing helper ───────────────────────────────────────────
 function resolveNextQuestionId(
@@ -55,6 +56,7 @@ interface QuoteContextValue {
   confirmSummary: () => void;
   restart: () => void;
   addBrokerMessage: (text: string, questionId: string) => void;
+  resumeFromDraft: (savedAnswers: Record<string, Answer>, draftId: string) => void;
 }
 
 const QuoteContext = createContext<QuoteContextValue | null>(null);
@@ -235,6 +237,54 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
       .catch((err) => console.error("[DB save failed]", err));
   }, [answers]);
 
+  const resumeFromDraft = useCallback(
+    (savedAnswers: Record<string, Answer>, draftId: string) => {
+      // Replay answer path to rebuild question history
+      const history: string[] = [FIRST_QUESTION_ID];
+      let currentId = FIRST_QUESTION_ID;
+
+      while (savedAnswers[currentId]) {
+        const nextId = resolveNextQuestionId(
+          currentId,
+          savedAnswers[currentId].value,
+          savedAnswers
+        );
+        if (nextId === "__SUBMIT__") break;
+        history.push(nextId);
+        currentId = nextId;
+      }
+
+      // Reconstruct messages for all previously answered questions
+      const messages: ConversationMessage[] = [];
+      for (const qId of history) {
+        if (!savedAnswers[qId]) break; // stop before the unanswered current question
+        const question = QUESTIONS.find((q) => q.id === qId);
+        if (question) {
+          messages.push({
+            id: `broker-${qId}-resume`,
+            type: "broker",
+            text: interpolate(question.brokerText, savedAnswers),
+            questionId: qId,
+          });
+        }
+        messages.push({
+          id: `user-${qId}-resume`,
+          type: "user",
+          text: savedAnswers[qId].displayValue,
+          questionId: qId,
+        });
+      }
+
+      draftIdRef.current = draftId;
+      setAnswers(savedAnswers);
+      setQuestionHistory(history);
+      setCurrentQuestionId(currentId);
+      setConversationMessages(messages);
+      setPhase("conversation");
+    },
+    []
+  );
+
   const restart = useCallback(() => {
     setPhase("intro");
     setAnswers({});
@@ -264,6 +314,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         confirmSummary,
         restart,
         addBrokerMessage,
+        resumeFromDraft,
       }}
     >
       {children}

@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -9,10 +11,12 @@ function LinkRow({
   href,
   children,
   striped,
+  label = "View",
 }: {
   href: string;
   children: ReactNode;
   striped: boolean;
+  label?: string;
 }) {
   return (
     <tr className={`relative hover:bg-indigo-50/60 transition-colors cursor-pointer group ${striped ? "bg-slate-50/50" : ""}`}>
@@ -23,7 +27,7 @@ function LinkRow({
           href={href}
           className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
         >
-          View
+          {label}
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
           </svg>
@@ -202,7 +206,12 @@ export default async function DashboardPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {submissions.map((sub, i) => (
-                  <LinkRow key={sub.id} href={`/policy/${sub.id}`} striped={i % 2 !== 0}>
+                  <LinkRow
+                    key={sub.id}
+                    href={sub.status === "draft" ? `/new-quote/vacant-home?resume=${sub.id}` : `/policy/${sub.id}`}
+                    striped={i % 2 !== 0}
+                    label={sub.status === "draft" ? "Resume" : "View"}
+                  >
                     <td className="px-4 sm:px-6 py-3.5 font-medium text-slate-900 whitespace-nowrap">
                       {sub.applicantName ?? "—"}
                     </td>
