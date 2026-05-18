@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
       answers: Record<string, Answer>;
       quoteDetails: QuoteDetails;
       sessionId?: string;
+      draftId?: string;
     };
 
-    const { answers, quoteDetails, sessionId } = body;
+    const { answers, quoteDetails, sessionId, draftId } = body;
 
     if (!answers || !quoteDetails) {
       return NextResponse.json(
@@ -35,60 +36,64 @@ export async function POST(req: NextRequest) {
       return v !== undefined ? Number(v) : undefined;
     };
 
-    const submission = await prisma.submission.create({
-      data: {
-        brokerId:  brokerId,
-        policyType: "Vacant Home Insurance",
-        sessionId: sessionId ?? null,
+    const submissionData = {
+      brokerId:  brokerId,
+      policyType: "Vacant Home Insurance",
+      sessionId: sessionId ?? null,
+      status: "complete",
 
-        // Contact
-        applicantName:  getString("applicant_name") || null,
-        contactEmail:   getString("contact_email") || null,
+      // Contact
+      applicantName:  getString("applicant_name") || null,
+      contactEmail:   getString("contact_email") || null,
 
-        // Location
-        province:     getString("property_province") || null,
-        propertyType: getString("property_type") || null,
+      // Location
+      province:     getString("property_province") || null,
+      propertyType: getString("property_type") || null,
 
-        // Property details
-        yearBuilt:     getNumber("year_built") ? Math.round(getNumber("year_built")!) : null,
-        squareFootage: getNumber("square_footage") ? Math.round(getNumber("square_footage")!) : null,
-        propertyValue: getNumber("property_value") ?? null,
+      // Property details
+      yearBuilt:     getNumber("year_built") ? Math.round(getNumber("year_built")!) : null,
+      squareFootage: getNumber("square_footage") ? Math.round(getNumber("square_footage")!) : null,
+      propertyValue: getNumber("property_value") ?? null,
 
-        // Coverage
-        coveragePercent: getString("coverage_amount") || null,
-        deductible:      getNumber("deductible") ?? null,
+      // Coverage
+      coveragePercent: getString("coverage_amount") || null,
+      deductible:      getNumber("deductible") ?? null,
 
-        // Vacancy
-        vacancyDuration: getString("vacancy_duration") || null,
-        vacancyReason:   getString("vacancy_reason") || null,
+      // Vacancy
+      vacancyDuration: getString("vacancy_duration") || null,
+      vacancyReason:   getString("vacancy_reason") || null,
 
-        // Management
-        inspectionFrequency: getString("property_inspections") || null,
-        utilitiesWinterized: getString("utilities_winterized") || null,
-        securityFeatures:    getString("security_features") || null,
+      // Management
+      inspectionFrequency: getString("property_inspections") || null,
+      utilitiesWinterized: getString("utilities_winterized") || null,
+      securityFeatures:    getString("security_features") || null,
 
-        // Features
-        hasPool:    getString("has_pool") || null,
-        poolFenced: getString("pool_fenced") || null,
+      // Features
+      hasPool:    getString("has_pool") || null,
+      poolFenced: getString("pool_fenced") || null,
 
-        // Loss history
-        priorDamage:    getString("prior_damage") || null,
-        damageType:     getString("damage_type") || null,
-        priorClaims:    getString("prior_claims") || null,
-        priorInsurance: getString("prior_insurance") || null,
+      // Loss history
+      priorDamage:    getString("prior_damage") || null,
+      damageType:     getString("damage_type") || null,
+      priorClaims:    getString("prior_claims") || null,
+      priorInsurance: getString("prior_insurance") || null,
 
-        // Raw answers blob
-        allAnswers: JSON.stringify(answers),
+      // Raw answers blob
+      allAnswers: JSON.stringify(answers),
 
-        // Result
-        decision:       quoteDetails.decision,
-        annualPremium:  quoteDetails.finalAnnualPremium ?? null,
-        monthlyPremium: quoteDetails.finalMonthlyPremium ?? null,
-        coverageAmount: quoteDetails.coverageAmount ?? null,
-        declineReasons:  JSON.stringify(quoteDetails.declineReasons ?? []),
-        referralReasons: JSON.stringify(quoteDetails.referralReasons ?? []),
-      },
-    });
+      // Result
+      decision:       quoteDetails.decision,
+      annualPremium:  quoteDetails.finalAnnualPremium ?? null,
+      monthlyPremium: quoteDetails.finalMonthlyPremium ?? null,
+      coverageAmount: quoteDetails.coverageAmount ?? null,
+      declineReasons:  JSON.stringify(quoteDetails.declineReasons ?? []),
+      referralReasons: JSON.stringify(quoteDetails.referralReasons ?? []),
+    };
+
+    // If a draft exists for this session, promote it to complete
+    const submission = draftId
+      ? await prisma.submission.update({ where: { id: draftId }, data: submissionData })
+      : await prisma.submission.create({ data: submissionData });
 
     return NextResponse.json(
       { success: true, id: submission.id },

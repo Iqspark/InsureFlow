@@ -67,11 +67,10 @@ export function useQuote() {
 
 // ── Provider ─────────────────────────────────────────────────
 export function QuoteProvider({ children }: { children: ReactNode }) {
-  // Unique ID for this browser session — lets us correlate partial
-  // sessions with completed ones in analytics.
   const sessionId = useRef<string>(
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   );
+  const draftIdRef = useRef<string | null>(null);
 
   const [phase, setPhase] = useState<AppPhase>("intro");
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
@@ -133,6 +132,24 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
           questionId,
         },
       ]);
+
+      // Auto-save a draft once 3+ answers are collected
+      if (Object.keys(newAnswers).length >= 3) {
+        void fetch("/api/drafts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            answers: newAnswers,
+            sessionId: sessionId.current,
+            draftId: draftIdRef.current,
+          }),
+        })
+          .then((res) => res.json())
+          .then((data: { id?: string }) => {
+            if (data.id) draftIdRef.current = data.id;
+          })
+          .catch(() => {});
+      }
 
       const nextId = resolveNextQuestionId(questionId, value, newAnswers);
 
@@ -200,7 +217,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     setQuoteDetails(result);
     setPhase("result");
 
-    // Persist to database — capture the returned ID for the buy-policy flow.
+    // Promote the draft to complete (or create new if no draft exists).
     void fetch("/api/submissions", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -208,6 +225,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         answers,
         quoteDetails: result,
         sessionId: sessionId.current,
+        draftId: draftIdRef.current,
       }),
     })
       .then((res) => res.json())
@@ -225,6 +243,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     setConversationMessages([]);
     setQuoteDetails(null);
     setSubmissionId(null);
+    draftIdRef.current = null;
   }, []);
 
   return (

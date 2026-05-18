@@ -80,11 +80,14 @@ model Submission {
   priorClaims    String?  // "0" | "1" | "2" | "3+"
   priorInsurance String?  // "yes" | "no"
 
+  // ── Draft / complete status ──────────────────────────────
+  status     String  @default("complete") // "draft" | "complete"
+
   // ── All raw answers (JSON) ───────────────────────────────
-  allAnswers String // JSON — Record<string, Answer>
+  allAnswers String  @default("{}") // JSON — Record<string, Answer>
 
   // ── Underwriting result ──────────────────────────────────
-  decision        String  // "accept" | "decline" | "refer"
+  decision        String?  // "accept" | "decline" | "refer" — null for drafts
   annualPremium   Float?
   monthlyPremium  Float?
   coverageAmount  Float?
@@ -93,6 +96,7 @@ model Submission {
 
   // ── Indexes for analytics queries ───────────────────────
   @@index([createdAt])
+  @@index([status])
   @@index([decision])
   @@index([province])
   @@index([contactEmail])

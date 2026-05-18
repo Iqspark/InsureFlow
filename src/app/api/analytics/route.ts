@@ -101,7 +101,7 @@ export async function GET() {
     // ── Decision breakdown ──────────────────────────────────
     const decisionMap: Record<string, number> = { accept: 0, decline: 0, refer: 0 };
     for (const row of byDecision) {
-      decisionMap[row.decision] = row._count._all;
+      if (row.decision) decisionMap[row.decision] = row._count._all;
     }
     const rates = {
       accept:  total ? +((decisionMap.accept  / total) * 100).toFixed(1) : 0,

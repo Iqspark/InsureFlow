@@ -33,10 +33,16 @@ function LinkRow({
   );
 }
 
-function DecisionBadge({ decision }: { decision: string }) {
+function DecisionBadge({ decision, status }: { decision: string | null; status: string }) {
+  if (status === "draft") {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+        Draft
+      </span>
+    );
+  }
   const styles: Record<string, string> = {
-    accept:
-      "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    accept:  "bg-emerald-100 text-emerald-700 border border-emerald-200",
     decline: "bg-red-100 text-red-700 border border-red-200",
     refer:   "bg-amber-100 text-amber-700 border border-amber-200",
   };
@@ -45,10 +51,11 @@ function DecisionBadge({ decision }: { decision: string }) {
     decline: "Declined",
     refer: "Referred",
   };
-  const cls = styles[decision] ?? "bg-slate-100 text-slate-600 border border-slate-200";
+  const d = decision ?? "";
+  const cls = styles[d] ?? "bg-slate-100 text-slate-600 border border-slate-200";
   return (
     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      {labels[decision] ?? decision}
+      {labels[d] ?? d}
     </span>
   );
 }
@@ -68,12 +75,14 @@ export default async function DashboardPage() {
       applicantName: true,
       policyType: true,
       decision: true,
+      status: true,
     },
   });
 
-  const total   = submissions.length;
-  const accepts = submissions.filter((s) => s.decision === "accept").length;
-  const thisMonth = submissions.filter((s) => {
+  const completed = submissions.filter((s) => s.status !== "draft");
+  const total   = completed.length;
+  const accepts = completed.filter((s) => s.decision === "accept").length;
+  const thisMonth = completed.filter((s) => {
     const now = new Date();
     const d   = new Date(s.createdAt);
     return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
@@ -211,7 +220,7 @@ export default async function DashboardPage() {
                       })}
                     </td>
                     <td className="px-4 sm:px-6 py-3.5">
-                      <DecisionBadge decision={sub.decision} />
+                      <DecisionBadge decision={sub.decision} status={sub.status} />
                     </td>
                   </LinkRow>
                 ))}
