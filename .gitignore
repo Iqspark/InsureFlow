@@ -24,6 +24,15 @@ deploy/
 .env.test.local
 .env.production.local
 
+# ── Cloud deploy credentials — NEVER commit ───────────────────
+*.PublishSettings
+*.publishsettings
+
+# ── Screenshots / scratch images (may contain data) ───────────
+docs/*.jpeg
+docs/*.jpg
+docs/*.png
+
 # ── Database files ────────────────────────────────────────────
 *.db
 *.db-journal
