@@ -8,6 +8,18 @@ export function validateEmail(value: string): string {
   return "";
 }
 
+// Accepts common phone formats; requires 10–15 digits (NANP + intl).
+export function validatePhone(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return "Phone number is required.";
+  if (!/^[0-9+()\-.\s]+$/.test(trimmed))
+    return "Phone may only contain digits, spaces, and + - ( ).";
+  const digits = trimmed.replace(/\D/g, "");
+  if (digits.length < 10) return "Please enter a valid phone number.";
+  if (digits.length > 15) return "Phone number is too long.";
+  return "";
+}
+
 // Allows Latin letters, accented chars (French Canadian), spaces, hyphens, apostrophes.
 export function validateName(value: string): string {
   if (!value.trim()) return "Name is required.";

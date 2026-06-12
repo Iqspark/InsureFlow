@@ -14,6 +14,9 @@
 #
 # OPTIONAL SECRETS (email sending — leave out to use Ethereal test mode):
 #   SMTP_HOST / SMTP_PORT / SMTP_USER / SMTP_PASS / SMTP_FROM
+#
+# OPTIONAL SECRET (property address autocomplete + map — falls back to plain text):
+#   NEXT_PUBLIC_GOOGLE_MAPS_API_KEY   Must be set at BUILD time (inlined into client bundle)
 # ============================================================
 
 name: CI / Deploy to Azure
@@ -63,6 +66,7 @@ jobs:
           NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'build-time-placeholder' }}
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'build-time-placeholder' }}
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
 
       - name: Apply database schema and seed
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

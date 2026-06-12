@@ -57,7 +57,7 @@ export const QUESTIONS: Question[] = [
       { label: "Saskatchewan", value: "SK" },
       { label: "Yukon", value: "YT" },
     ],
-    defaultNextQuestionId: "property_type",
+    defaultNextQuestionId: "property_address",
     underwritingRules: [
       {
         operator: "in_list",
@@ -68,6 +68,17 @@ export const QUESTIONS: Question[] = [
       },
     ],
     ratingFactor: "province",
+  },
+
+  {
+    id: "property_address",
+    type: "address",
+    brokerText: "What's the full street address of the property?",
+    helperText:
+      "Start typing and pick the property from the suggestions — we'll show it on the map.",
+    placeholder: "123 Main St, Toronto, ON",
+    defaultNextQuestionId: "property_type",
+    required: true,
   },
 
   {
@@ -460,7 +471,7 @@ export const QUESTIONS: Question[] = [
       { label: "Yes — currently or recently insured", value: "yes" },
       { label: "No — no coverage / lapse in coverage", value: "no" },
     ],
-    defaultNextQuestionId: "contact_email",
+    defaultNextQuestionId: "contact_phone",
     underwritingRules: [
       {
         operator: "equals",
@@ -475,11 +486,23 @@ export const QUESTIONS: Question[] = [
 
   // ── SECTION 9: CONTACT INFO ──────────────────────────────
   {
+    id: "contact_phone",
+    type: "text",
+    inputType: "phone",
+    brokerText:
+      "Almost done, {{applicant_name}}! What's the best phone number to reach you?",
+    helperText: "We'll only use this to discuss your quote if needed.",
+    placeholder: "e.g. (416) 555-0142",
+    defaultNextQuestionId: "contact_email",
+    required: true,
+  },
+
+  {
     id: "contact_email",
     type: "text",
     inputType: "email",
     brokerText:
-      "Excellent! We're almost done, {{applicant_name}}. What email address should we send your quote to?",
+      "And last one — what email address should we send your quote to?",
     helperText: "We'll email you a copy of your full quote summary.",
     placeholder: "you@example.com",
     defaultNextQuestionId: "__SUBMIT__",

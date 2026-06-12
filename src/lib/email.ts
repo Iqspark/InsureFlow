@@ -10,11 +10,13 @@ async function buildTransporter(): Promise<{
   isTest: boolean;
 }> {
   if (process.env.SMTP_USER && process.env.SMTP_PASS) {
+    const port = parseInt(process.env.SMTP_PORT ?? "587");
     return {
       transport: nodemailer.createTransport({
-        host:   process.env.SMTP_HOST ?? "smtp.gmail.com",
-        port:   parseInt(process.env.SMTP_PORT ?? "587"),
-        secure: false,
+        host:       process.env.SMTP_HOST ?? "smtp.gmail.com",
+        port,
+        secure:     port === 465,   // 465 = implicit TLS; 587 = STARTTLS
+        requireTLS: port === 587,
         auth: {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS,
@@ -212,6 +214,104 @@ export async function sendPolicyConfirmationEmail(
     // Log to server console so developer can open it during demos
     console.log(`\n📧 [Ethereal] Preview email at: ${previewUrl}\n`);
   }
+
+  return { sentTo: data.to, previewUrl };
+}
+
+// ── Underwriter / back-office notification ────────────────────
+export interface UnderwriterNotificationData {
+  to:             string; // underwriter / back-office inbox
+  appId:          string;
+  policyType:     string;
+  applicantName:  string;
+  applicantEmail: string;
+  applicantPhone: string;
+  province:       string;
+  annualPremium:  number;
+  monthlyPremium: number;
+  coverageAmount: number;
+  deductible:     number;
+  brokerName:     string;
+  brokerEmail:    string;
+}
+
+function buildUnderwriterHtml(d: UnderwriterNotificationData): string {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+
+  const row = (label: string, value: string) => `
+    <tr>
+      <td style="padding:8px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">${label}</td>
+      <td style="padding:8px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${value}</td>
+    </tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr>
+      <td style="background:#0f172a;border-radius:12px 12px 0 0;padding:22px 32px">
+        <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff">InsureFlow · Underwriting</p>
+        <p style="margin:4px 0 0;font-size:13px;color:#94a3b8">A policy has just been bound</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#ffffff;padding:24px 32px">
+        <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
+          Broker <strong>${d.brokerName}</strong> has bound the following policy. No action is required unless you wish to review it.
+        </p>
+        <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+          ${row("Application ID",  d.appId)}
+          ${row("Policy Type",     d.policyType)}
+          ${row("Applicant",       d.applicantName)}
+          ${row("Applicant Email", d.applicantEmail)}
+          ${row("Applicant Phone", d.applicantPhone)}
+          ${row("Province",        d.province)}
+          ${row("Annual Premium",  fmt(d.annualPremium))}
+          ${row("Monthly Premium", fmt(d.monthlyPremium))}
+          ${row("Coverage",        fmt(d.coverageAmount))}
+          ${row("Deductible",      fmt(d.deductible))}
+          ${row("Broker",          `${d.brokerName} (${d.brokerEmail})`)}
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+        <p style="margin:0;font-size:11px;color:#475569">Automated underwriting notification · © ${new Date().getFullYear()} InsureFlow</p>
+      </td>
+    </tr>
+  </table>
+</body></html>`;
+}
+
+export async function sendUnderwriterNotificationEmail(
+  data: UnderwriterNotificationData
+): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      data.to,
+    subject: `Policy Bound — ${data.policyType} (${data.appId})`,
+    html:    buildUnderwriterHtml(data),
+    text: [
+      `Policy Bound — InsureFlow Underwriting`,
+      ``,
+      `Broker ${data.brokerName} has bound a policy.`,
+      ``,
+      `Application ID : ${data.appId}`,
+      `Policy Type    : ${data.policyType}`,
+      `Applicant      : ${data.applicantName} (${data.applicantEmail})`,
+      `Phone          : ${data.applicantPhone}`,
+      `Province       : ${data.province}`,
+      `Annual Premium : ${new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(data.annualPremium)}`,
+      `Coverage       : ${new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD" }).format(data.coverageAmount)}`,
+      `Broker         : ${data.brokerName} (${data.brokerEmail})`,
+    ].join("\n"),
+  });
+
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] Underwriter notice at: ${previewUrl}\n`);
 
   return { sentTo: data.to, previewUrl };
 }

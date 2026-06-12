@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendPolicyConfirmationEmail } from "@/lib/email";
+import { sendPolicyConfirmationEmail, sendUnderwriterNotificationEmail } from "@/lib/email";
 
 // POST /api/buy-policy
 // Looks up the submission, sends a confirmation email to the applicant.
@@ -62,7 +62,44 @@ export async function POST(req: NextRequest) {
       brokerEmail:    sub.broker?.email  ?? session.user.email,
     });
 
-    return NextResponse.json({ success: true, sentTo: result.sentTo, previewUrl: result.previewUrl ?? null });
+    // Mark the quote as a bound policy
+    await prisma.submission.update({
+      where: { id: sub.id },
+      data: { purchased: true },
+    });
+
+    // Notify the underwriting team (best-effort — never block the bind)
+    const underwriterTo = process.env.UNDERWRITER_EMAIL;
+    let underwriterNotified = false;
+    if (underwriterTo) {
+      try {
+        await sendUnderwriterNotificationEmail({
+          to:             underwriterTo,
+          appId:          sub.id.slice(0, 10).toUpperCase(),
+          policyType:     sub.policyType,
+          applicantName:  sub.applicantName  ?? "Valued Customer",
+          applicantEmail: to,
+          applicantPhone: sub.contactPhone   ?? "—",
+          province:       sub.province       ?? "Canada",
+          annualPremium:  sub.annualPremium  ?? 0,
+          monthlyPremium: sub.monthlyPremium ?? 0,
+          coverageAmount: sub.coverageAmount ?? 0,
+          deductible:     sub.deductible     ?? 0,
+          brokerName:     sub.broker?.name   ?? session.user.name,
+          brokerEmail:    sub.broker?.email  ?? session.user.email,
+        });
+        underwriterNotified = true;
+      } catch (err) {
+        console.error("[buy-policy] underwriter notification failed:", err);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      sentTo: result.sentTo,
+      previewUrl: result.previewUrl ?? null,
+      underwriterNotified,
+    });
   } catch (err) {
     console.error("[POST /api/buy-policy] email send failed:", err);
     return NextResponse.json(

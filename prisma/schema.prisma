@@ -46,11 +46,13 @@ model Submission {
   // ── Contact info ─────────────────────────────────────────
   applicantName String?
   contactEmail  String?
+  contactPhone  String?
   sessionId     String?
 
   // ── Property location ────────────────────────────────────
-  province     String?
-  propertyType String?
+  province        String?
+  propertyAddress String?
+  propertyType    String?
 
   // ── Property details ─────────────────────────────────────
   yearBuilt     Int?
@@ -82,6 +84,10 @@ model Submission {
 
   // ── Draft / complete status ──────────────────────────────
   status     String  @default("complete") // "draft" | "complete"
+
+  // ── Purchase state ───────────────────────────────────────
+  // false = quote only · true = bound policy (Buy This Policy pressed)
+  purchased  Boolean @default(false)
 
   // ── All raw answers (JSON) ───────────────────────────────
   allAnswers String  @default("{}") // JSON — Record<string, Answer>

@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { useQuote } from "@/context/QuoteContext";
 
 export default function IntroScreen() {
-  const { startConversation } = useQuote();
+  const { startConversation, intro } = useQuote();
 
   return (
     <motion.div
@@ -22,7 +22,7 @@ export default function IntroScreen() {
         transition={{ delay: 0.1, type: "spring", stiffness: 200 }}
         className="w-20 h-20 rounded-3xl bg-indigo-600 flex items-center justify-center shadow-xl shadow-indigo-200 mb-6"
       >
-        <span className="text-white text-3xl">🏠</span>
+        <span className="text-white text-3xl">{intro.emoji}</span>
       </motion.div>
 
       <motion.div
@@ -32,11 +32,10 @@ export default function IntroScreen() {
         className="space-y-3 mb-8"
       >
         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
-          Vacant Home Insurance
+          {intro.title}
         </h1>
         <p className="text-slate-500 text-base leading-relaxed max-w-xs mx-auto">
-          Get an instant quote in under 3 minutes. No paperwork. No calls. Just
-          answers.
+          {intro.subtitle}
         </p>
       </motion.div>
 

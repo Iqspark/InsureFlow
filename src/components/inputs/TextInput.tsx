@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { validateEmail, validateName } from "@/utils/validate";
+import { validateEmail, validateName, validatePhone } from "@/utils/validate";
 
 interface Props {
   placeholder?: string;
   onSubmit: (value: string, displayValue: string) => void;
   required?: boolean;
-  inputType?: "email" | "name" | "text";
+  inputType?: "email" | "name" | "phone" | "text";
   minLength?: number;
   maxLength?: number;
 }
@@ -34,6 +34,7 @@ export default function TextInput({
     const trimmed = v.trim();
     if (inputType === "email") return validateEmail(trimmed);
     if (inputType === "name") return validateName(trimmed);
+    if (inputType === "phone") return validatePhone(trimmed);
     if (required && !trimmed) return "This field is required.";
     if (minLength && trimmed.length < minLength)
       return `Must be at least ${minLength} characters.`;
@@ -79,7 +80,7 @@ export default function TextInput({
         <div className="relative flex-1">
           <input
             ref={inputRef}
-            type={inputType === "email" ? "email" : "text"}
+            type={inputType === "email" ? "email" : inputType === "phone" ? "tel" : "text"}
             value={value}
             onChange={handleChange}
             onBlur={handleBlur}

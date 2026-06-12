@@ -2,12 +2,11 @@
 
 import { motion } from "framer-motion";
 import { useQuote } from "@/context/QuoteContext";
-import { QUESTIONS } from "@/data/questions";
 
 export default function SummaryScreen() {
-  const { answers, confirmSummary, restart } = useQuote();
+  const { questions, answers, confirmSummary, restart } = useQuote();
 
-  const answeredQuestions = QUESTIONS.filter((q) => answers[q.id] !== undefined);
+  const answeredQuestions = questions.filter((q) => answers[q.id] !== undefined);
 
   return (
     <motion.div
@@ -47,7 +46,7 @@ export default function SummaryScreen() {
           >
             <div className="min-w-0">
               <p className="text-xs text-slate-400 font-medium uppercase tracking-wide leading-none mb-0.5">
-                {getSectionLabel(q.id)}
+                {q.summarySection ?? getSectionLabel(q.id)}
               </p>
               <p className="text-xs text-slate-500 leading-snug mt-0.5">
                 {/* Short question label — first clause of brokerText */}
@@ -94,6 +93,7 @@ function getSectionLabel(id: string): string {
   const map: Record<string, string> = {
     applicant_name: "About You",
     property_province: "Property",
+    property_address: "Property",
     property_type: "Property",
     year_built: "Property",
     square_footage: "Property",
@@ -111,6 +111,7 @@ function getSectionLabel(id: string): string {
     damage_type: "Loss History",
     prior_claims: "Loss History",
     prior_insurance: "Loss History",
+    contact_phone: "Contact",
     contact_email: "Contact",
   };
   return map[id] ?? "Details";

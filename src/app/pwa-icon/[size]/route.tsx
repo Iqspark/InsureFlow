@@ -37,7 +37,7 @@ export async function GET(
             lineHeight: 1,
           }}
         >
-          VHI
+          IF
         </span>
         <span
           style={{
@@ -47,7 +47,7 @@ export async function GET(
             fontFamily: "system-ui, sans-serif",
           }}
         >
-          Quote
+          Portal
         </span>
       </div>
     ),

@@ -28,3 +28,24 @@ export async function GET(
     return NextResponse.json({ error: "Failed to load draft" }, { status: 500 });
   }
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const authSession = await getServerSession(authOptions);
+    const brokerId = authSession?.user?.id;
+    if (!brokerId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+    await prisma.submission.deleteMany({
+      where: { id, brokerId, status: "draft" },
+    });
+
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[DELETE /api/drafts/[id]]", err);
+    return NextResponse.json({ error: "Failed to delete draft" }, { status: 500 });
+  }
+}

@@ -27,7 +27,7 @@ export default function Icon() {
             letterSpacing: "-0.5px",
           }}
         >
-          V
+          IF
         </span>
       </div>
     ),

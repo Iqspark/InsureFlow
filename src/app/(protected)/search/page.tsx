@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { productSlugForPolicyType } from "@/data/products";
+import StageBadge from "@/components/StageBadge";
 
 type SearchResult = {
   id: string;
@@ -10,6 +12,7 @@ type SearchResult = {
   policyType: string;
   decision: string | null;
   status: string;
+  purchased: boolean;
   province: string | null;
   annualPremium: number | null;
 };
@@ -150,11 +153,7 @@ export default function SearchPage() {
               >
                 <option value="">All types</option>
                 <option value="Vacant Home Insurance">Vacant Home Insurance</option>
-                <option value="Cyber Liability">Cyber Liability</option>
-                <option value="Contractor">Contractor</option>
-                <option value="Jeweller Block">Jeweller Block</option>
-                <option value="Retailers">Retailers</option>
-                <option value="Rental Homes">Rental Homes</option>
+                <option value="Jeweller Block Insurance">Jeweller Block Insurance</option>
               </select>
             </div>
           </div>
@@ -234,7 +233,10 @@ export default function SearchPage() {
                         Policy Date
                       </th>
                       <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                        Status
+                        Decision
+                      </th>
+                      <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                        Stage
                       </th>
                       <th className="w-10"><span className="sr-only">Actions</span></th>
                     </tr>
@@ -264,9 +266,12 @@ export default function SearchPage() {
                         <td className="px-5 py-3.5">
                           <DecisionBadge decision={r.decision} status={r.status} />
                         </td>
+                        <td className="px-5 py-3.5">
+                          {r.status !== "draft" && <StageBadge purchased={r.purchased} />}
+                        </td>
                         <td className="px-5 py-3.5 text-right whitespace-nowrap w-10">
                           <Link
-                            href={r.status === "draft" ? `/new-quote/vacant-home?resume=${r.id}` : `/policy/${r.id}`}
+                            href={r.status === "draft" ? `/new-quote/${productSlugForPolicyType(r.policyType)}?resume=${r.id}` : `/policy/${r.id}`}
                             className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
                           >
                             {r.status === "draft" ? "Resume" : "View"}

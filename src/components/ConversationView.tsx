@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useQuote } from "@/context/QuoteContext";
-import { QUESTIONS } from "@/data/questions";
 import { interpolate } from "@/utils/interpolate";
 import ChatBubble from "./ChatBubble";
 import TypingIndicator from "./TypingIndicator";
@@ -14,6 +13,8 @@ const TYPING_DELAY_MS = 1100;
 
 export default function ConversationView() {
   const {
+    questions,
+    policyType,
     currentQuestionId,
     answers,
     conversationMessages,
@@ -34,7 +35,7 @@ export default function ConversationView() {
   const [prevQuestionId, setPrevQuestionId] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const currentQuestion = QUESTIONS.find((q) => q.id === currentQuestionId);
+  const currentQuestion = questions.find((q) => q.id === currentQuestionId);
 
   // Scroll to bottom whenever messages change or typing indicator toggles
   useEffect(() => {
@@ -88,7 +89,7 @@ export default function ConversationView() {
     // Show the user's message in chat
     addBrokerMessage(`You asked: "${text}"`, `change-user-${Date.now()}`);
 
-    const answeredQuestions = QUESTIONS
+    const answeredQuestions = questions
       .filter((q) => answers[q.id])
       .map((q) => ({
         id: q.id,
@@ -133,7 +134,7 @@ export default function ConversationView() {
             </div>
           </div>
           <span className="text-xs text-slate-400 font-medium">
-            Vacant Home Insurance
+            {policyType}
           </span>
         </div>
         <ProgressBar value={progress} />

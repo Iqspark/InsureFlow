@@ -2,11 +2,11 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Vacant Home Insurance — Get a Quote",
-    short_name: "VHI Quote",
+    name: "InsureFlow — Broker Portal",
+    short_name: "InsureFlow",
     description:
-      "Get an instant quote for vacant home insurance in minutes. No paperwork, no hassle.",
-    start_url: "/",
+      "Professional insurance broker portal. Manage quotes and policies.",
+    start_url: "/dashboard",
     display: "standalone",
     orientation: "portrait",
     background_color: "#f8faff",

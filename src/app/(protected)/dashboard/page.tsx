@@ -5,6 +5,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { productSlugForPolicyType } from "@/data/products";
+import StageBadge from "@/components/StageBadge";
 
 // Makes an entire <tr> row act as a link by overlaying an <a> on the first cell
 function LinkRow({
@@ -80,6 +82,7 @@ export default async function DashboardPage() {
       policyType: true,
       decision: true,
       status: true,
+      purchased: true,
     },
   });
 
@@ -199,7 +202,10 @@ export default async function DashboardPage() {
                     Policy Date
                   </th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Status
+                    Decision
+                  </th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                    Stage
                   </th>
                   <th className="w-10"><span className="sr-only">Actions</span></th>
                 </tr>
@@ -208,7 +214,7 @@ export default async function DashboardPage() {
                 {submissions.map((sub, i) => (
                   <LinkRow
                     key={sub.id}
-                    href={sub.status === "draft" ? `/new-quote/vacant-home?resume=${sub.id}` : `/policy/${sub.id}`}
+                    href={sub.status === "draft" ? `/new-quote/${productSlugForPolicyType(sub.policyType)}?resume=${sub.id}` : `/policy/${sub.id}`}
                     striped={i % 2 !== 0}
                     label={sub.status === "draft" ? "Resume" : "View"}
                   >
@@ -230,6 +236,9 @@ export default async function DashboardPage() {
                     </td>
                     <td className="px-4 sm:px-6 py-3.5">
                       <DecisionBadge decision={sub.decision} status={sub.status} />
+                    </td>
+                    <td className="px-4 sm:px-6 py-3.5">
+                      {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
                     </td>
                   </LinkRow>
                 ))}

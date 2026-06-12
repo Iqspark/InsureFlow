@@ -14,9 +14,10 @@ export async function POST(req: NextRequest) {
       quoteDetails: QuoteDetails;
       sessionId?: string;
       draftId?: string;
+      policyType?: string;
     };
 
-    const { answers, quoteDetails, sessionId, draftId } = body;
+    const { answers, quoteDetails, sessionId, draftId, policyType } = body;
 
     if (!answers || !quoteDetails) {
       return NextResponse.json(
@@ -38,17 +39,19 @@ export async function POST(req: NextRequest) {
 
     const submissionData = {
       brokerId:  brokerId,
-      policyType: "Vacant Home Insurance",
+      policyType: policyType ?? "Vacant Home Insurance",
       sessionId: sessionId ?? null,
       status: "complete",
 
       // Contact
       applicantName:  getString("applicant_name") || null,
       contactEmail:   getString("contact_email") || null,
+      contactPhone:   getString("contact_phone") || null,
 
       // Location
-      province:     getString("property_province") || null,
-      propertyType: getString("property_type") || null,
+      province:        getString("property_province") || null,
+      propertyAddress: getString("property_address") || null,
+      propertyType:    getString("property_type") || null,
 
       // Property details
       yearBuilt:     getNumber("year_built") ? Math.round(getNumber("year_built")!) : null,

@@ -8,18 +8,18 @@ import React, {
   useRef,
   ReactNode,
 } from "react";
-import { Answer, AppPhase, QuoteDetails, ConversationMessage } from "@/types";
-import { QUESTIONS, FIRST_QUESTION_ID, TOTAL_QUESTIONS } from "@/data/questions";
-import { calculateQuote } from "@/engine/quoteCalculator";
+import { Answer, AppPhase, QuoteDetails, ConversationMessage, Question } from "@/types";
+import { getProduct, DEFAULT_PRODUCT_ID } from "@/data/products";
 import { interpolate } from "@/utils/interpolate";
 
 // ── Routing helper ───────────────────────────────────────────
 function resolveNextQuestionId(
+  questions: Question[],
   questionId: string,
   value: string | number | boolean,
   answers: Record<string, Answer>
 ): string {
-  const question = QUESTIONS.find((q) => q.id === questionId);
+  const question = questions.find((q) => q.id === questionId);
   if (!question) return "__SUBMIT__";
 
   if (question.conditionalBranches?.length) {
@@ -38,6 +38,9 @@ function resolveNextQuestionId(
 // ── Context shape ────────────────────────────────────────────
 interface QuoteContextValue {
   phase: AppPhase;
+  questions: Question[];
+  policyType: string;
+  intro: { emoji: string; title: string; subtitle: string };
   answers: Record<string, Answer>;
   currentQuestionId: string;
   conversationMessages: ConversationMessage[];
@@ -68,7 +71,17 @@ export function useQuote() {
 }
 
 // ── Provider ─────────────────────────────────────────────────
-export function QuoteProvider({ children }: { children: ReactNode }) {
+export function QuoteProvider({
+  children,
+  productId = DEFAULT_PRODUCT_ID,
+}: {
+  children: ReactNode;
+  productId?: string;
+}) {
+  const product = useRef(getProduct(productId)).current;
+  const questions = product.questions;
+  const firstQuestionId = product.firstQuestionId;
+
   const sessionId = useRef<string>(
     `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
   );
@@ -77,10 +90,10 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   const [phase, setPhase] = useState<AppPhase>("intro");
   const [answers, setAnswers] = useState<Record<string, Answer>>({});
   const [questionHistory, setQuestionHistory] = useState<string[]>([
-    FIRST_QUESTION_ID,
+    firstQuestionId,
   ]);
   const [currentQuestionId, setCurrentQuestionId] =
-    useState(FIRST_QUESTION_ID);
+    useState(firstQuestionId);
   const [conversationMessages, setConversationMessages] = useState<
     ConversationMessage[]
   >([]);
@@ -89,7 +102,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
 
   const historyIndex = questionHistory.indexOf(currentQuestionId);
   const progress = Math.min(
-    Math.round((historyIndex / TOTAL_QUESTIONS) * 100),
+    Math.round((historyIndex / questions.length) * 100),
     95
   );
   const canGoBack = historyIndex > 0;
@@ -144,6 +157,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
             answers: newAnswers,
             sessionId: sessionId.current,
             draftId: draftIdRef.current,
+            policyType: product.policyType,
           }),
         })
           .then((res) => res.json())
@@ -153,7 +167,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
           .catch(() => {});
       }
 
-      const nextId = resolveNextQuestionId(questionId, value, newAnswers);
+      const nextId = resolveNextQuestionId(questions, questionId, value, newAnswers);
 
       if (nextId === "__SUBMIT__") {
         setPhase("summary");
@@ -215,7 +229,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   }, [questionHistory]);
 
   const confirmSummary = useCallback(() => {
-    const result = calculateQuote(answers);
+    const result = product.calculate(answers);
     setQuoteDetails(result);
     setPhase("result");
 
@@ -228,6 +242,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
         quoteDetails: result,
         sessionId: sessionId.current,
         draftId: draftIdRef.current,
+        policyType: product.policyType,
       }),
     })
       .then((res) => res.json())
@@ -240,11 +255,12 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   const resumeFromDraft = useCallback(
     (savedAnswers: Record<string, Answer>, draftId: string) => {
       // Replay answer path to rebuild question history
-      const history: string[] = [FIRST_QUESTION_ID];
-      let currentId = FIRST_QUESTION_ID;
+      const history: string[] = [firstQuestionId];
+      let currentId = firstQuestionId;
 
       while (savedAnswers[currentId]) {
         const nextId = resolveNextQuestionId(
+          questions,
           currentId,
           savedAnswers[currentId].value,
           savedAnswers
@@ -258,7 +274,7 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
       const messages: ConversationMessage[] = [];
       for (const qId of history) {
         if (!savedAnswers[qId]) break; // stop before the unanswered current question
-        const question = QUESTIONS.find((q) => q.id === qId);
+        const question = questions.find((q) => q.id === qId);
         if (question) {
           messages.push({
             id: `broker-${qId}-resume`,
@@ -288,8 +304,8 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
   const restart = useCallback(() => {
     setPhase("intro");
     setAnswers({});
-    setQuestionHistory([FIRST_QUESTION_ID]);
-    setCurrentQuestionId(FIRST_QUESTION_ID);
+    setQuestionHistory([firstQuestionId]);
+    setCurrentQuestionId(firstQuestionId);
     setConversationMessages([]);
     setQuoteDetails(null);
     setSubmissionId(null);
@@ -300,6 +316,9 @@ export function QuoteProvider({ children }: { children: ReactNode }) {
     <QuoteContext.Provider
       value={{
         phase,
+        questions,
+        policyType: product.policyType,
+        intro: product.intro,
         answers,
         currentQuestionId,
         conversationMessages,

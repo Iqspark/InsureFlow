@@ -30,7 +30,7 @@ export default function AppleIcon() {
             lineHeight: 1,
           }}
         >
-          VHI
+          IF
         </span>
         <span
           style={{
@@ -41,7 +41,7 @@ export default function AppleIcon() {
             letterSpacing: "0px",
           }}
         >
-          Quote
+          Portal
         </span>
       </div>
     ),

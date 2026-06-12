@@ -3,6 +3,13 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import DeleteDraftButton from "@/components/DeleteDraftButton";
+import DownloadPolicyButton from "@/components/DownloadPolicyButton";
+import { buildSubmissionSections } from "@/lib/submissionSections";
+import { productSlugForPolicyType } from "@/data/products";
+import PropertyMap from "@/components/PropertyMap";
+import StageBadge from "@/components/StageBadge";
+import BuyPolicyButton from "@/components/BuyPolicyButton";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -28,12 +35,6 @@ function fmtDate(d: Date): string {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-function yesNo(v: string | null | undefined): string {
-  if (v === "yes") return "Yes";
-  if (v === "no")  return "No";
-  return fmt(v);
 }
 
 function DecisionBanner({ decision, reasons }: { decision: string | null; reasons: string[] }) {
@@ -101,6 +102,7 @@ export default async function PolicyDetailPage({
   const reasons = sub.decision === "decline" ? declineReasons : referralReasons;
 
   const appId = sub.id.slice(0, 10).toUpperCase();
+  const sections = buildSubmissionSections(sub);
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
@@ -126,9 +128,12 @@ export default async function PolicyDetailPage({
               <span className="font-mono font-semibold text-slate-700">{appId}</span>
             </p>
           </div>
-          <p className="text-xs text-slate-400 shrink-0">
-            Submitted {fmtDate(sub.createdAt)}
-          </p>
+          <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
+            {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
+            <p className="text-xs text-slate-400">
+              Submitted {fmtDate(sub.createdAt)}
+            </p>
+          </div>
         </div>
 
         {/* Decision banner */}
@@ -152,51 +157,17 @@ export default async function PolicyDetailPage({
           </div>
         )}
 
-        {/* Sections */}
-        <Section title="Applicant Information">
-          <Field label="Full Name"      value={fmt(sub.applicantName)} />
-          <Field label="Email Address"  value={fmt(sub.contactEmail)} />
-          <Field label="Broker"         value={fmt(sub.broker?.name)} />
-          <Field label="Broker Email"   value={fmt(sub.broker?.email)} />
-        </Section>
+        {/* Property location map */}
+        {sub.propertyAddress && <PropertyMap address={sub.propertyAddress} />}
 
-        <Section title="Property Details">
-          <Field label="Province / Territory" value={fmt(sub.province)} />
-          <Field label="Property Type"        value={fmt(sub.propertyType)} />
-          <Field label="Year Built"           value={fmt(sub.yearBuilt)} />
-          <Field label="Square Footage"
-            value={sub.squareFootage != null ? `${sub.squareFootage.toLocaleString()} sq ft` : "—"} />
-          <Field label="Property Value"       value={fmtCurrency(sub.propertyValue)} />
-        </Section>
-
-        <Section title="Vacancy Information">
-          <Field label="Vacancy Duration" value={fmt(sub.vacancyDuration)} />
-          <Field label="Reason for Vacancy" value={fmt(sub.vacancyReason)} />
-        </Section>
-
-        <Section title="Coverage Details">
-          <Field label="Coverage Percentage" value={fmt(sub.coveragePercent)} />
-          <Field label="Deductible"
-            value={sub.deductible != null ? fmtCurrency(sub.deductible) : "—"} />
-        </Section>
-
-        <Section title="Property Management">
-          <Field label="Inspection Frequency"   value={fmt(sub.inspectionFrequency)} />
-          <Field label="Utilities Winterized"   value={yesNo(sub.utilitiesWinterized)} />
-          <Field label="Security Features"      value={fmt(sub.securityFeatures)} />
-        </Section>
-
-        <Section title="Property Features">
-          <Field label="Swimming Pool"          value={yesNo(sub.hasPool)} />
-          <Field label="Pool Fenced"            value={yesNo(sub.poolFenced)} />
-        </Section>
-
-        <Section title="Loss History">
-          <Field label="Prior Damage"           value={yesNo(sub.priorDamage)} />
-          <Field label="Damage Type"            value={fmt(sub.damageType)} />
-          <Field label="Prior Claims (5 yrs)"   value={fmt(sub.priorClaims)} />
-          <Field label="Prior Insurance"        value={yesNo(sub.priorInsurance)} />
-        </Section>
+        {/* Product-specific sections */}
+        {sections.map((section) => (
+          <Section key={section.title} title={section.title}>
+            {section.rows.map((row) => (
+              <Field key={row.label} label={row.label} value={row.value} />
+            ))}
+          </Section>
+        ))}
 
         <Section title="Record Information">
           <Field label="Application ID"         value={appId} />
@@ -206,8 +177,8 @@ export default async function PolicyDetailPage({
           <Field label="Last Updated"           value={fmtDate(sub.updatedAt)} />
         </Section>
 
-        {/* Back button */}
-        <div className="flex gap-3 pb-4">
+        {/* Actions */}
+        <div className="flex flex-wrap gap-3 pb-4">
           <Link
             href="/dashboard"
             className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-xl border border-slate-200 shadow-sm transition-colors text-sm"
@@ -217,6 +188,25 @@ export default async function PolicyDetailPage({
             </svg>
             Back to Dashboard
           </Link>
+          <DownloadPolicyButton submissionId={sub.id} />
+          {sub.status !== "draft" && sub.decision === "accept" && (
+            <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
+          )}
+          {sub.status === "draft" && (
+            <>
+              <Link
+                href={`/new-quote/${productSlugForPolicyType(sub.policyType)}?resume=${sub.id}`}
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-sm transition-colors text-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Resume Quote
+              </Link>
+              <DeleteDraftButton draftId={sub.id} />
+            </>
+          )}
         </div>
       </div>
     </div>

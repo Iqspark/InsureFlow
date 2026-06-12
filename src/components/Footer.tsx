@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function Footer() {
   const year = new Date().getFullYear();
   return (
@@ -7,24 +9,24 @@ export function Footer() {
         <span className="hidden sm:inline">© {year} InsureFlow Broker Portal. All rights reserved.</span>
       </p>
       <div className="flex items-center gap-4">
-        <a
-          href="#"
+        <Link
+          href="/privacy"
           className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
           Privacy
-        </a>
-        <a
-          href="#"
+        </Link>
+        <Link
+          href="/terms"
           className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
           Terms
-        </a>
-        <a
-          href="#"
+        </Link>
+        <Link
+          href="/support"
           className="text-xs text-slate-500 hover:text-slate-300 transition-colors"
         >
           Support
-        </a>
+        </Link>
       </div>
     </footer>
   );

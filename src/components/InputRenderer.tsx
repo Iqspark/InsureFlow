@@ -8,6 +8,7 @@ import NumberInput from "./inputs/NumberInput";
 import CurrencyInput from "./inputs/CurrencyInput";
 import DropdownInput from "./inputs/DropdownInput";
 import DateInput from "./inputs/DateInput";
+import AddressInput from "./inputs/AddressInput";
 
 interface Props {
   question: Question;
@@ -61,6 +62,14 @@ export default function InputRenderer({ question, onSubmit }: Props) {
           placeholder={question.placeholder}
           min={question.min}
           max={question.max}
+          onSubmit={(v, d) => submit(v, d)}
+        />
+      );
+
+    case "address":
+      return (
+        <AddressInput
+          placeholder={question.placeholder}
           onSubmit={(v, d) => submit(v, d)}
         />
       );

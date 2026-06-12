@@ -1,4 +1,4 @@
-import { Answer, ComparisonOperator, UnderwritingDecision } from "@/types";
+import { Answer, ComparisonOperator, Question, UnderwritingDecision } from "@/types";
 import { QUESTIONS } from "@/data/questions";
 
 // ============================================================
@@ -39,12 +39,13 @@ function compare(
 }
 
 export function runUnderwritingEngine(
-  answers: Record<string, Answer>
+  answers: Record<string, Answer>,
+  questions: Question[] = QUESTIONS
 ): UnderwritingDecision {
   const declineReasons: string[] = [];
   const referralReasons: string[] = [];
 
-  for (const question of QUESTIONS) {
+  for (const question of questions) {
     if (!question.underwritingRules?.length) continue;
 
     const answer = answers[question.id];

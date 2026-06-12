@@ -35,6 +35,7 @@ function AcceptResult({
   const [buyStatus, setBuyStatus] = useState<BuyStatus>("idle");
   const [sentEmail, setSentEmail] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
+  const [underwriterNotified, setUnderwriterNotified] = useState(false);
 
   // Mirror submissionId in a ref so the async handler always reads the latest value
   const submissionIdRef = useRef(submissionId);
@@ -70,6 +71,7 @@ function AcceptResult({
 
       setSentEmail(data.sentTo ?? applicantEmail);
       setPreviewUrl(data.previewUrl ?? undefined);
+      setUnderwriterNotified(Boolean(data.underwriterNotified));
       setBuyStatus("sent");
     } catch {
       setBuyStatus("error");
@@ -115,7 +117,7 @@ function AcceptResult({
             className="w-full max-w-xs"
           >
             <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Policy Confirmed!</h2>
-            <p className="text-slate-400 text-sm mb-6">Your application has been successfully submitted.</p>
+            <p className="text-slate-400 text-sm mb-6">Your policy is now bound{underwriterNotified ? " and the underwriting team has been notified" : ""}.</p>
 
             {/* Email chip */}
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 mb-6 text-left">
@@ -196,7 +198,7 @@ function AcceptResult({
         <FactorRow
           name="Base premium"
           value={`$${basePremium.toLocaleString()}`}
-          description="Starting point for all vacant home policies"
+          description="Starting point for this policy"
           i={0}
         />
 
@@ -251,6 +253,18 @@ function AcceptResult({
 
           <button
             type="button"
+            onClick={() => router.push("/dashboard")}
+            disabled={buyStatus === "sending"}
+            className="w-full py-3.5 bg-white text-slate-700 border border-slate-200 rounded-2xl font-semibold text-sm hover:bg-slate-50 active:scale-[0.98] transition-all disabled:opacity-60"
+          >
+            Save as Quote
+          </button>
+          <p className="text-[11px] text-slate-400 text-center -mt-1">
+            Your quote is saved either way. &ldquo;Buy&rdquo; binds it as a policy and emails confirmation.
+          </p>
+
+          <button
+            type="button"
             onClick={onRestart}
             className="w-full py-2 text-sm text-slate-400 hover:text-slate-600 transition-colors"
           >
@@ -302,7 +316,7 @@ function DeclineResult({
         <p className="text-xs text-slate-400 max-w-xs">
           If you believe this is an error or your circumstances have changed,
           please contact us directly at{" "}
-          <span className="text-indigo-500">support@vhinsurance.com</span>.
+          <span className="text-indigo-500">support@insureflow.com</span>.
         </p>
       </div>
       <button

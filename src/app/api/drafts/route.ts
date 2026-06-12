@@ -13,9 +13,10 @@ export async function POST(req: NextRequest) {
       answers: Record<string, Answer>;
       sessionId?: string;
       draftId?: string;
+      policyType?: string;
     };
 
-    const { answers, sessionId, draftId } = body;
+    const { answers, sessionId, draftId, policyType } = body;
 
     const authSession = await getServerSession(authOptions);
     const brokerId = authSession?.user?.id ?? null;
@@ -31,10 +32,13 @@ export async function POST(req: NextRequest) {
       brokerId,
       sessionId: sessionId ?? null,
       status: "draft",
-      applicantName: getString("applicant_name") || null,
-      contactEmail:  getString("contact_email") || null,
-      province:      getString("property_province") || null,
-      propertyType:  getString("property_type") || null,
+      policyType: policyType ?? "Vacant Home Insurance",
+      applicantName:   getString("applicant_name") || null,
+      contactEmail:    getString("contact_email") || null,
+      contactPhone:    getString("contact_phone") || null,
+      province:        getString("property_province") || null,
+      propertyAddress: getString("property_address") || null,
+      propertyType:    getString("property_type") || null,
       yearBuilt:     getNumber("year_built") ? Math.round(getNumber("year_built")!) : null,
       squareFootage: getNumber("square_footage") ? Math.round(getNumber("square_footage")!) : null,
       propertyValue: getNumber("property_value") ?? null,

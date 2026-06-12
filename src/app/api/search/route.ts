@@ -51,6 +51,7 @@ export async function GET(req: NextRequest) {
         policyType: true,
         decision: true,
         status: true,
+        purchased: true,
         province: true,
         annualPremium: true,
       },

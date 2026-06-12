@@ -21,6 +21,7 @@
     "@anthropic-ai/sdk": "^0.96.0",
     "@ducanh2912/next-pwa": "^10.2.9",
     "@prisma/client": "5.22.0",
+    "@react-pdf/renderer": "^4.5.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
     "framer-motion": "^11.3.8",

@@ -10,6 +10,7 @@ export type QuestionType =
   | "currency"  // Monetary input ($ prefix)
   | "toggle"    // Two-option Yes/No style
   | "dropdown"  // Searchable select (many options)
+  | "address"   // Google Places autocomplete + map preview
   | "date";     // Date picker
 
 export type ComparisonOperator =
@@ -65,10 +66,12 @@ export interface Question {
   max?: number;
   prefix?: string;                      // e.g. "$"
   suffix?: string;                      // e.g. "sq ft"
-  inputType?: "email" | "name" | "text"; // Drives validation mode for text questions
+  inputType?: "email" | "name" | "phone" | "text"; // Drives validation mode for text questions
   minLength?: number;
   maxLength?: number;
   mustBeInteger?: boolean;              // For number questions: reject decimals
+  summaryLabel?: string;                // Short label for summary/detail/PDF views
+  summarySection?: string;              // Groups answers into sections in detail/PDF views
 }
 
 // ──────────────────────────────────────────────────────────
