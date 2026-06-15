@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { submissionScopeWhere, type SessionUser } from "@/lib/access";
 import { Answer, QuoteDetails } from "@/types";
 
 // ── POST /api/submissions ─────────────────────────────────────
@@ -116,6 +117,12 @@ export async function POST(req: NextRequest) {
 // Query params: ?page=1&limit=20&decision=accept&province=ON
 export async function GET(req: NextRequest) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const user = session.user as unknown as SessionUser;
+
     const { searchParams } = req.nextUrl;
     const page     = Math.max(1, Number(searchParams.get("page") ?? 1));
     const limit    = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? 20)));
@@ -124,6 +131,7 @@ export async function GET(req: NextRequest) {
     const email    = searchParams.get("email") ?? undefined;
 
     const where = {
+      ...submissionScopeWhere(user),
       ...(decision ? { decision } : {}),
       ...(province ? { province } : {}),
       ...(email    ? { contactEmail: { contains: email } } : {}),

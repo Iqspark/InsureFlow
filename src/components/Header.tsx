@@ -1,7 +1,34 @@
 import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { SignOutButton } from "./SignOutButton";
+
+type Role = "ADMIN" | "BROKER" | "UNDERWRITER";
+
+const NAV: Record<Role, { href: string; label: string }[]> = {
+  BROKER: [
+    { href: "/dashboard", label: "Dashboard" },
+    { href: "/new-quote", label: "New Quote" },
+    { href: "/search", label: "Search" },
+  ],
+  UNDERWRITER: [
+    { href: "/review", label: "Review Queue" },
+    { href: "/search", label: "All Policies" },
+  ],
+  ADMIN: [
+    { href: "/admin", label: "Admin" },
+    { href: "/review", label: "Review Queue" },
+    { href: "/search", label: "All Policies" },
+    { href: "/admin/users", label: "Users" },
+  ],
+};
+
+const ROLE_LABEL: Record<Role, string> = {
+  ADMIN: "Admin",
+  UNDERWRITER: "Underwriter",
+  BROKER: "Broker",
+};
 
 function ShieldLogo() {
   return (
@@ -34,12 +61,28 @@ function ShieldLogo() {
 export async function Header() {
   const session = await getServerSession(authOptions);
   const brokerName = session?.user?.name ?? "Broker";
+  const role: Role = (session?.user?.role as Role) ?? "BROKER";
+  const links = NAV[role];
+
+  // Action-required count for brokers (approved & unbound, or bound & unpaid).
+  let actionCount = 0;
+  if (role === "BROKER" && session?.user?.id) {
+    actionCount = await prisma.submission.count({
+      where: {
+        brokerId: session.user.id,
+        OR: [
+          { status: { not: "draft" }, decision: "accept", purchased: false },
+          { purchased: true, paymentStatus: { not: "paid" } },
+        ],
+      },
+    });
+  }
 
   return (
     <header className="h-16 bg-slate-900 flex items-center px-4 sm:px-6 shrink-0 z-10 border-b border-slate-800">
       {/* Logo */}
       <Link
-        href="/dashboard"
+        href={links[0].href}
         className="flex items-center gap-2.5 mr-8 shrink-0"
       >
         <ShieldLogo />
@@ -50,31 +93,27 @@ export async function Header() {
 
       {/* Nav links */}
       <nav className="flex items-center gap-1 flex-1">
-        <Link
-          href="/dashboard"
-          className="text-slate-300 hover:text-white text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors hidden sm:block"
-        >
-          Dashboard
-        </Link>
-        <Link
-          href="/new-quote"
-          className="text-slate-300 hover:text-white text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors hidden sm:block"
-        >
-          New Quote
-        </Link>
-        <Link
-          href="/search"
-          className="text-slate-300 hover:text-white text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors hidden sm:block"
-        >
-          Search
-        </Link>
+        {links.map((l) => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="relative text-slate-300 hover:text-white text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors hidden sm:block"
+          >
+            {l.label}
+            {l.label === "Dashboard" && actionCount > 0 && (
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
+                {actionCount}
+              </span>
+            )}
+          </Link>
+        ))}
       </nav>
 
-      {/* Broker info */}
+      {/* User info */}
       <div className="flex items-center gap-3 shrink-0">
         <div className="text-right hidden sm:block">
           <p className="text-xs text-slate-400 leading-none mb-0.5">
-            Signed in as
+            {ROLE_LABEL[role]}
           </p>
           <p className="text-sm text-white font-medium leading-none">
             {brokerName}

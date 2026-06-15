@@ -10,7 +10,10 @@ import { buildSubmissionSections } from "@/lib/submissionSections";
 import { productSlugForPolicyType } from "@/data/products";
 import PropertyMap from "@/components/PropertyMap";
 import StageBadge from "@/components/StageBadge";
+import PaymentBadge from "@/components/PaymentBadge";
 import BuyPolicyButton from "@/components/BuyPolicyButton";
+import ReviewActions from "@/components/ReviewActions";
+import { canViewSubmission, canReview, canBindOrPay, type SessionUser } from "@/lib/access";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -90,13 +93,17 @@ export default async function PolicyDetailPage({
   params: { id: string };
 }) {
   const session = await getServerSession(authOptions);
+  const user = session!.user as unknown as SessionUser;
 
   const sub = await prisma.submission.findUnique({
     where: { id: params.id },
-    include: { broker: { select: { name: true, email: true } } },
+    include: {
+      broker: { select: { name: true, email: true } },
+      reviewedBy: { select: { name: true } },
+    },
   });
 
-  if (!sub || sub.brokerId !== session!.user.id) notFound();
+  if (!sub || !canViewSubmission(user, sub)) notFound();
 
   const declineReasons:  string[] = JSON.parse(sub.declineReasons  ?? "[]");
   const referralReasons: string[] = JSON.parse(sub.referralReasons ?? "[]");
@@ -104,6 +111,7 @@ export default async function PolicyDetailPage({
 
   const appId = sub.id.slice(0, 10).toUpperCase();
   const sections = buildSubmissionSections(sub);
+  const isOwnerOrAdmin = canBindOrPay(user, sub);
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
@@ -130,7 +138,13 @@ export default async function PolicyDetailPage({
             </p>
           </div>
           <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
-            {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
+            <div className="flex items-center gap-2">
+              {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
+              {sub.purchased && <PaymentBadge paymentStatus={sub.paymentStatus} />}
+            </div>
+            {user.role !== "BROKER" && sub.broker?.name && (
+              <p className="text-xs text-slate-400">Broker: {sub.broker.name}</p>
+            )}
             <p className="text-xs text-slate-400">
               Submitted {fmtDate(sub.createdAt)}
             </p>
@@ -139,6 +153,24 @@ export default async function PolicyDetailPage({
 
         {/* Decision banner */}
         <DecisionBanner decision={sub.decision} reasons={reasons} />
+
+        {/* Underwriter review controls (referred quotes) */}
+        {sub.decision === "refer" && canReview(user) && (
+          <ReviewActions submissionId={sub.id} />
+        )}
+
+        {/* Reviewer audit */}
+        {sub.reviewedAt && (
+          <div className="rounded-xl border border-slate-200 bg-slate-50 px-5 py-4 text-sm">
+            <p className="text-slate-700">
+              <span className="font-semibold">Reviewed</span> by{" "}
+              {sub.reviewedBy?.name ?? "an underwriter"} on {fmtDate(sub.reviewedAt)}
+            </p>
+            {sub.reviewNote && (
+              <p className="text-slate-500 mt-1 italic">&ldquo;{sub.reviewNote}&rdquo;</p>
+            )}
+          </div>
+        )}
 
         {/* Premium summary — only for accepted quotes */}
         {sub.decision === "accept" && (
@@ -190,13 +222,14 @@ export default async function PolicyDetailPage({
             Back to Dashboard
           </Link>
           <DownloadPolicyButton submissionId={sub.id} />
-          {sub.status !== "draft" && sub.decision === "accept" && (
+          {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
+            sub.paymentStatus !== "paid" && (
             <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
           )}
-          {sub.status !== "draft" && !sub.purchased && (
+          {isOwnerOrAdmin && sub.status !== "draft" && !sub.purchased && (
             <DeletePolicyButton submissionId={sub.id} />
           )}
-          {sub.status === "draft" && (
+          {isOwnerOrAdmin && sub.status === "draft" && (
             <>
               <Link
                 href={`/new-quote/${productSlugForPolicyType(sub.policyType)}?resume=${sub.id}`}

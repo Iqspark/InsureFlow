@@ -7,12 +7,15 @@ A one-page cheat sheet for the most common tasks. Keep this open when editing th
 ## Demo Login Credentials
 
 ```
-URL:      http://localhost:3000
-Email:    broker@demo.com
-Password: Demo1234!
+URL: http://localhost:3000     (all accounts use password: Demo1234!)
+
+Admin        admin@demo.com         → lands on /admin
+Underwriter  underwriter@demo.com   → lands on /review
+Broker       broker@demo.com        → lands on /dashboard
+Broker       harpreet.singh@insureflow.com
 ```
 
-Run `npm run db:seed` to create this account if it doesn't exist.
+Run `npm run db:seed` to create these accounts if they don't exist.
 
 ---
 
@@ -227,9 +230,13 @@ See `docs/UNDERWRITING_ENGINE.md` for the full factor tables.
 
 Decline always beats Refer if both are triggered.
 
-When a broker clicks **Buy This Policy**, a confirmation email is sent (Ethereal preview in dev, real SMTP in production) and a full-screen confirmation card replaces the quote result.
+**Referred quotes** go to an underwriter/admin in `/review`; approving flips the decision to Accept and emails the broker. Decline rules live in the **product's** questions file; the engine runs the same way for every product.
 
-Decline rules live in the **product's** questions file; the engine runs the same way for every product.
+### Buy → Pay flow
+
+1. Broker clicks **Buy This Policy** → policy is bound (`purchased`) and a payment link is **emailed to the applicant** (`/pay/<token>`).
+2. The **customer** opens the link (public, no login) and pays via a card form that is format-validated only — **no real charge** (swap a real gateway into `/api/pay/[token]` later).
+3. On success the policy is marked **Paid** and a confirmation + receipt are emailed. Bound-but-unpaid policies show in the broker's **Action Required** with a Resend Link option.
 
 ---
 
@@ -270,7 +277,7 @@ Set the last question's `defaultNextQuestionId` to `"__SUBMIT__"`:
 
 ```bash
 npm run dev        # Development — http://localhost:3000
-npm run db:seed    # Create demo broker account (broker@demo.com / Demo1234!)
+npm run db:seed    # Create demo accounts (admin / underwriter / broker — Demo1234!)
 npm run build      # Production build (checks for errors)
 npm start          # Run the production build
 npx prisma studio  # Visual database browser at http://localhost:5555
@@ -297,7 +304,11 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 | Progress bar | `src/components/ProgressBar.tsx` |
 | Summary screen | `src/components/SummaryScreen.tsx` |
 | Result screens (Accept/Decline/Refer) | `src/components/QuoteResult.tsx` |
-| Buy This Policy email flow | `src/app/api/buy-policy/route.ts` |
+| Buy → bind + email pay link | `src/app/api/buy-policy/route.ts` |
+| Customer payment (public) | `src/app/pay/[token]/page.tsx`, `src/app/api/pay/[token]/route.ts` |
+| Underwriter review | `src/app/(protected)/review/page.tsx`, `src/app/api/submissions/[id]/review/route.ts` |
+| Admin overview / users | `src/app/(protected)/admin/page.tsx`, `admin/users/page.tsx`, `src/app/api/admin/users/` |
+| Role access rules (RBAC) | `src/lib/access.ts` |
 | Broker avatar / name ("Alex") | `src/components/ConversationView.tsx`, `ChatBubble.tsx` |
 | App colours | `tailwind.config.ts` + inline Tailwind classes |
 | Welcome screen | `src/components/IntroScreen.tsx` |
@@ -310,4 +321,4 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 | Authentication config | `src/lib/auth.ts` |
 | Email sending | `src/lib/email.ts` |
 | Database schema | `prisma/schema.prisma` |
-| Demo broker account | `prisma/seed.js` |
+| Demo accounts (roles) | `prisma/seed.js` |

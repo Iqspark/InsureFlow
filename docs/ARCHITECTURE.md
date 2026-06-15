@@ -57,22 +57,30 @@ src/
       login/page.tsx
     (protected)/            ← Auth-guarded; Header + Footer + HelpChatWidget
       layout.tsx            ← Server component; getServerSession → redirect("/login")
-      dashboard/page.tsx    ← Broker's quote/policy list + stats
+      dashboard/page.tsx    ← Broker landing: stats + Action Required + quote list
+                              (UNDERWRITER → /review, ADMIN → /admin)
+      review/page.tsx       ← Underwriter/Admin: referred-quote review queue + stats
+      admin/page.tsx        ← Admin: portfolio overview across all brokers
+      admin/users/page.tsx  ← Admin: user management (create / role / activate)
       new-quote/
-        page.tsx            ← Category picker (most products "Coming Soon")
-        vacant-home/page.tsx    ← <QuoteExperience productId="vacant-home" />
-        jeweller-block/page.tsx ← <QuoteExperience productId="jeweller-block" />
-      search/page.tsx       ← Search + delete quotes (bound policies protected)
-      policy/[id]/page.tsx  ← Detail view: banner, premium, map, PDF, buy/resume
+        page.tsx            ← Category picker
+        <slug>/page.tsx     ← <QuoteExperience productId="<slug>" /> per product
+      search/page.tsx       ← Role-scoped search + delete (bound policies protected)
+      policy/[id]/page.tsx  ← Detail view: banner, review actions, premium, map, PDF, buy/pay
       privacy/ terms/ support/  ← Static info pages
+    pay/[token]/page.tsx    ← PUBLIC (no auth) customer checkout via emailed link
     api/
       auth/[...nextauth]/   ← NextAuth handler
-      submissions/          ← POST (save complete quote) + GET (list)
-      submissions/[id]/     ← DELETE (bound policies rejected with 409)
+      submissions/          ← POST (save complete quote) + GET (role-scoped list)
+      submissions/[id]/     ← DELETE (owner/admin; bound policies rejected 409)
+      submissions/[id]/review/ ← POST (underwriter/admin approve|decline + note)
       drafts/               ← POST (upsert draft)
       drafts/[id]/          ← GET (load a draft for resume)
-      buy-policy/           ← Bind policy + send confirmation + underwriter notice
-      search/               ← Broker-scoped search
+      buy-policy/           ← Bind policy + email customer pay link + underwriter notice
+      pay/[token]/          ← PUBLIC POST → mark paid + confirmation/receipt emails
+      admin/users/          ← GET list / POST create (Admin only)
+      admin/users/[id]/     ← PATCH role/active (Admin only)
+      search/               ← Role-scoped search
       policy/[id]/document/ ← GET → generated PDF download
       chat-intent/          ← AI: which answer does the user want to edit?
       help-chat/            ← AI: Help Navigator (knowledge-base Q&A)
@@ -92,6 +100,11 @@ src/
     InputRenderer.tsx       ← Routes question.type → input component
     inputs/                 ← Choice, Toggle, Dropdown, Number, Currency,
                               Date, Text, Address (Google Places autocomplete)
+    BuyPolicyButton.tsx     ← Bind + email pay link (also "Resend payment link")
+    ReviewActions.tsx       ← Underwriter approve/decline + note
+    PaymentForm.tsx         ← Card form (validated, not charged) → pay endpoint
+    PaymentBadge.tsx        ← Paid / Unpaid pill
+    admin/UserManager.tsx   ← Admin user table (create / role / activate)
     Header / Footer / HelpChatWidget / PropertyMap / StageBadge / ...
   context/
     QuoteContext.tsx        ← All quote state + the conversational state machine
@@ -104,9 +117,10 @@ src/
     quoteCalculator.ts      ← Vacant Home premium
     jewellerQuoteCalculator.ts ← Jeweller Block premium
   lib/
-    auth.ts                 ← NextAuth options (Credentials, JWT)
+    auth.ts                 ← NextAuth options (Credentials, JWT, role + active check)
+    access.ts               ← Role helpers (scope/can*/requireRole) — RBAC source of truth
     prisma.ts               ← Prisma client singleton
-    email.ts                ← Nodemailer + Ethereal fallback; two templates
+    email.ts                ← Nodemailer + Ethereal fallback; templated senders
     policyPdf.tsx           ← React-PDF document (renderPolicyPdf)
     submissionSections.ts   ← Builds detail sections (typed cols vs. generic JSON)
   utils/
@@ -118,8 +132,8 @@ src/
 
 knowledge/                  ← FAQ + policy-wording docs for Help Navigator (.md/.txt/.pdf)
 prisma/
-  schema.prisma             ← Broker + Submission models (PostgreSQL)
-  seed.js                   ← Creates demo broker account
+  schema.prisma             ← Broker (role/active) + Submission (review + payment) models
+  seed.js                   ← Creates demo admin / underwriter / broker accounts
 ```
 
 ---
@@ -149,19 +163,38 @@ Each product page (`/new-quote/vacant-home`, `/new-quote/jeweller-block`) is a t
 ## Authentication & Route Protection
 
 1. `src/middleware.ts` (`withAuth`) guards `/dashboard/*`, `/new-quote/*`, `/search/*` — no token → redirect to `/login`. An optional `SESSION_VERSION` env var invalidates stale dev sessions.
-2. The `(protected)` layout *also* calls `getServerSession(authOptions)` and `redirect("/login")` server-side as a second gate (and covers `/policy/*`, which isn't in the middleware matcher).
-3. Login posts to NextAuth's Credentials provider (`src/lib/auth.ts`), which looks up the `Broker` by email and verifies the password with `bcrypt.compare`.
-4. On success a signed JWT (8-hour `maxAge`) is issued; `id` and `name` are copied onto the token and surfaced on `session.user`.
-5. API route handlers individually call `getServerSession(authOptions)` and return `401` when there's no session.
+2. The `(protected)` layout *also* calls `getServerSession(authOptions)` and `redirect("/login")` server-side as a second gate (and covers `/policy/*`, `/review`, `/admin/*`).
+3. Login posts to NextAuth's Credentials provider (`src/lib/auth.ts`), which looks up the `Broker` by email, **rejects inactive accounts** (`!broker.active`), and verifies the password with `bcrypt.compare`.
+4. On success a signed JWT (8-hour `maxAge`) is issued; `id`, `name`, and **`role`** are copied onto the token and surfaced on `session.user`.
+5. API route handlers individually call `getServerSession(authOptions)` and return `401`/`403` based on session and role.
+6. `/pay/[token]` and `/api/pay/[token]` are **public** (no session) — the customer reaches them via a tokenised link emailed after a policy is bound.
 
-### Demo credentials
+### Roles & RBAC
 
-```
-Email:    broker@demo.com
-Password: Demo1234!
-```
+The `Broker` model carries a `role` (`"ADMIN" | "BROKER" | "UNDERWRITER"`) and an `active` flag. `src/lib/access.ts` is the single source of truth for what each role can do:
 
-Run `npm run db:seed` to create this account.
+| Helper | Rule |
+|---|---|
+| `submissionScopeWhere(user)` | `{ brokerId }` for BROKER; `{}` (all rows) for ADMIN/UNDERWRITER — reused by dashboard, search, list/admin/review queries |
+| `canViewSubmission(user, sub)` | BROKER → own only; ADMIN/UNDERWRITER → any |
+| `canReview(user)` | ADMIN/UNDERWRITER (approve/decline referred quotes) |
+| `canBindOrPay(user, sub)` | owning BROKER or ADMIN |
+| `canManageUsers(user)` | ADMIN only |
+| `requireRole(session, roles[])` | server-page guard; redirects to `/login` (no session) or `/dashboard` (wrong role) |
+
+**Role landings:** BROKER → `/dashboard`, UNDERWRITER → `/review`, ADMIN → `/admin` (the dashboard page redirects the latter two). The `Header` renders role-specific nav and an Action Required badge for brokers. `access.ts`'s pure helpers are covered by `src/lib/access.test.ts`.
+
+### Demo accounts
+
+All demo accounts use password `Demo1234!`:
+
+| Role | Email |
+|---|---|
+| Admin | `admin@demo.com` |
+| Underwriter | `underwriter@demo.com` |
+| Broker | `broker@demo.com`, `harpreet.singh@insureflow.com` |
+
+Run `npm run db:seed` to create them. (The login page no longer displays demo credentials.)
 
 ---
 
@@ -302,15 +335,27 @@ ANSWER SUBMITTED (InputRenderer → ConversationView.handleSubmit)
         POST /api/submissions { answers, quoteDetails, draftId, policyType }
             → promotes the draft (or creates) → setSubmissionId(id)   (non-blocking)
 
-"Buy This Policy" (AcceptResult)
-   └─ handleBuyPolicy(): waits up to 3s for submissionId (ref poll)
-        POST /api/buy-policy { submissionId }
-            → verify session + brokerId ownership
-            → decision must be "accept"
-            → sendPolicyConfirmationEmail() → set purchased = true
-            → optional sendUnderwriterNotificationEmail() (if UNDERWRITER_EMAIL set)
-            → { success, sentTo, previewUrl, underwriterNotified }
-        → success screen (email chip + optional Ethereal preview link)
+"Buy This Policy" (AcceptResult / BuyPolicyButton)
+   └─ POST /api/buy-policy { submissionId }
+        → canBindOrPay ownership check; decision must be "accept"; not already paid
+        → set purchased = true; generate paymentToken (idempotent)
+        → sendPaymentRequestEmail() to the APPLICANT with a /pay/<token> link
+        → optional sendUnderwriterNotificationEmail() on first bind
+        → { success, sentTo, previewUrl }   (broker sees "payment link sent")
+        (calling again on a bound-but-unpaid policy resends the link)
+
+Customer pays (public — no login)  /pay/<token>
+   └─ POST /api/pay/[token] { cardNumber, expiry, cvc }
+        → validate card format only (NO real charge)
+        → set paymentStatus = "paid", paidAt, paidAmount
+        → sendPolicyConfirmationEmail() + sendPaymentReceiptEmail() to applicant
+        → { success, previewUrl }
+
+Underwriter review (referred quotes)  /review → /policy/[id]
+   └─ POST /api/submissions/[id]/review { action: approve|decline, note }
+        → canReview; submission must be decision = "refer"
+        → set decision (accept|decline) + reviewedById/reviewedAt/reviewNote
+        → on approve → sendQuoteApprovedEmail() to the broker
 ```
 
 `brokerText` shown in the chat is run through `interpolate()` to substitute `{{answer_id}}`
@@ -358,10 +403,24 @@ A single `Submission` row models both drafts and completed quotes/policies, dist
 - **Submissions** — `POST /api/submissions` writes typed columns (extracted by question id),
   the full `allAnswers` JSON blob, the decision, premiums, and reason arrays. If a `draftId`
   exists it updates that row to `status: "complete"`; otherwise it creates one.
-- **Broker isolation** — every detail/search/PDF/buy query filters or checks
-  `brokerId === session.user.id`. `DELETE /api/submissions/[id]` refuses to delete a
-  `purchased` (bound) policy with `409`. The search page can delete quotes but bound policies
-  are protected.
+- **Role-based access** — every detail/search/list/PDF/buy query goes through `src/lib/access.ts`
+  (`submissionScopeWhere` / `canViewSubmission` / `canBindOrPay`). Brokers are scoped to
+  `brokerId === session.user.id`; admins and underwriters see all brokers' submissions.
+  `DELETE /api/submissions/[id]` allows the owning broker or an admin and refuses to delete a
+  `purchased` (bound) policy with `409`.
+
+### Underwriter Review & Payment
+
+- **Review** — referred quotes (`decision = "refer"`) collect in `/review` (underwriter/admin,
+  all brokers). Opening one shows `ReviewActions`; `POST /api/submissions/[id]/review` flips the
+  decision to accept/decline, stamps `reviewedById`/`reviewedAt`/`reviewNote`, and emails the
+  broker on approval. The broker then sees an **Action Required** item on their dashboard.
+- **Payment** — pressing Buy binds the policy and emails the *applicant* a tokenised
+  `/pay/<token>` link (`paymentToken` is a unique column). The customer pays on the public page
+  with a card form that is **format-validated only — no real charge** (a real gateway can be
+  swapped into `/api/pay/[token]` later). On success `paymentStatus` becomes `"paid"` and the
+  applicant receives a confirmation + receipt. A bound-but-unpaid policy can have its link
+  resent from the policy page or dashboard.
 
 ---
 
@@ -384,15 +443,20 @@ The same builder feeds the on-screen detail page (`policy/[id]/page.tsx`) and th
 
 `src/lib/email.ts` builds a Nodemailer transport: real SMTP when `SMTP_USER` + `SMTP_PASS`
 are set, otherwise an auto-created **Ethereal** test account that returns a browser
-`previewUrl`. It exposes two templated senders:
+`previewUrl`. It exposes these templated senders:
 
-- `sendPolicyConfirmationEmail` — applicant-facing confirmation (premium summary, app id,
-  next steps). Sent by `/api/buy-policy`, which then sets `purchased = true`.
-- `sendUnderwriterNotificationEmail` — best-effort back-office notice, only when
+- `sendPaymentRequestEmail` — applicant-facing "complete your payment" with the `/pay/<token>`
+  link and amount due. Sent by `/api/buy-policy` after the policy is bound.
+- `sendPolicyConfirmationEmail` — applicant-facing confirmation (premium summary, app id).
+  Sent by `/api/pay/[token]` after payment succeeds.
+- `sendPaymentReceiptEmail` — applicant-facing receipt (amount, date). Sent on payment success.
+- `sendQuoteApprovedEmail` — broker-facing notice that a referred quote was approved and is
+  ready to bind. Sent by the review endpoint.
+- `sendUnderwriterNotificationEmail` — best-effort back-office notice on first bind, only when
   `UNDERWRITER_EMAIL` is set; failures never block the bind.
 
-The Accept result screen shows the recipient and, in Ethereal mode, an "Open confirmation
-email" button (`previewUrl`).
+The buy/review/pay UIs surface the recipient and, in Ethereal mode, an "Open … email" button
+(`previewUrl`).
 
 ---
 

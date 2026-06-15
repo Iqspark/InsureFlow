@@ -3,21 +3,22 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// Buys (binds) a saved, accepted quote from the detail page and shows a
-// persistent confirmation. Stays mounted across router.refresh() so the
-// success message survives while the header badge updates to "Policy".
+// Binds an accepted quote as a policy and emails the applicant a secure link to
+// pay on our site. Used both to bind ("Buy This Policy") and to resend the link
+// on an already-bound, unpaid policy.
 export default function BuyPolicyButton({
   submissionId,
   purchased,
+  label = "Buy This Policy",
 }: {
   submissionId: string;
   purchased: boolean;
+  label?: string;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [sentTo, setSentTo] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
-  const [underwriterNotified, setUnderwriterNotified] = useState(false);
 
   async function handleBuy() {
     setStatus("sending");
@@ -31,15 +32,13 @@ export default function BuyPolicyButton({
       if (!res.ok) throw new Error(data.error ?? "Failed");
       setSentTo(data.sentTo ?? "");
       setPreviewUrl(data.previewUrl ?? undefined);
-      setUnderwriterNotified(Boolean(data.underwriterNotified));
       setStatus("sent");
-      router.refresh(); // update the Quote → Policy badge in the header
+      router.refresh(); // update badges (Quote → Policy)
     } catch {
       setStatus("error");
     }
   }
 
-  // Just bought — show the confirmation (survives the refresh).
   if (status === "sent") {
     return (
       <div className="flex items-start gap-3 px-4 py-3 bg-emerald-50 border border-emerald-200 rounded-xl w-full">
@@ -49,12 +48,11 @@ export default function BuyPolicyButton({
           </svg>
         </div>
         <div>
-          <p className="text-sm font-semibold text-emerald-800">Policy bound successfully</p>
+          <p className="text-sm font-semibold text-emerald-800">Payment link sent</p>
           <p className="text-xs text-emerald-700 mt-0.5">
-            A confirmation email has been sent to{" "}
-            <span className="font-medium">{sentTo || "the applicant"}</span>
-            {underwriterNotified ? ", and the underwriting team has been notified" : ""}. This quote
-            is now a bound policy.
+            A secure payment link was emailed to{" "}
+            <span className="font-medium">{sentTo || "the applicant"}</span>. The policy
+            activates once they complete payment.
           </p>
           {previewUrl && (
             <a
@@ -66,16 +64,13 @@ export default function BuyPolicyButton({
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
-              Open confirmation email
+              Open payment email
             </a>
           )}
         </div>
       </div>
     );
   }
-
-  // Already a bound policy (e.g. on a fresh page load) — nothing to do.
-  if (purchased) return null;
 
   return (
     <div className="flex flex-col gap-1">
@@ -87,10 +82,10 @@ export default function BuyPolicyButton({
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
         </svg>
-        {status === "sending" ? "Binding policy…" : "Buy This Policy"}
+        {status === "sending" ? "Sending…" : purchased ? "Resend payment link" : label}
       </button>
       {status === "error" && (
-        <span className="text-xs text-red-500">Couldn&apos;t bind policy. Try again.</span>
+        <span className="text-xs text-red-500">Couldn&apos;t complete. Try again.</span>
       )}
     </div>
   );

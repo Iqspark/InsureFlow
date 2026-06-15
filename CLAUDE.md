@@ -8,7 +8,9 @@ Behavioral guidelines and project context for Claude Code working on InsureFlow.
 
 **Stack:** Next.js 14 (App Router) · TypeScript 5 · Tailwind CSS · Framer Motion · NextAuth v4 · Prisma 5 · PostgreSQL (Neon) · OpenAI gpt-4o-mini · Nodemailer · @react-pdf/renderer · Google Maps · Vitest · PWA (next-pwa)
 
-**What it does:** A chat-style insurance quoting tool for brokers. Brokers log in and walk an applicant through a conversational questionnaire (virtual broker "Alex"), getting an instant Accept / Decline / Refer decision with a premium breakdown. A calculated quote is saved; pressing **Buy This Policy** binds it as a **policy** (emails the applicant + notifies the underwriter). Two products ship today — **Vacant Home Insurance** and **Jeweller's Block** — via a product registry; the chat engine, persistence, PDF, and result UI are shared. Vacant Home captures the address (Google Places autocomplete, province auto-derived) and shows a map; any quote/policy can be downloaded as a branded PDF. Installs as a PWA.
+**What it does:** A chat-style insurance quoting tool for brokers. Brokers log in and walk an applicant through a conversational questionnaire (virtual broker "Alex"), getting an instant Accept / Decline / Refer decision with a premium breakdown. A calculated quote is saved; pressing **Buy This Policy** binds it as a **policy** and emails the applicant a **payment link** to a public checkout (simulated card — no real charge yet). Multiple products ship via a product registry (Vacant Home, Jeweller's Block, and more); the chat engine, persistence, PDF, and result UI are shared. Vacant Home captures the address (Google Places autocomplete, province auto-derived) and shows a map; any quote/policy can be downloaded as a branded PDF. Installs as a PWA.
+
+**Roles (RBAC):** three user roles — **Admin** (full access + user management at `/admin`), **Broker** (own quotes/policies only), and **Underwriter** (reviews referred quotes from all brokers at `/review`, marking them Approved/Declined). Role rules live in `src/lib/access.ts`; the `Broker` model carries `role` + `active`. When an underwriter approves a referral the broker is emailed and it appears in their dashboard's **Action Required**.
 
 ---
 
@@ -24,7 +26,7 @@ npm test             # Run the Vitest unit suite (engines + utils)
 npm run build && npm start   # Production build (needed to exercise the PWA)
 ```
 
-**Demo login:** `broker@demo.com` / `Demo1234!`
+**Demo logins** (all `Demo1234!`): `admin@demo.com` (Admin) · `underwriter@demo.com` (Underwriter) · `broker@demo.com` (Broker)
 
 ---
 
@@ -47,8 +49,12 @@ npm run build && npm start   # Production build (needed to exercise the PWA)
 | Result screens (Accept/Decline/Refer) + Buy | `src/components/QuoteResult.tsx`, `src/components/BuyPolicyButton.tsx` |
 | Inputs (incl. address autocomplete) | `src/components/inputs/*` |
 | Saved quote/policy detail + map + PDF/Buy | `src/app/(protected)/policy/[id]/page.tsx`, `src/components/PropertyMap.tsx` |
+| Role access rules (RBAC) | `src/lib/access.ts` (+ tests `src/lib/access.test.ts`) |
+| Underwriter review queue + action | `src/app/(protected)/review/page.tsx`, `src/components/ReviewActions.tsx`, `src/app/api/submissions/[id]/review/route.ts` |
+| Admin overview + user management | `src/app/(protected)/admin/page.tsx`, `admin/users/page.tsx`, `src/components/admin/UserManager.tsx`, `src/app/api/admin/users/*` |
+| Customer payment (public, simulated) | `src/app/pay/[token]/page.tsx`, `src/app/api/pay/[token]/route.ts`, `src/components/PaymentForm.tsx` |
 | PDF document (react-pdf) + section builder | `src/lib/policyPdf.tsx`, `src/lib/submissionSections.ts` |
-| Email (applicant + underwriter) | `src/lib/email.ts` |
+| Email (pay link / confirmation / receipt / approval / underwriter) | `src/lib/email.ts` |
 | Section labels (summary + progress rail) | `src/utils/sections.ts` |
 | Google Maps loader / static map | `src/utils/googleMaps.ts` |
 | Auth config | `src/lib/auth.ts` |
@@ -87,14 +93,15 @@ UNDERWRITER_EMAIL=underwriting@yourco.com     # notified when a policy is bound
 
 - **Multi-product:** `src/data/products.ts` maps a slug (`vacant-home`, `jeweller-block`) to its questions, `firstQuestionId`, calculator, and policy label. `QuoteProvider` takes a `productId`; the engine/persistence/PDF are product-agnostic. Non-Vacant-Home products store their answers in the `allAnswers` JSON column (no per-product DB columns).
 - **Answer preservation:** editing an earlier answer re-walks the path, keeps still-reachable answers, and prunes answers from abandoned branches only once the path is fully answered (so phone/email aren't lost when an edit adds a question mid-flow). See `walkAnsweredPath` in `QuoteContext.tsx`.
-- **Quote vs Policy:** a saved submission is a quote; `purchased=true` (set by `/api/buy-policy`) marks it a bound policy. Bound policies are protected from deletion (`/api/submissions/[id]` returns 409).
-- **Route groups:** `(auth)` = no header/footer (login); `(protected)` = auth-guarded, has Header + Footer + HelpChatWidget
+- **Quote → Policy → Paid:** a saved submission is a quote; `purchased=true` (set by `/api/buy-policy`) marks it a bound policy; `paymentStatus="paid"` (set by the public `/api/pay/[token]`) marks it paid. Buying emails the applicant a tokenised `/pay/<token>` link rather than charging the broker. Bound policies are protected from deletion (`/api/submissions/[id]` returns 409).
+- **Underwriter review:** referred quotes (`decision="refer"`) are decided in `/review` via `/api/submissions/[id]/review` (approve→accept / decline), which stamps `reviewedBy/At/Note` and emails the broker on approval.
+- **Route groups:** `(auth)` = no header/footer (login); `(protected)` = auth-guarded, role-aware Header + Footer + HelpChatWidget. The customer pay page `pay/[token]` lives at the top level (public, root layout, no login).
 - **Database:** PostgreSQL (Neon). `DATABASE_URL` is a Postgres connection string. Apply schema with `npx prisma db push`.
-- **Broker isolation:** Every submission is tagged with `brokerId` from the session. All queries filter by `brokerId`.
+- **Role-based access:** every list/detail/search/buy query goes through `src/lib/access.ts`. Brokers are scoped to their own `brokerId`; admins/underwriters see all. Use `requireRole(session, [...])` to guard server pages and `submissionScopeWhere(user)` for queries.
 - **Non-blocking DB save:** Quote result is shown immediately; DB save happens async in the background. `submissionId` is set via `useRef`/`useEffect` to avoid stale closure bugs.
 - **AI features need `OPENAI_API_KEY`:** Both `/api/help-chat` and `/api/chat-intent` use `gpt-4o-mini`. Without the key, the features show a "not configured" message.
 - **Knowledge base:** Server reads all `.md`/`.txt` from `knowledge/` on each Help Navigator request. No restart needed when files change.
-- **Email:** Without SMTP vars, Nodemailer auto-creates an Ethereal test account. The `previewUrl` is returned by `/api/buy-policy` and shown as a button in the UI.
+- **Email:** Without SMTP vars, Nodemailer auto-creates an Ethereal test account; each sender returns a `previewUrl` surfaced as a button in the UI. Senders: payment-request, policy-confirmation, payment-receipt, quote-approved (broker), underwriter-notification.
 
 ---
 

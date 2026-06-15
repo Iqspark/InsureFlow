@@ -18,7 +18,7 @@ export const authOptions: NextAuthOptions = {
           where: { email: credentials.email.toLowerCase().trim() },
         });
 
-        if (!broker) return null;
+        if (!broker || !broker.active) return null;
 
         const passwordMatch = await bcrypt.compare(
           credentials.password,
@@ -26,7 +26,12 @@ export const authOptions: NextAuthOptions = {
         );
         if (!passwordMatch) return null;
 
-        return { id: broker.id, name: broker.name, email: broker.email };
+        return {
+          id: broker.id,
+          name: broker.name,
+          email: broker.email,
+          role: broker.role as "ADMIN" | "BROKER" | "UNDERWRITER",
+        };
       },
     }),
   ],
@@ -43,6 +48,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.name = user.name;
+        token.role = (user as { role?: "ADMIN" | "BROKER" | "UNDERWRITER" }).role ?? "BROKER";
         if (process.env.SESSION_VERSION) token.v = process.env.SESSION_VERSION;
       }
       return token;
@@ -51,6 +57,7 @@ export const authOptions: NextAuthOptions = {
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;
+        session.user.role = (token.role as "ADMIN" | "BROKER" | "UNDERWRITER") ?? "BROKER";
       }
       return session;
     },
