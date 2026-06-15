@@ -34,7 +34,6 @@ function AcceptResult({
   const [buyStatus, setBuyStatus] = useState<BuyStatus>("idle");
   const [sentEmail, setSentEmail] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | undefined>();
-  const [underwriterNotified, setUnderwriterNotified] = useState(false);
 
   // Mirror submissionId in a ref so the async handler always reads the latest value
   const submissionIdRef = useRef(submissionId);
@@ -66,18 +65,18 @@ function AcceptResult({
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error ?? "Failed to send email");
+      if (!res.ok) throw new Error(data.error ?? "Failed to bind policy");
 
+      // Policy is bound — a payment link has been emailed to the applicant.
       setSentEmail(data.sentTo ?? applicantEmail);
       setPreviewUrl(data.previewUrl ?? undefined);
-      setUnderwriterNotified(Boolean(data.underwriterNotified));
       setBuyStatus("sent");
     } catch {
       setBuyStatus("error");
     }
   }
 
-  // ── Success screen (full replacement, no overlay) ───────────
+  // ── Success screen — payment link sent to the applicant ─────
   if (buyStatus === "sent") {
     return (
       <motion.div
@@ -87,44 +86,23 @@ function AcceptResult({
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="flex flex-col h-full bg-white"
       >
-        {/* Top accent bar */}
         <div className="h-2 bg-gradient-to-r from-emerald-400 to-indigo-500 rounded-t-2xl" />
-
         <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 text-center">
-          {/* Checkmark */}
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.05 }}
-            className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mb-7"
-          >
+          <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mb-7">
             <svg className="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <motion.path
-                strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5}
-                d="M5 13l4 4L19 7"
-                initial={{ pathLength: 0 }}
-                animate={{ pathLength: 1 }}
-                transition={{ duration: 0.45, delay: 0.2 }}
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25 }}
-            className="w-full max-w-xs"
-          >
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Policy Confirmed!</h2>
-            <p className="text-slate-400 text-sm mb-6">Your policy is now bound{underwriterNotified ? " and the underwriting team has been notified" : ""}.</p>
-
-            {/* Email chip */}
+          </div>
+          <div className="w-full max-w-xs">
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Policy Bound!</h2>
+            <p className="text-slate-400 text-sm mb-6">
+              A secure payment link has been emailed to the applicant. The policy activates once
+              they complete payment.
+            </p>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 mb-6 text-left">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Confirmation sent to</p>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Payment link sent to</p>
               <p className="text-sm font-semibold text-indigo-600 break-all">{sentEmail}</p>
             </div>
-
-            {/* Open email button — only shown in Ethereal/test mode */}
             {previewUrl && (
               <a
                 href={previewUrl}
@@ -135,10 +113,9 @@ function AcceptResult({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                Open confirmation email
+                Open payment email
               </a>
             )}
-
             <button
               type="button"
               onClick={() => router.push("/dashboard")}
@@ -146,7 +123,7 @@ function AcceptResult({
             >
               Go to Dashboard →
             </button>
-          </motion.div>
+          </div>
         </div>
       </motion.div>
     );
@@ -210,7 +187,7 @@ function AcceptResult({
         <div className="pt-4 space-y-3">
           {buyStatus === "error" && (
             <p className="text-xs text-red-500 text-center">
-              Failed to send email. Please try again or contact support.
+              Failed to bind policy. Please try again or contact support.
             </p>
           )}
 
@@ -226,7 +203,7 @@ function AcceptResult({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Sending confirmation…
+                Binding policy…
               </>
             ) : (
               "Buy This Policy →"
@@ -242,7 +219,7 @@ function AcceptResult({
             Save as Quote
           </button>
           <p className="text-[11px] text-slate-400 text-center -mt-1">
-            Your quote is saved either way. &ldquo;Buy&rdquo; binds it as a policy and emails confirmation.
+            Your quote is saved either way. &ldquo;Buy&rdquo; binds it and emails the applicant a payment link.
           </p>
 
           <button

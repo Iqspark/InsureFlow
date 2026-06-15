@@ -315,3 +315,199 @@ export async function sendUnderwriterNotificationEmail(
 
   return { sentTo: data.to, previewUrl };
 }
+
+// ── Broker: referred quote approved by underwriter ────────────
+export interface QuoteApprovedData {
+  to:            string; // broker email
+  brokerName:    string;
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  annualPremium: number;
+  reviewNote:    string;
+  policyUrl:     string;
+}
+
+export async function sendQuoteApprovedEmail(
+  d: QuoteApprovedData
+): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#059669;border-radius:12px 12px 0 0;padding:24px 32px">
+      <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff">InsureFlow · Underwriting</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#a7f3d0">A referred quote was approved</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 14px;font-size:14px;color:#0f172a">
+        Hi ${d.brokerName}, your referred quote for <strong>${d.applicantName}</strong>
+        (<strong>${d.policyType}</strong>, ${fmt(d.annualPremium)}/yr) has been
+        <strong style="color:#059669">approved</strong> and is ready to bind.
+      </p>
+      ${d.reviewNote ? `<p style="margin:0 0 14px;font-size:13px;color:#475569;background:#f8fafc;border-left:4px solid #94a3b8;padding:12px 16px">Underwriter note: ${d.reviewNote}</p>` : ""}
+      <p style="margin:0 0 20px;font-size:13px;color:#64748b">Application ID: <strong style="font-family:monospace">${d.appId}</strong></p>
+      <a href="${d.policyUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Review & Bind Policy</a>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated notification · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      d.to,
+    subject: `Quote Approved — ${d.policyType} (${d.appId})`,
+    html,
+    text: [
+      `Quote Approved — InsureFlow`,
+      ``,
+      `Hi ${d.brokerName},`,
+      `Your referred quote for ${d.applicantName} (${d.policyType}, ${fmt(d.annualPremium)}/yr) was approved and is ready to bind.`,
+      d.reviewNote ? `Underwriter note: ${d.reviewNote}` : ``,
+      `Application ID: ${d.appId}`,
+      `Bind it here: ${d.policyUrl}`,
+    ].filter(Boolean).join("\n"),
+  });
+
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] Quote-approved notice at: ${previewUrl}\n`);
+  return { sentTo: d.to, previewUrl };
+}
+
+// ── Applicant: payment request (link to pay on our site) ──────
+export interface PaymentRequestData {
+  to:            string; // applicant email
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  amount:        number;
+  payUrl:        string;
+  brokerName:    string;
+}
+
+export async function sendPaymentRequestEmail(
+  d: PaymentRequestData
+): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center">
+      <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px">InsureFlow</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#c7d2fe">Complete Your Payment</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:32px 32px 8px;text-align:center">
+      <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a">Your policy is ready to activate</h1>
+      <p style="margin:0;font-size:14px;color:#64748b">
+        Dear ${d.applicantName}, your <strong>${d.policyType}</strong> policy has been bound by
+        your broker ${d.brokerName}. Pay securely below to activate your coverage.
+      </p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:20px 32px 8px;text-align:center">
+      <div style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 28px">
+        <p style="margin:0 0 2px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Amount Due</p>
+        <p style="margin:0;font-size:30px;font-weight:700;color:#4f46e5">${fmt(d.amount)}</p>
+        <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">Application ID ${d.appId}</p>
+      </div>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:24px 32px 32px;text-align:center">
+      <a href="${d.payUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px">Pay ${fmt(d.amount)} Now</a>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">Or paste this link into your browser:<br><span style="color:#6366f1;word-break:break-all">${d.payUrl}</span></p>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Secure payment · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      d.to,
+    subject: `Complete your payment — ${d.policyType} (${d.appId})`,
+    html,
+    text: [
+      `Complete Your Payment — InsureFlow`,
+      ``,
+      `Dear ${d.applicantName}, your ${d.policyType} policy has been bound by your broker ${d.brokerName}.`,
+      `Amount due: ${fmt(d.amount)} (Application ID ${d.appId})`,
+      ``,
+      `Pay securely here: ${d.payUrl}`,
+    ].join("\n"),
+  });
+
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] Payment request at: ${previewUrl}\n`);
+  return { sentTo: d.to, previewUrl };
+}
+
+// ── Applicant: payment receipt ────────────────────────────────
+export interface PaymentReceiptData {
+  to:            string; // applicant email
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  amount:        number;
+  paidAt:        Date;
+}
+
+export async function sendPaymentReceiptEmail(
+  d: PaymentReceiptData
+): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 2 }).format(n);
+  const paidOn = d.paidAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#c7d2fe">Payment Receipt</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 16px;font-size:14px;color:#0f172a">Dear ${d.applicantName}, thank you — your payment has been received.</p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">Policy Type</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${d.policyType}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Application ID</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;font-family:monospace">${d.appId}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Date Paid</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${paidOn}</td></tr>
+        <tr><td style="padding:14px 16px;color:#64748b;font-size:13px">Amount Paid</td><td style="padding:14px 16px;color:#059669;font-size:18px;font-weight:700">${fmt(d.amount)}</td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated receipt · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      d.to,
+    subject: `Payment Receipt — ${d.policyType} (${d.appId})`,
+    html,
+    text: [
+      `Payment Receipt — InsureFlow`,
+      ``,
+      `Dear ${d.applicantName}, your payment has been received.`,
+      `Policy Type   : ${d.policyType}`,
+      `Application ID: ${d.appId}`,
+      `Date Paid     : ${paidOn}`,
+      `Amount Paid   : ${fmt(d.amount)}`,
+    ].join("\n"),
+  });
+
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] Payment receipt at: ${previewUrl}\n`);
+  return { sentTo: d.to, previewUrl };
+}

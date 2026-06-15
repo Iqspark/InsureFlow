@@ -123,6 +123,12 @@ body {
   }
 }
 
+@media (min-width: 1024px) {
+  .quote-shell-height {
+    max-height: 820px;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 4px;

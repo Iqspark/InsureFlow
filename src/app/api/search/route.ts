@@ -2,13 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { submissionScopeWhere, type SessionUser } from "@/lib/access";
 
-// GET /api/search — search submissions for the logged-in broker
+// GET /api/search — search submissions, scoped by role
+// (broker = own only; admin/underwriter = all brokers)
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const user = session.user as unknown as SessionUser;
 
   const { searchParams } = req.nextUrl;
   const name       = searchParams.get("name")?.trim()       ?? "";
@@ -20,7 +23,7 @@ export async function GET(req: NextRequest) {
   // Build Prisma where clause
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
-    brokerId: session.user.id,
+    ...submissionScopeWhere(user),
     ...(name       ? { applicantName: { contains: name } }   : {}),
     ...(policyType ? { policyType: { contains: policyType } } : {}),
   };
@@ -52,8 +55,10 @@ export async function GET(req: NextRequest) {
         decision: true,
         status: true,
         purchased: true,
+        paymentStatus: true,
         province: true,
         annualPremium: true,
+        broker: { select: { name: true } },
       },
     });
 

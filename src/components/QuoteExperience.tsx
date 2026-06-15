@@ -36,7 +36,7 @@ function QuoteShell() {
         {showRail && (
           <QuestionProgressRail className="hidden lg:flex quote-shell-height" />
         )}
-        <div className="app-shell quote-shell-height w-full sm:max-w-md bg-white/60 backdrop-blur-md sm:rounded-3xl sm:shadow-2xl sm:shadow-indigo-200/40 overflow-hidden sm:border sm:border-white/80 flex flex-col">
+        <div className="app-shell quote-shell-height w-full sm:max-w-md lg:max-w-lg bg-white/60 backdrop-blur-md sm:rounded-3xl sm:shadow-2xl sm:shadow-indigo-200/40 overflow-hidden sm:border sm:border-white/80 flex flex-col">
         <AnimatePresence mode="wait">
           {phase === "intro" && (
             <motion.div key="intro" className="flex-1 flex flex-col overflow-hidden">

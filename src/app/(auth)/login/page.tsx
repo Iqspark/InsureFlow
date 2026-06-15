@@ -254,24 +254,6 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-6 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
-            <p className="text-xs text-indigo-700 font-semibold mb-1">
-              Demo credentials
-            </p>
-            <p className="text-xs text-slate-500">
-              Email:{" "}
-              <span className="text-indigo-600 font-mono">
-                broker@demo.com
-              </span>
-            </p>
-            <p className="text-xs text-slate-500">
-              Password:{" "}
-              <span className="text-indigo-600 font-mono">
-                Demo1234!
-              </span>
-            </p>
-          </div>
-
           {/* Security badge — desktop only */}
           <div className="hidden lg:flex items-center justify-center gap-1.5 mt-6 text-slate-400">
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

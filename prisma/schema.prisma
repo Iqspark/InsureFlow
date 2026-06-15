@@ -26,8 +26,11 @@ model Broker {
   email      String       @unique
   password   String       // bcrypt hash
   licenseId  String?
+  role       String       @default("BROKER") // "ADMIN" | "BROKER" | "UNDERWRITER"
+  active     Boolean      @default(true)
 
-  submissions Submission[]
+  submissions         Submission[]
+  reviewedSubmissions Submission[] @relation("ReviewedBy")
 
   @@index([email])
 }
@@ -89,6 +92,18 @@ model Submission {
   // false = quote only · true = bound policy (Buy This Policy pressed)
   purchased  Boolean @default(false)
 
+  // ── Payment state (simulated checkout, runs after binding) ──
+  paymentStatus String   @default("unpaid") // "unpaid" | "paid"
+  paidAt        DateTime?
+  paidAmount    Float?
+  paymentToken  String?  @unique // emailed to the applicant as a public pay link
+
+  // ── Underwriter review audit ─────────────────────────────
+  reviewedById String?
+  reviewedBy   Broker?  @relation("ReviewedBy", fields: [reviewedById], references: [id])
+  reviewedAt   DateTime?
+  reviewNote   String?
+
   // ── All raw answers (JSON) ───────────────────────────────
   allAnswers String  @default("{}") // JSON — Record<string, Answer>
 
@@ -109,4 +124,5 @@ model Submission {
   @@index([vacancyDuration])
   @@index([propertyType])
   @@index([brokerId])
+  @@index([reviewedById])
 }
