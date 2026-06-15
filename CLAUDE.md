@@ -4,22 +4,24 @@ Behavioral guidelines and project context for Claude Code working on InsureFlow.
 
 ---
 
-## Project: InsureFlow — Vacant Home Insurance Broker Portal
+## Project: InsureFlow — Multi-Product Insurance Broker Portal
 
-**Stack:** Next.js 14 (App Router) · TypeScript 5 · Tailwind CSS · Framer Motion · NextAuth v4 · Prisma 5 · SQLite (dev) · OpenAI gpt-4o-mini · Nodemailer
+**Stack:** Next.js 14 (App Router) · TypeScript 5 · Tailwind CSS · Framer Motion · NextAuth v4 · Prisma 5 · PostgreSQL (Neon) · OpenAI gpt-4o-mini · Nodemailer · @react-pdf/renderer · Google Maps · Vitest · PWA (next-pwa)
 
-**What it does:** A chat-style insurance quoting tool for brokers. Brokers log in, walk an applicant through a conversational questionnaire, and get an instant Accept / Decline / Refer decision with a premium breakdown. Accepted quotes can be bound via a "Buy This Policy" button that sends a confirmation email.
+**What it does:** A chat-style insurance quoting tool for brokers. Brokers log in and walk an applicant through a conversational questionnaire (virtual broker "Alex"), getting an instant Accept / Decline / Refer decision with a premium breakdown. A calculated quote is saved; pressing **Buy This Policy** binds it as a **policy** (emails the applicant + notifies the underwriter). Two products ship today — **Vacant Home Insurance** and **Jeweller's Block** — via a product registry; the chat engine, persistence, PDF, and result UI are shared. Vacant Home captures the address (Google Places autocomplete, province auto-derived) and shows a map; any quote/policy can be downloaded as a branded PDF. Installs as a PWA.
 
 ---
 
 ## Running the App
 
 ```bash
-npm run dev          # http://localhost:3000
-npm run db:seed      # Create demo broker (run once after setup)
-npx prisma db push   # Apply schema without migration history (dev only)
+npm run dev          # http://localhost:3000  (PWA disabled in dev)
+npm run db:seed      # Create demo broker(s) (run once after setup)
+npx prisma db push   # Apply schema (no migration history; dev + the CI pipeline)
 npx prisma generate  # Regenerate client after schema changes
 npx prisma studio    # Visual DB browser at http://localhost:5555
+npm test             # Run the Vitest unit suite (engines + utils)
+npm run build && npm start   # Production build (needed to exercise the PWA)
 ```
 
 **Demo login:** `broker@demo.com` / `Demo1234!`
@@ -30,48 +32,64 @@ npx prisma studio    # Visual DB browser at http://localhost:5555
 
 | What | Where |
 |---|---|
-| Questions, branching, UW rules | `src/data/questions.ts` |
-| Pricing multipliers | `src/data/ratingFactors.ts` |
-| Quote calculator | `src/engine/quoteCalculator.ts` |
-| Underwriting engine | `src/engine/underwritingEngine.ts` |
-| All cross-component state | `src/context/QuoteContext.tsx` |
+| Product registry (slug → questions/calculator/label) | `src/data/products.ts` |
+| Vacant Home questions, branching, UW rules | `src/data/questions.ts` |
+| Vacant Home pricing multipliers | `src/data/ratingFactors.ts` |
+| Jeweller's Block questions + UW rules | `src/data/jewellerQuestions.ts` |
+| Jeweller's Block pricing factors | `src/data/jewellerRatingFactors.ts` |
+| Quote calculators | `src/engine/quoteCalculator.ts`, `src/engine/jewellerQuoteCalculator.ts` |
+| Underwriting engine (takes a questions array) | `src/engine/underwritingEngine.ts` |
+| Conversation state (phases, answer-preservation/edit) | `src/context/QuoteContext.tsx` |
+| Shared quote shell (both products) | `src/components/QuoteExperience.tsx` |
 | Chat UI + change-answer input | `src/components/ConversationView.tsx` |
-| Result screens (Accept/Decline/Refer) | `src/components/QuoteResult.tsx` |
-| Help Navigator widget | `src/components/HelpChatWidget.tsx` |
-| Email sending | `src/lib/email.ts` |
+| Review screen with per-answer Edit buttons | `src/components/SummaryScreen.tsx` |
+| Vertical progress rail | `src/components/QuestionProgressRail.tsx` |
+| Result screens (Accept/Decline/Refer) + Buy | `src/components/QuoteResult.tsx`, `src/components/BuyPolicyButton.tsx` |
+| Inputs (incl. address autocomplete) | `src/components/inputs/*` |
+| Saved quote/policy detail + map + PDF/Buy | `src/app/(protected)/policy/[id]/page.tsx`, `src/components/PropertyMap.tsx` |
+| PDF document (react-pdf) + section builder | `src/lib/policyPdf.tsx`, `src/lib/submissionSections.ts` |
+| Email (applicant + underwriter) | `src/lib/email.ts` |
+| Section labels (summary + progress rail) | `src/utils/sections.ts` |
+| Google Maps loader / static map | `src/utils/googleMaps.ts` |
 | Auth config | `src/lib/auth.ts` |
 | Database schema | `prisma/schema.prisma` |
 | Demo broker seed | `prisma/seed.js` |
+| Unit tests | `src/**/*.test.ts` (Vitest, config in `vitest.config.ts`) |
 | Help Navigator FAQ docs | `knowledge/` folder (`.md` or `.txt` files) |
 
 ---
 
 ## Environment Variables
 
-Required in `.env` (project root):
+Required in `.env` (project root) — see `.env.example`:
 
 ```
-DATABASE_URL="file:./prisma/dev.db"
-NEXTAUTH_SECRET="dev-secret-insureflow-change-this-in-production-32c"
-NEXTAUTH_URL="http://localhost:3000"
-OPENAI_API_KEY="sk-proj-..."
+DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"   # Neon/Postgres
+NEXTAUTH_SECRET="run: openssl rand -base64 32"
+NEXTAUTH_URL="http://localhost:3000"        # must match the URL you load
+OPENAI_API_KEY="sk-..."                      # Help Navigator + change-answer
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY="..."        # address autocomplete + maps (build-time)
 ```
 
-Optional (leave commented out to use Ethereal test email):
+Optional email (leave `SMTP_PASS` blank to use the Ethereal test inbox):
 ```
-# SMTP_HOST=smtp.gmail.com
-# SMTP_PORT=587
-# SMTP_USER=your-gmail@gmail.com
-# SMTP_PASS=your-16-char-app-password
-# SMTP_FROM="InsureFlow <noreply@insureflow.com>"
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=you@gmail.com
+SMTP_PASS=                                    # Gmail App Password for real delivery
+SMTP_FROM="InsureFlow <you@gmail.com>"
+UNDERWRITER_EMAIL=underwriting@yourco.com     # notified when a policy is bound
 ```
 
 ---
 
 ## Architecture Notes
 
+- **Multi-product:** `src/data/products.ts` maps a slug (`vacant-home`, `jeweller-block`) to its questions, `firstQuestionId`, calculator, and policy label. `QuoteProvider` takes a `productId`; the engine/persistence/PDF are product-agnostic. Non-Vacant-Home products store their answers in the `allAnswers` JSON column (no per-product DB columns).
+- **Answer preservation:** editing an earlier answer re-walks the path, keeps still-reachable answers, and prunes answers from abandoned branches only once the path is fully answered (so phone/email aren't lost when an edit adds a question mid-flow). See `walkAnsweredPath` in `QuoteContext.tsx`.
+- **Quote vs Policy:** a saved submission is a quote; `purchased=true` (set by `/api/buy-policy`) marks it a bound policy. Bound policies are protected from deletion (`/api/submissions/[id]` returns 409).
 - **Route groups:** `(auth)` = no header/footer (login); `(protected)` = auth-guarded, has Header + Footer + HelpChatWidget
-- **Database path:** `DATABASE_URL="file:./prisma/dev.db"` — path is relative to project root. DB file lives at `prisma/dev.db`.
+- **Database:** PostgreSQL (Neon). `DATABASE_URL` is a Postgres connection string. Apply schema with `npx prisma db push`.
 - **Broker isolation:** Every submission is tagged with `brokerId` from the session. All queries filter by `brokerId`.
 - **Non-blocking DB save:** Quote result is shown immediately; DB save happens async in the background. `submissionId` is set via `useRef`/`useEffect` to avoid stale closure bugs.
 - **AI features need `OPENAI_API_KEY`:** Both `/api/help-chat` and `/api/chat-intent` use `gpt-4o-mini`. Without the key, the features show a "not configured" message.

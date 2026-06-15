@@ -11,6 +11,7 @@ interface Props {
   inputType?: "email" | "name" | "phone" | "text";
   minLength?: number;
   maxLength?: number;
+  initialValue?: string;
 }
 
 export default function TextInput({
@@ -20,8 +21,9 @@ export default function TextInput({
   inputType = "text",
   minLength,
   maxLength,
+  initialValue,
 }: Props) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue ?? "");
   const [error, setError] = useState("");
   const [touched, setTouched] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);

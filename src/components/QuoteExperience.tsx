@@ -8,6 +8,7 @@ import IntroScreen from "@/components/IntroScreen";
 import ConversationView from "@/components/ConversationView";
 import SummaryScreen from "@/components/SummaryScreen";
 import QuoteResult from "@/components/QuoteResult";
+import QuestionProgressRail from "@/components/QuestionProgressRail";
 import { Answer } from "@/types";
 
 function QuoteShell() {
@@ -27,9 +28,15 @@ function QuoteShell() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const showRail = phase === "conversation" || phase === "summary";
+
   return (
     <div className="flex-1 flex items-center justify-center sm:p-4 min-h-0">
-      <div className="app-shell quote-shell-height w-full sm:max-w-md bg-white/60 backdrop-blur-md sm:rounded-3xl sm:shadow-2xl sm:shadow-indigo-200/40 overflow-hidden sm:border sm:border-white/80 flex flex-col">
+      <div className="flex items-stretch gap-5">
+        {showRail && (
+          <QuestionProgressRail className="hidden lg:flex quote-shell-height" />
+        )}
+        <div className="app-shell quote-shell-height w-full sm:max-w-md bg-white/60 backdrop-blur-md sm:rounded-3xl sm:shadow-2xl sm:shadow-indigo-200/40 overflow-hidden sm:border sm:border-white/80 flex flex-col">
         <AnimatePresence mode="wait">
           {phase === "intro" && (
             <motion.div key="intro" className="flex-1 flex flex-col overflow-hidden">
@@ -76,6 +83,7 @@ function QuoteShell() {
             </motion.div>
           )}
         </AnimatePresence>
+        </div>
       </div>
     </div>
   );

@@ -10,19 +10,31 @@ import DropdownInput from "./inputs/DropdownInput";
 import DateInput from "./inputs/DateInput";
 import AddressInput from "./inputs/AddressInput";
 
+type Extra = Record<string, { value: string | number | boolean; displayValue: string }>;
+
 interface Props {
   question: Question;
-  onSubmit: (value: string | number | boolean, displayValue: string) => void;
+  // Existing answer value, used to pre-fill the input when going back to edit.
+  initialValue?: string | number | boolean;
+  onSubmit: (value: string | number | boolean, displayValue: string, extra?: Extra) => void;
 }
 
-export default function InputRenderer({ question, onSubmit }: Props) {
-  const submit = (v: string | number | boolean, d: string) => onSubmit(v, d);
+export default function InputRenderer({ question, initialValue, onSubmit }: Props) {
+  const submit = (v: string | number | boolean, d: string, extra?: Extra) => onSubmit(v, d, extra);
+  const asString = initialValue != null ? String(initialValue) : undefined;
+  const asNumber =
+    typeof initialValue === "number"
+      ? initialValue
+      : initialValue != null && initialValue !== "" && !isNaN(Number(initialValue))
+      ? Number(initialValue)
+      : undefined;
 
   switch (question.type) {
     case "choice":
       return (
         <ChoiceInput
           options={question.options ?? []}
+          selected={initialValue}
           onSelect={(v, d) => submit(v, d)}
         />
       );
@@ -31,6 +43,7 @@ export default function InputRenderer({ question, onSubmit }: Props) {
       return (
         <ToggleInput
           options={question.options ?? []}
+          selected={initialValue}
           onSelect={(v, d) => submit(v, d)}
         />
       );
@@ -40,6 +53,7 @@ export default function InputRenderer({ question, onSubmit }: Props) {
         <DropdownInput
           options={question.options ?? []}
           placeholder={question.placeholder}
+          initialValue={initialValue}
           onSelect={(v, d) => submit(v, d)}
         />
       );
@@ -52,6 +66,8 @@ export default function InputRenderer({ question, onSubmit }: Props) {
           max={question.max}
           suffix={question.suffix}
           mustBeInteger={question.mustBeInteger}
+          noGrouping={question.noGrouping}
+          initialValue={asString}
           onSubmit={(v, d) => submit(v, d)}
         />
       );
@@ -62,6 +78,7 @@ export default function InputRenderer({ question, onSubmit }: Props) {
           placeholder={question.placeholder}
           min={question.min}
           max={question.max}
+          initialValue={asNumber}
           onSubmit={(v, d) => submit(v, d)}
         />
       );
@@ -70,12 +87,13 @@ export default function InputRenderer({ question, onSubmit }: Props) {
       return (
         <AddressInput
           placeholder={question.placeholder}
-          onSubmit={(v, d) => submit(v, d)}
+          initialValue={asString}
+          onSubmit={(v, d, extra) => submit(v, d, extra)}
         />
       );
 
     case "date":
-      return <DateInput onSubmit={(v, d) => submit(v, d)} />;
+      return <DateInput initialValue={asString} onSubmit={(v, d) => submit(v, d)} />;
 
     case "text":
     default:
@@ -86,6 +104,7 @@ export default function InputRenderer({ question, onSubmit }: Props) {
           inputType={question.inputType}
           minLength={question.minLength}
           maxLength={question.maxLength}
+          initialValue={asString}
           onSubmit={(v, d) => submit(v, d)}
         />
       );

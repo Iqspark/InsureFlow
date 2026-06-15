@@ -26,7 +26,7 @@ const CATEGORIES: Category[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
       </svg>
     ),
-    sub: [{ name: "Cyber Liability" }],
+    sub: [{ name: "Cyber Liability", href: "/new-quote/cyber-liability" }],
   },
   {
     id: "construction",
@@ -37,7 +37,7 @@ const CATEGORIES: Category[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
       </svg>
     ),
-    sub: [{ name: "Contractor" }],
+    sub: [{ name: "Contractor", href: "/new-quote/contractor" }],
   },
   {
     id: "professional",
@@ -48,7 +48,7 @@ const CATEGORIES: Category[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
       </svg>
     ),
-    sub: [{ name: "Architects and Engineers" }],
+    sub: [{ name: "Architects and Engineers", href: "/new-quote/architects-engineers" }],
   },
   {
     id: "commercial",
@@ -59,7 +59,7 @@ const CATEGORIES: Category[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
       </svg>
     ),
-    sub: [{ name: "Jeweller Block", href: "/new-quote/jeweller-block" }, { name: "Retailers" }],
+    sub: [{ name: "Jeweller Block", href: "/new-quote/jeweller-block" }, { name: "Retailers", href: "/new-quote/retailers" }],
   },
   {
     id: "personal",
@@ -72,8 +72,8 @@ const CATEGORIES: Category[] = [
     ),
     sub: [
       { name: "Vacant Homes", href: "/new-quote/vacant-home" },
-      { name: "Rental Homes" },
-      { name: "Personal Items" },
+      { name: "Rental Homes", href: "/new-quote/rental-home" },
+      { name: "Personal Items", href: "/new-quote/personal-items" },
     ],
   },
   {
@@ -86,12 +86,12 @@ const CATEGORIES: Category[] = [
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
       </svg>
     ),
-    sub: [{ name: "Lithium Batteries" }],
+    sub: [{ name: "Lithium Batteries", href: "/new-quote/lithium-batteries" }],
   },
 ];
 
 export default function NewQuotePage() {
-  const [openId, setOpenId] = useState<string | null>("personal");
+  const [openId, setOpenId] = useState<string | null>(null);
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">

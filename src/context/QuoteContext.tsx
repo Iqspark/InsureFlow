@@ -10,7 +10,37 @@ import React, {
 } from "react";
 import { Answer, AppPhase, QuoteDetails, ConversationMessage, Question } from "@/types";
 import { getProduct, DEFAULT_PRODUCT_ID } from "@/data/products";
+import { evaluateAnswerRules } from "@/engine/underwritingEngine";
 import { interpolate } from "@/utils/interpolate";
+
+// Builds a non-blocking advisory message if an answer triggers a refer/decline
+// rule on its question. Decline takes precedence over refer.
+function buildAdvisory(
+  question: Question,
+  value: string | number | boolean
+): ConversationMessage | null {
+  const triggered = evaluateAnswerRules(question, value);
+  if (!triggered.length) return null;
+  const rule = triggered.find((r) => r.decision === "decline") ?? triggered[0];
+  return {
+    id: `advisory-${question.id}-${Date.now()}`,
+    type: "advisory",
+    decision: rule.decision,
+    text: rule.message,
+    questionId: question.id,
+  };
+}
+
+function advisoryForAnswer(
+  questions: Question[],
+  qId: string,
+  answers: Record<string, Answer>
+): ConversationMessage | null {
+  const q = questions.find((x) => x.id === qId);
+  const a = answers[qId];
+  if (!q || !a) return null;
+  return buildAdvisory(q, a.value);
+}
 
 // ── Routing helper ───────────────────────────────────────────
 function resolveNextQuestionId(
@@ -35,10 +65,37 @@ function resolveNextQuestionId(
   return question.defaultNextQuestionId ?? "__SUBMIT__";
 }
 
+// Walks the question path from the start, following the answers that exist,
+// until it reaches an unanswered question or the end. Returns the ordered
+// path and the stop point ("__SUBMIT__" if every question on the path is
+// answered, otherwise the first unanswered question id).
+function walkAnsweredPath(
+  questions: Question[],
+  answers: Record<string, Answer>,
+  firstQuestionId: string
+): { path: string[]; stopId: string } {
+  const path = [firstQuestionId];
+  let walkId = firstQuestionId;
+  // Guard against cycles in misconfigured data.
+  while (answers[walkId] && path.length <= questions.length + 1) {
+    const nextId = resolveNextQuestionId(
+      questions,
+      walkId,
+      answers[walkId].value,
+      answers
+    );
+    if (nextId === "__SUBMIT__") return { path, stopId: "__SUBMIT__" };
+    path.push(nextId);
+    walkId = nextId;
+  }
+  return { path, stopId: walkId };
+}
+
 // ── Context shape ────────────────────────────────────────────
 interface QuoteContextValue {
   phase: AppPhase;
   questions: Question[];
+  questionHistory: string[];
   policyType: string;
   intro: { emoji: string; title: string; subtitle: string };
   answers: Record<string, Answer>;
@@ -52,7 +109,8 @@ interface QuoteContextValue {
   submitAnswer: (
     questionId: string,
     value: string | number | boolean,
-    displayValue: string
+    displayValue: string,
+    extra?: Record<string, { value: string | number | boolean; displayValue: string }>
   ) => void;
   goBack: () => void;
   goToQuestion: (questionId: string) => void;
@@ -130,14 +188,42 @@ export function QuoteProvider({
     (
       questionId: string,
       value: string | number | boolean,
-      displayValue: string
+      displayValue: string,
+      extra?: Record<string, { value: string | number | boolean; displayValue: string }>
     ) => {
-      const newAnswers = {
+      // Derived answers (e.g. province auto-filled from the address) are set
+      // alongside the main answer so they persist atomically.
+      const extraEntries = extra
+        ? Object.fromEntries(
+            Object.entries(extra).map(([id, a]) => [
+              id,
+              { questionId: id, value: a.value, displayValue: a.displayValue },
+            ])
+          )
+        : {};
+      const merged = {
         ...answers,
+        ...extraEntries,
         [questionId]: { questionId, value, displayValue },
       };
-      setAnswers(newAnswers);
 
+      // Non-blocking advisory if this answer (or a derived one) would
+      // refer/decline the policy.
+      const advisories: ConversationMessage[] = [];
+      const mainQ = questions.find((q) => q.id === questionId);
+      if (mainQ) {
+        const adv = buildAdvisory(mainQ, value);
+        if (adv) advisories.push(adv);
+      }
+      for (const [id, a] of Object.entries(extraEntries)) {
+        const q = questions.find((x) => x.id === id);
+        if (q) {
+          const adv = buildAdvisory(q, a.value);
+          if (adv) advisories.push(adv);
+        }
+      }
+
+      // Add the user's reply bubble for the question just answered.
       setConversationMessages((prev) => [
         ...prev,
         {
@@ -146,7 +232,29 @@ export function QuoteProvider({
           text: displayValue,
           questionId,
         },
+        ...advisories,
       ]);
+
+      // Re-walk the path with the updated answers so editing an earlier
+      // answer doesn't force re-answering the rest.
+      const { path, stopId } = walkAnsweredPath(questions, merged, firstQuestionId);
+
+      // Only prune answers from abandoned branches once the path is FULLY
+      // answered (reached the end). While questions remain unanswered — e.g.
+      // an edit temporarily introduces a new question mid-flow — keep every
+      // answer so later ones (phone, email) aren't lost and reappear once the
+      // gap is filled. Off-path answers never reach the engine: they're pruned
+      // here at completion, before the summary/quote is calculated.
+      let newAnswers = merged;
+      if (stopId === "__SUBMIT__") {
+        const pathSet = new Set(path);
+        newAnswers = {};
+        for (const [id, ans] of Object.entries(merged)) {
+          if (pathSet.has(id)) newAnswers[id] = ans;
+        }
+      }
+      setAnswers(newAnswers);
+      setQuestionHistory(path);
 
       // Auto-save a draft once 3+ answers are collected
       if (Object.keys(newAnswers).length >= 3) {
@@ -167,21 +275,49 @@ export function QuoteProvider({
           .catch(() => {});
       }
 
-      const nextId = resolveNextQuestionId(questions, questionId, value, newAnswers);
+      // When editing an earlier answer, the questions between it and the
+      // resume point are already answered — re-add their bubbles so the
+      // conversation stays consistent (no need to re-answer them).
+      const idx = path.indexOf(questionId);
+      const skipped =
+        idx === -1
+          ? []
+          : stopId === "__SUBMIT__"
+          ? path.slice(idx + 1)
+          : path.slice(idx + 1, path.length - 1);
+      if (skipped.length > 0) {
+        setConversationMessages((prev) => {
+          const msgs = [...prev];
+          for (const qId of skipped) {
+            const q = questions.find((x) => x.id === qId);
+            const ans = newAnswers[qId];
+            if (!q || !ans) continue;
+            msgs.push({
+              id: `broker-${qId}-edit-${Date.now()}`,
+              type: "broker",
+              text: interpolate(q.brokerText, newAnswers),
+              questionId: qId,
+            });
+            msgs.push({
+              id: `user-${qId}-edit-${Date.now()}`,
+              type: "user",
+              text: ans.displayValue,
+              questionId: qId,
+            });
+            const adv = buildAdvisory(q, ans.value);
+            if (adv) msgs.push(adv);
+          }
+          return msgs;
+        });
+      }
 
-      if (nextId === "__SUBMIT__") {
+      if (stopId === "__SUBMIT__") {
         setPhase("summary");
         return;
       }
-
-      const currentIdx = questionHistory.indexOf(questionId);
-      setQuestionHistory((prev) => {
-        const trimmed = prev.slice(0, currentIdx + 1);
-        return [...trimmed, nextId];
-      });
-      setCurrentQuestionId(nextId);
+      setCurrentQuestionId(stopId);
     },
-    [answers, questionHistory]
+    [answers]
   );
 
   const goBack = useCallback(() => {
@@ -190,42 +326,28 @@ export function QuoteProvider({
 
     const prevId = questionHistory[idx - 1];
 
-    // Remove messages related to the current question (broker + user)
+    // Hide messages from the previous question onward so it can be re-answered.
+    // Answers are KEPT so the later questions auto-populate when moving forward.
+    const fromPrev = new Set(questionHistory.slice(idx - 1));
     setConversationMessages((prev) =>
-      prev.filter((m) => m.questionId !== currentQuestionId)
+      prev.filter((m) => !m.questionId || !fromPrev.has(m.questionId))
     );
-
-    // Remove the current question's answer
-    setAnswers((prev) => {
-      const next = { ...prev };
-      delete next[currentQuestionId];
-      return next;
-    });
-
     setCurrentQuestionId(prevId);
-    // Re-trigger the broker message for the previous question by
-    // removing it from conversation so ConversationView re-adds it.
-    setConversationMessages((prev) =>
-      prev.filter((m) => m.questionId !== prevId)
-    );
   }, [currentQuestionId, questionHistory]);
 
   const goToQuestion = useCallback((targetId: string) => {
     const idx = questionHistory.indexOf(targetId);
     if (idx === -1) return;
 
-    // Clear messages and answers for targetId and everything after it
-    const toRemove = new Set(questionHistory.slice(idx));
+    // Hide messages from the target onward; KEEP answers so they auto-populate
+    // when the user moves forward again after editing this one answer.
+    const fromTarget = new Set(questionHistory.slice(idx));
     setConversationMessages((prev) =>
-      prev.filter((m) => !m.questionId || !toRemove.has(m.questionId))
+      prev.filter((m) => !m.questionId || !fromTarget.has(m.questionId))
     );
-    setAnswers((prev) => {
-      const next = { ...prev };
-      toRemove.forEach((qId) => delete next[qId]);
-      return next;
-    });
-    setQuestionHistory((prev) => prev.slice(0, idx + 1));
     setCurrentQuestionId(targetId);
+    // Return to the chat to edit (e.g. when triggered from the summary screen).
+    setPhase("conversation");
   }, [questionHistory]);
 
   const confirmSummary = useCallback(() => {
@@ -289,6 +411,8 @@ export function QuoteProvider({
           text: savedAnswers[qId].displayValue,
           questionId: qId,
         });
+        const adv = advisoryForAnswer(questions, qId, savedAnswers);
+        if (adv) messages.push(adv);
       }
 
       draftIdRef.current = draftId;
@@ -317,6 +441,7 @@ export function QuoteProvider({
       value={{
         phase,
         questions,
+        questionHistory,
         policyType: product.policyType,
         intro: product.intro,
         answers,

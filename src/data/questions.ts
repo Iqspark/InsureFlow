@@ -30,16 +30,20 @@ export const QUESTIONS: Question[] = [
       "Hi there! 👋 I'm Alex, your virtual insurance broker. I can get you a quote for your vacant home in just a few minutes. What's your name?",
     helperText: "Just your first name is perfectly fine.",
     placeholder: "e.g. Sarah",
-    defaultNextQuestionId: "property_province",
+    defaultNextQuestionId: "property_address",
     required: true,
   },
 
   // ── SECTION 2: PROPERTY LOCATION & TYPE ──────────────────
+  // NOTE: `property_province` is NOT asked in the flow — it is auto-derived
+  // from the selected address (see AddressInput). It stays here so the
+  // territory underwriting rule, the province rating factor, and the
+  // `province` DB column continue to work off the `property_province` answer.
   {
     id: "property_province",
     type: "dropdown",
     brokerText:
-      "Great to meet you, {{applicant_name}}! Let's start with the basics. Which province or territory is the vacant property located in?",
+      "Which province or territory is the property located in?",
     helperText:
       "We write policies in all Canadian provinces and territories.",
     options: [
@@ -73,9 +77,10 @@ export const QUESTIONS: Question[] = [
   {
     id: "property_address",
     type: "address",
-    brokerText: "What's the full street address of the property?",
+    brokerText:
+      "Great to meet you, {{applicant_name}}! Let's start with the property — what's its full street address?",
     helperText:
-      "Start typing and pick the property from the suggestions — we'll show it on the map.",
+      "Start typing and pick the property from the suggestions. We'll fill in the province and show it on the map automatically.",
     placeholder: "123 Main St, Toronto, ON",
     defaultNextQuestionId: "property_type",
     required: true,
@@ -114,6 +119,8 @@ export const QUESTIONS: Question[] = [
     placeholder: "e.g. 1985",
     min: 1800,
     max: 2025,
+    mustBeInteger: true,
+    noGrouping: true,
     defaultNextQuestionId: "square_footage",
     underwritingRules: [
       {
@@ -450,6 +457,11 @@ export const QUESTIONS: Question[] = [
       { label: "3 or more", value: "3+", emoji: "⚠️" },
     ],
     defaultNextQuestionId: "prior_insurance",
+    conditionalBranches: [
+      { when: { operator: "equals", value: 1 },    nextQuestionId: "claim_1_cause" },
+      { when: { operator: "equals", value: 2 },    nextQuestionId: "claim_1_cause" },
+      { when: { operator: "equals", value: "3+" }, nextQuestionId: "claim_1_cause" },
+    ],
     underwritingRules: [
       {
         operator: "equals",
@@ -460,6 +472,134 @@ export const QUESTIONS: Question[] = [
       },
     ],
     ratingFactor: "priorClaims",
+  },
+
+  // ── CLAIM DETAILS — asked only when 1+ prior claims ──────
+  // The number of "cause" questions scales with the claim count
+  // (1 → claim_1, 2 → claim_1/2, 3+ → claim_1/2/3), then two shared
+  // follow-ups about remediation and severity.
+  {
+    id: "claim_1_cause",
+    type: "choice",
+    brokerText:
+      "Let's note a few details for the underwriters. What was the cause of the most recent claim?",
+    helperText: "The cause of loss matters more than the count.",
+    options: [
+      { label: "Water / Plumbing / Freeze", value: "water", emoji: "💧" },
+      { label: "Fire / Smoke", value: "fire", emoji: "🔥" },
+      { label: "Theft / Vandalism", value: "theft", emoji: "🦹" },
+      { label: "Weather (wind, hail, storm)", value: "weather", emoji: "🌪️" },
+      { label: "Liability / Injury", value: "liability", emoji: "⚖️" },
+      { label: "Other", value: "other", emoji: "📋" },
+    ],
+    defaultNextQuestionId: "claims_repaired",
+    conditionalBranches: [
+      { when: { questionId: "prior_claims", operator: "equals", value: 2 },    nextQuestionId: "claim_2_cause" },
+      { when: { questionId: "prior_claims", operator: "equals", value: "3+" }, nextQuestionId: "claim_2_cause" },
+    ],
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "fire",
+        decision: "refer",
+        message: "A prior fire or smoke loss on the property requires underwriter review.",
+      },
+    ],
+  },
+
+  {
+    id: "claim_2_cause",
+    type: "choice",
+    brokerText: "And what was the cause of the second claim?",
+    options: [
+      { label: "Water / Plumbing / Freeze", value: "water", emoji: "💧" },
+      { label: "Fire / Smoke", value: "fire", emoji: "🔥" },
+      { label: "Theft / Vandalism", value: "theft", emoji: "🦹" },
+      { label: "Weather (wind, hail, storm)", value: "weather", emoji: "🌪️" },
+      { label: "Liability / Injury", value: "liability", emoji: "⚖️" },
+      { label: "Other", value: "other", emoji: "📋" },
+    ],
+    defaultNextQuestionId: "claims_repaired",
+    conditionalBranches: [
+      { when: { questionId: "prior_claims", operator: "equals", value: "3+" }, nextQuestionId: "claim_3_cause" },
+    ],
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "fire",
+        decision: "refer",
+        message: "A prior fire or smoke loss on the property requires underwriter review.",
+      },
+    ],
+  },
+
+  {
+    id: "claim_3_cause",
+    type: "choice",
+    brokerText: "What was the cause of the third (or most significant additional) claim?",
+    options: [
+      { label: "Water / Plumbing / Freeze", value: "water", emoji: "💧" },
+      { label: "Fire / Smoke", value: "fire", emoji: "🔥" },
+      { label: "Theft / Vandalism", value: "theft", emoji: "🦹" },
+      { label: "Weather (wind, hail, storm)", value: "weather", emoji: "🌪️" },
+      { label: "Liability / Injury", value: "liability", emoji: "⚖️" },
+      { label: "Other", value: "other", emoji: "📋" },
+    ],
+    defaultNextQuestionId: "claims_repaired",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "fire",
+        decision: "refer",
+        message: "A prior fire or smoke loss on the property requires underwriter review.",
+      },
+    ],
+  },
+
+  {
+    id: "claims_repaired",
+    type: "toggle",
+    brokerText:
+      "Have all the damages from these claim(s) been fully repaired and remediated?",
+    helperText:
+      "Unrepaired damage on a property that is now vacant is a significant exposure.",
+    options: [
+      { label: "Yes — fully repaired", value: "yes" },
+      { label: "No — repairs still outstanding", value: "no" },
+    ],
+    defaultNextQuestionId: "claims_largest_amount",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "no",
+        decision: "refer",
+        message:
+          "Unrepaired damage from a prior claim requires underwriter review before a policy can be bound.",
+      },
+    ],
+  },
+
+  {
+    id: "claims_largest_amount",
+    type: "choice",
+    brokerText: "Roughly how large was the biggest of these claims?",
+    helperText: "An approximate amount is fine.",
+    options: [
+      { label: "Under $10,000", value: "under_10k", emoji: "💵" },
+      { label: "$10,000 – $25,000", value: "10_25k", emoji: "💰" },
+      { label: "$25,000 – $50,000", value: "25_50k", emoji: "💴" },
+      { label: "Over $50,000", value: "over_50k", emoji: "⚠️" },
+    ],
+    defaultNextQuestionId: "prior_insurance",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_50k",
+        decision: "refer",
+        message:
+          "A prior claim exceeding $50,000 CAD requires underwriter review.",
+      },
+    ],
   },
 
   {

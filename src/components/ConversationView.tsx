@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useQuote } from "@/context/QuoteContext";
 import { interpolate } from "@/utils/interpolate";
 import ChatBubble from "./ChatBubble";
+import AdvisoryNotice from "./AdvisoryNotice";
 import TypingIndicator from "./TypingIndicator";
 import ProgressBar from "./ProgressBar";
 import InputRenderer from "./InputRenderer";
@@ -74,9 +75,13 @@ export default function ConversationView() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestionId]);
 
-  const handleSubmit = (value: string | number | boolean, displayValue: string) => {
+  const handleSubmit = (
+    value: string | number | boolean,
+    displayValue: string,
+    extra?: Record<string, { value: string | number | boolean; displayValue: string }>
+  ) => {
     setInputReady(false);
-    submitAnswer(currentQuestionId, value, displayValue);
+    submitAnswer(currentQuestionId, value, displayValue, extra);
   };
 
   async function handleChangeRequest() {
@@ -143,9 +148,13 @@ export default function ConversationView() {
       {/* Chat scroll area */}
       <div className="flex-1 overflow-y-auto chat-scroll px-4 py-5 space-y-3">
         {/* Conversation history */}
-        {conversationMessages.map((msg) => (
-          <ChatBubble key={msg.id} type={msg.type} text={msg.text} />
-        ))}
+        {conversationMessages.map((msg) =>
+          msg.type === "advisory" ? (
+            <AdvisoryNotice key={msg.id} decision={msg.decision} text={msg.text} />
+          ) : (
+            <ChatBubble key={msg.id} type={msg.type} text={msg.text} />
+          )
+        )}
 
         {/* Typing indicator */}
         <AnimatePresence>
@@ -180,7 +189,11 @@ export default function ConversationView() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
             >
-              <InputRenderer question={currentQuestion} onSubmit={handleSubmit} />
+              <InputRenderer
+                question={currentQuestion}
+                initialValue={answers[currentQuestionId]?.value}
+                onSubmit={handleSubmit}
+              />
             </motion.div>
           )}
         </AnimatePresence>

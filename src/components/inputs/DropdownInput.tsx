@@ -7,12 +7,15 @@ import { Option } from "@/types";
 interface Props {
   options: Option[];
   placeholder?: string;
+  initialValue?: string | number | boolean;
   onSelect: (value: string | number, displayValue: string) => void;
 }
 
-export default function DropdownInput({ options, placeholder, onSelect }: Props) {
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Option | null>(null);
+export default function DropdownInput({ options, placeholder, initialValue, onSelect }: Props) {
+  const initialOpt =
+    initialValue != null ? options.find((o) => o.value === initialValue) ?? null : null;
+  const [query, setQuery] = useState(initialOpt?.label ?? "");
+  const [selected, setSelected] = useState<Option | null>(initialOpt);
 
   const filtered = query
     ? options.filter((o) =>

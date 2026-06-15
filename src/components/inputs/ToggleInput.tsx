@@ -5,10 +5,11 @@ import { Option } from "@/types";
 
 interface Props {
   options: Option[]; // Exactly 2 options (Yes / No style)
+  selected?: string | number | boolean;
   onSelect: (value: string | number, displayValue: string) => void;
 }
 
-export default function ToggleInput({ options, onSelect }: Props) {
+export default function ToggleInput({ options, selected, onSelect }: Props) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -22,7 +23,9 @@ export default function ToggleInput({ options, onSelect }: Props) {
           onClick={() => onSelect(opt.value, opt.label)}
           className={`flex-1 py-4 rounded-2xl border-2 font-semibold text-sm transition-all duration-150 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-indigo-300
             ${
-              i === 0
+              opt.value === selected
+                ? "bg-indigo-50 border-indigo-500 text-indigo-700 ring-2 ring-indigo-200"
+                : i === 0
                 ? "bg-white border-slate-200 text-slate-700 hover:border-indigo-500 hover:bg-indigo-50 hover:text-indigo-700"
                 : "bg-white border-slate-200 text-slate-700 hover:border-rose-400 hover:bg-rose-50 hover:text-rose-700"
             }`}

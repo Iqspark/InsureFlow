@@ -70,6 +70,7 @@ export interface Question {
   minLength?: number;
   maxLength?: number;
   mustBeInteger?: boolean;              // For number questions: reject decimals
+  noGrouping?: boolean;                 // For number questions: no thousands separator (e.g. years)
   summaryLabel?: string;                // Short label for summary/detail/PDF views
   summarySection?: string;              // Groups answers into sections in detail/PDF views
 }
@@ -120,7 +121,8 @@ export type AppPhase = "intro" | "conversation" | "summary" | "result";
 // ──────────────────────────────────────────────────────────
 export interface ConversationMessage {
   id: string;
-  type: "broker" | "user";
+  type: "broker" | "user" | "advisory";
   text: string;
   questionId?: string;
+  decision?: "refer" | "decline"; // for advisory messages
 }

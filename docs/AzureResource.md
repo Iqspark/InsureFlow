@@ -29,7 +29,7 @@ If you encounter any problem, please open an issue at https://aka.ms/azclibug
 
 C:\Users\gurin\OneDrive\Desktop\Ai_Agent\InsureFlow>az group create --name rg-insureflow --location canadacentral
 {
-  "id": "/subscriptions/fsfwfwfwfwfwfwfffwfw/resourceGroups/rg-insureflow",
+  "id": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-insureflow",
   "location": "canadacentral",
   "managedBy": null,
   "name": "rg-insureflow",
@@ -47,7 +47,7 @@ C:\Users\InsureFlow>az appservice plan create --name plan-insureflow --resource-
   "freeOfferExpirationTime": "2026-06-16T19:28:15.39",
   "geoRegion": "Canada Central",
   "hyperV": false,
-  "id": "/subscriptions/fwefwfwfwfwfwfwf/resourceGroups/rg-insureflow/providers/Microsoft.Web/serverfarms/plan-insureflow",
+  "id": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-insureflow/providers/Microsoft.Web/serverfarms/plan-insureflow",
   "isCustomMode": false,
   "isSpot": false,
   "isXenon": false,
@@ -70,7 +70,7 @@ C:\Users\InsureFlow>az appservice plan create --name plan-insureflow --resource-
     "tier": "Basic"
   },
   "status": "Ready",
-  "subscription": "sefefweffwfwfwf",
+  "subscription": "<SUBSCRIPTION_ID>",
   "targetWorkerCount": 0,
   "targetWorkerSizeId": 0,
   "type": "Microsoft.Web/serverfarms",
@@ -138,7 +138,7 @@ vnet_route_all_enabled is not a known attribute of class <class 'azure.mgmt.web.
   "clientCertMode": "Required",
   "cloningInfo": null,
   "containerSize": 0,
-  "customDomainVerificationId": "fsdfsfsfff",
+  "customDomainVerificationId": "<REDACTED>",
   "dailyMemoryTimeQuota": 0,
   "daprConfig": null,
   "defaultHostName": "insureflow-demo.azurewebsites.net",
@@ -194,7 +194,7 @@ vnet_route_all_enabled is not a known attribute of class <class 'azure.mgmt.web.
   "hostingEnvironmentProfile": null,
   "httpsOnly": false,
   "hyperV": false,
-  "id": "/subscriptions/bc76448c80cb/resourceGroups/rg-insureflow/providers/Microsoft.Web/sites/insureflow-demo",
+  "id": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-insureflow/providers/Microsoft.Web/sites/insureflow-demo",
   "identity": null,
   "inProgressOperationId": null,
   "ipMode": "IPv4",
@@ -224,7 +224,7 @@ vnet_route_all_enabled is not a known attribute of class <class 'azure.mgmt.web.
   "resourceConfig": null,
   "resourceGroup": "rg-insureflow",
   "scmSiteAlsoStopped": false,
-  "serverFarmId": "/subscriptions/bc76448c80cb/resourceGroups/rg-insureflow/providers/Microsoft.Web/serverfarms/plan-insureflow",
+  "serverFarmId": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-insureflow/providers/Microsoft.Web/serverfarms/plan-insureflow",
   "siteConfig": {
     "acrUseManagedIdentityCreds": false,
     "acrUserManagedIdentityId": null,
@@ -378,7 +378,7 @@ C:\Users\InsureFlow>az webapp config appsettings set --name insureflow-demo --re
 C:\Users\InsureFlow>az resource update --resource-group rg-insureflow --name scm --namespace Microsoft.Web --resource-type basicPublishingCredentialsPolicies --parent sites/insureflow-demo --set properties.allow=true
 {
   "extendedLocation": null,
-  "id": "/subscriptions/0cb/resourceGroups/rg-insureflow/providers/Microsoft.Web/sites/insureflow-demo/basicPublishingCredentialsPolicies/scm",
+  "id": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-insureflow/providers/Microsoft.Web/sites/insureflow-demo/basicPublishingCredentialsPolicies/scm",
   "identity": null,
   "kind": null,
   "location": "Canada Central",

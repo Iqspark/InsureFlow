@@ -10,6 +10,7 @@ interface Props {
   maxDate?: string;   // ISO string "YYYY-MM-DD"
   allowFuture?: boolean;
   allowPast?: boolean;
+  initialValue?: string;
 }
 
 export default function DateInput({
@@ -18,8 +19,9 @@ export default function DateInput({
   maxDate,
   allowFuture,
   allowPast,
+  initialValue,
 }: Props) {
-  const [value, setValue] = useState("");
+  const [value, setValue] = useState(initialValue ?? "");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 

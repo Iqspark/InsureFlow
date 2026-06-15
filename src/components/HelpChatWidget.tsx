@@ -14,7 +14,7 @@ export default function HelpChatWidget() {
     {
       role: "assistant",
       content:
-        "Hi! I'm the **InsureFlow Help Navigator** 👋\n\nI can answer questions about our vacant home insurance products, coverage, pricing, and more. How can I help you today?",
+        "Hi! I'm the **InsureFlow Help Navigator** 👋\n\nI can answer questions about our insurance products, coverage, pricing, underwriting, and using the portal. How can I help you today?",
     },
   ]);
   const [input, setInput] = useState("");

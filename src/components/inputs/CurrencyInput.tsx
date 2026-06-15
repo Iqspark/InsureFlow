@@ -8,11 +8,12 @@ interface Props {
   placeholder?: string;
   min?: number;
   max?: number;
+  initialValue?: number;
   onSubmit: (value: number, displayValue: string) => void;
 }
 
-export default function CurrencyInput({ placeholder, min, max, onSubmit }: Props) {
-  const [raw, setRaw] = useState("");
+export default function CurrencyInput({ placeholder, min, max, initialValue, onSubmit }: Props) {
+  const [raw, setRaw] = useState(initialValue != null ? String(initialValue) : "");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 

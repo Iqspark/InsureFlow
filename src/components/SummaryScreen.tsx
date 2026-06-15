@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import { useQuote } from "@/context/QuoteContext";
+import { sectionForQuestion } from "@/utils/sections";
 
 export default function SummaryScreen() {
-  const { questions, answers, confirmSummary, restart } = useQuote();
+  const { questions, questionHistory, answers, confirmSummary, restart, goToQuestion } = useQuote();
 
   const answeredQuestions = questions.filter((q) => answers[q.id] !== undefined);
 
@@ -46,7 +47,7 @@ export default function SummaryScreen() {
           >
             <div className="min-w-0">
               <p className="text-xs text-slate-400 font-medium uppercase tracking-wide leading-none mb-0.5">
-                {q.summarySection ?? getSectionLabel(q.id)}
+                {sectionForQuestion(q)}
               </p>
               <p className="text-xs text-slate-500 leading-snug mt-0.5">
                 {/* Short question label — first clause of brokerText */}
@@ -59,9 +60,23 @@ export default function SummaryScreen() {
                 ?
               </p>
             </div>
-            <span className="flex-shrink-0 text-sm font-semibold text-indigo-700 text-right max-w-[45%]">
-              {answers[q.id]?.displayValue}
-            </span>
+            <div className="flex-shrink-0 flex items-center gap-2 max-w-[55%]">
+              <span className="text-sm font-semibold text-indigo-700 text-right">
+                {answers[q.id]?.displayValue}
+              </span>
+              {questionHistory.includes(q.id) && (
+                <button
+                  type="button"
+                  onClick={() => goToQuestion(q.id)}
+                  title="Edit this answer"
+                  className="text-slate-300 hover:text-indigo-600 transition-colors p-1 -mr-1"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </motion.div>
         ))}
       </div>
@@ -86,33 +101,4 @@ export default function SummaryScreen() {
       </div>
     </motion.div>
   );
-}
-
-// Helper to derive a short section label from the question id
-function getSectionLabel(id: string): string {
-  const map: Record<string, string> = {
-    applicant_name: "About You",
-    property_province: "Property",
-    property_address: "Property",
-    property_type: "Property",
-    year_built: "Property",
-    square_footage: "Property",
-    property_value: "Valuation",
-    coverage_amount: "Coverage",
-    deductible: "Coverage",
-    vacancy_duration: "Vacancy",
-    vacancy_reason: "Vacancy",
-    property_inspections: "Management",
-    utilities_winterized: "Management",
-    security_features: "Security",
-    has_pool: "Features",
-    pool_fenced: "Features",
-    prior_damage: "Loss History",
-    damage_type: "Loss History",
-    prior_claims: "Loss History",
-    prior_insurance: "Loss History",
-    contact_phone: "Contact",
-    contact_email: "Contact",
-  };
-  return map[id] ?? "Details";
 }

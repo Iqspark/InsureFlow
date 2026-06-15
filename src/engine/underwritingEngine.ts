@@ -1,4 +1,4 @@
-import { Answer, ComparisonOperator, Question, UnderwritingDecision } from "@/types";
+import { Answer, ComparisonOperator, Question, UnderwritingDecision, UnderwritingRule } from "@/types";
 import { QUESTIONS } from "@/data/questions";
 
 // ============================================================
@@ -71,4 +71,17 @@ export function runUnderwritingEngine(
     return { decision: "refer", declineReasons: [], referralReasons };
   }
   return { decision: "accept", declineReasons: [], referralReasons: [] };
+}
+
+// Evaluates a SINGLE question's underwriting rules against one answer value.
+// Used to give the broker an immediate (non-blocking) heads-up when an answer
+// would refer/decline — before the full quote is calculated.
+export function evaluateAnswerRules(
+  question: Question,
+  value: string | number | boolean
+): UnderwritingRule[] {
+  if (!question.underwritingRules?.length) return [];
+  return question.underwritingRules.filter((rule) =>
+    compare(value, rule.operator, rule.value)
+  );
 }

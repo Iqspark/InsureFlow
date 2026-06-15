@@ -4,40 +4,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { productSlugForPolicyType } from "@/data/products";
 import StageBadge from "@/components/StageBadge";
-
-// Makes an entire <tr> row act as a link by overlaying an <a> on the first cell
-function LinkRow({
-  href,
-  children,
-  striped,
-  label = "View",
-}: {
-  href: string;
-  children: ReactNode;
-  striped: boolean;
-  label?: string;
-}) {
-  return (
-    <tr className={`relative hover:bg-indigo-50/60 transition-colors cursor-pointer group ${striped ? "bg-slate-50/50" : ""}`}>
-      {children}
-      {/* Invisible full-row link anchored to the applicant-name cell */}
-      <td className="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap w-10">
-        <Link
-          href={href}
-          className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
-        >
-          {label}
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
-      </td>
-    </tr>
-  );
-}
+import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 
 function DecisionBadge({ decision, status }: { decision: string | null; status: string }) {
   if (status === "draft") {
@@ -97,6 +66,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
+      <div className="max-w-5xl mx-auto">
       {/* Welcome + stats */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">
@@ -107,7 +77,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-sm">
           <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center mb-3">
             <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -168,84 +138,57 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      {/* Policies table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="px-4 sm:px-6 py-4 border-b border-slate-100">
-          <h2 className="font-semibold text-slate-900 text-sm">Recent Policies</h2>
-        </div>
+      {/* Recent policies */}
+      <h2 className="font-semibold text-slate-900 text-sm mb-3">Recent Policies</h2>
 
-        {submissions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-            <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
-              <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-slate-700 mb-1">No policies yet</p>
-            <p className="text-xs text-slate-400">Start a new quote to see policies here.</p>
+      {submissions.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 shadow-sm flex flex-col items-center justify-center py-16 text-center px-4">
+          <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+            <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Applicant Name
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Policy Type
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Application ID
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Policy Date
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Decision
-                  </th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                    Stage
-                  </th>
-                  <th className="w-10"><span className="sr-only">Actions</span></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {submissions.map((sub, i) => (
-                  <LinkRow
-                    key={sub.id}
-                    href={sub.status === "draft" ? `/new-quote/${productSlugForPolicyType(sub.policyType)}?resume=${sub.id}` : `/policy/${sub.id}`}
-                    striped={i % 2 !== 0}
-                    label={sub.status === "draft" ? "Resume" : "View"}
-                  >
-                    <td className="px-4 sm:px-6 py-3.5 font-medium text-slate-900 whitespace-nowrap">
-                      {sub.applicantName ?? "—"}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3.5 text-slate-600 whitespace-nowrap">
-                      {sub.policyType}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3.5 text-slate-500 font-mono text-xs whitespace-nowrap">
-                      {sub.id.slice(0, 10).toUpperCase()}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3.5 text-slate-500 whitespace-nowrap">
-                      {new Date(sub.createdAt).toLocaleDateString("en-CA", {
-                        year: "numeric",
-                        month: "short",
-                        day: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3.5">
-                      <DecisionBadge decision={sub.decision} status={sub.status} />
-                    </td>
-                    <td className="px-4 sm:px-6 py-3.5">
-                      {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
-                    </td>
-                  </LinkRow>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+          <p className="text-sm font-medium text-slate-700 mb-1">No policies yet</p>
+          <p className="text-xs text-slate-400">Start a new quote to see policies here.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {submissions.map((sub) => {
+            const href =
+              sub.status === "draft"
+                ? `/new-quote/${productSlugForPolicyType(sub.policyType)}?resume=${sub.id}`
+                : `/policy/${sub.id}`;
+            return (
+              <div
+                key={sub.id}
+                className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+              >
+                <Link href={href} className="min-w-0 flex-1 group">
+                  <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
+                    {sub.applicantName ?? "—"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    {sub.policyType}
+                    <span className="mx-1.5 text-slate-300">·</span>
+                    <span className="font-mono">{sub.id.slice(0, 10).toUpperCase()}</span>
+                    <span className="mx-1.5 text-slate-300">·</span>
+                    {new Date(sub.createdAt).toLocaleDateString("en-CA", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <DecisionBadge decision={sub.decision} status={sub.status} />
+                  {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
+                  <DeleteQuoteButton submissionId={sub.id} purchased={sub.purchased} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
       </div>
     </div>
   );

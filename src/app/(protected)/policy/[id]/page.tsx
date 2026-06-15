@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import DeleteDraftButton from "@/components/DeleteDraftButton";
+import DeletePolicyButton from "@/components/DeletePolicyButton";
 import DownloadPolicyButton from "@/components/DownloadPolicyButton";
 import { buildSubmissionSections } from "@/lib/submissionSections";
 import { productSlugForPolicyType } from "@/data/products";
@@ -191,6 +192,9 @@ export default async function PolicyDetailPage({
           <DownloadPolicyButton submissionId={sub.id} />
           {sub.status !== "draft" && sub.decision === "accept" && (
             <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
+          )}
+          {sub.status !== "draft" && !sub.purchased && (
+            <DeletePolicyButton submissionId={sub.id} />
           )}
           {sub.status === "draft" && (
             <>

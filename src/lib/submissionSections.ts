@@ -66,6 +66,26 @@ function yesNo(v: string | null | undefined): string {
   return fmt(v);
 }
 
+// Optional per-claim follow-up answers (stored in allAnswers, no columns).
+function claimDetailRows(allAnswers: string): ViewRow[] {
+  let a: Record<string, Answer> = {};
+  try {
+    a = JSON.parse(allAnswers ?? "{}");
+  } catch {
+    a = {};
+  }
+  const rows: ViewRow[] = [];
+  const add = (id: string, label: string) => {
+    if (a[id]) rows.push({ label, value: fmt(a[id].displayValue) });
+  };
+  add("claim_1_cause", "Claim 1 — Cause");
+  add("claim_2_cause", "Claim 2 — Cause");
+  add("claim_3_cause", "Claim 3 — Cause");
+  add("claims_repaired", "Damages Repaired");
+  add("claims_largest_amount", "Largest Claim");
+  return rows;
+}
+
 function buildVacantHomeSections(s: SubmissionRecord): ViewSection[] {
   return [
     {
@@ -127,6 +147,7 @@ function buildVacantHomeSections(s: SubmissionRecord): ViewSection[] {
         { label: "Prior Damage", value: yesNo(s.priorDamage) },
         { label: "Damage Type", value: fmt(s.damageType) },
         { label: "Prior Claims (5 yrs)", value: fmt(s.priorClaims) },
+        ...claimDetailRows(s.allAnswers),
         { label: "Prior Insurance", value: yesNo(s.priorInsurance) },
       ],
     },
@@ -180,8 +201,9 @@ function buildGenericSections(
 
 export function buildSubmissionSections(s: SubmissionRecord): ViewSection[] {
   if (s.policyType === VACANT_HOME) return buildVacantHomeSections(s);
-  if (s.policyType === PRODUCTS["jeweller-block"].policyType) {
-    return buildGenericSections(s, JEWELLER_QUESTIONS);
-  }
+  // Every other product stores its answers in the allAnswers JSON and
+  // renders generically from its own question set's summarySection groups.
+  const product = Object.values(PRODUCTS).find((p) => p.policyType === s.policyType);
+  if (product) return buildGenericSections(s, product.questions);
   return buildVacantHomeSections(s);
 }

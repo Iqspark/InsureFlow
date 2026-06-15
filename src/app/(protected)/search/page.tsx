@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { productSlugForPolicyType } from "@/data/products";
 import StageBadge from "@/components/StageBadge";
+import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 
 type SearchResult = {
   id: string;
@@ -269,16 +270,23 @@ export default function SearchPage() {
                         <td className="px-5 py-3.5">
                           {r.status !== "draft" && <StageBadge purchased={r.purchased} />}
                         </td>
-                        <td className="px-5 py-3.5 text-right whitespace-nowrap w-10">
-                          <Link
-                            href={r.status === "draft" ? `/new-quote/${productSlugForPolicyType(r.policyType)}?resume=${r.id}` : `/policy/${r.id}`}
-                            className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            {r.status === "draft" ? "Resume" : "View"}
-                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                            </svg>
-                          </Link>
+                        <td className="px-5 py-3.5 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-3">
+                            <Link
+                              href={r.status === "draft" ? `/new-quote/${productSlugForPolicyType(r.policyType)}?resume=${r.id}` : `/policy/${r.id}`}
+                              className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-700"
+                            >
+                              {r.status === "draft" ? "Resume" : "View"}
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </Link>
+                            <DeleteQuoteButton
+                              submissionId={r.id}
+                              purchased={r.purchased}
+                              onDeleted={() => setResults((prev) => (prev ? prev.filter((x) => x.id !== r.id) : prev))}
+                            />
+                          </div>
                         </td>
                       </tr>
                     ))}

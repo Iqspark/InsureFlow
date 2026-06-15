@@ -10,6 +10,8 @@ interface Props {
   max?: number;
   suffix?: string;
   mustBeInteger?: boolean;
+  noGrouping?: boolean;
+  initialValue?: string;
   onSubmit: (value: number, displayValue: string) => void;
 }
 
@@ -19,9 +21,12 @@ export default function NumberInput({
   max,
   suffix,
   mustBeInteger,
+  noGrouping,
+  initialValue,
   onSubmit,
 }: Props) {
-  const [value, setValue] = useState("");
+  const fmtNum = (n: number) => (noGrouping ? String(n) : n.toLocaleString());
+  const [value, setValue] = useState(initialValue ?? "");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +50,7 @@ export default function NumberInput({
     setError(err);
     if (err) return;
     const num = Number(value);
-    const display = suffix ? `${num.toLocaleString()} ${suffix}` : num.toLocaleString();
+    const display = suffix ? `${fmtNum(num)} ${suffix}` : fmtNum(num);
     onSubmit(num, display);
   };
 
@@ -107,10 +112,10 @@ export default function NumberInput({
       {!error && (min !== undefined || max !== undefined) && (
         <p className="text-xs text-slate-400 px-1">
           {min !== undefined && max !== undefined
-            ? `Range: ${min.toLocaleString()} – ${max.toLocaleString()}`
+            ? `Range: ${fmtNum(min)} – ${fmtNum(max)}`
             : min !== undefined
-            ? `Minimum: ${min.toLocaleString()}`
-            : `Maximum: ${max!.toLocaleString()}`}
+            ? `Minimum: ${fmtNum(min)}`
+            : `Maximum: ${fmtNum(max!)}`}
           {mustBeInteger ? " (whole number)" : ""}
         </p>
       )}

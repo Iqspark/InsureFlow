@@ -44,17 +44,23 @@ knowledge/
   your-faq.md      ← add your own files here
 ```
 
-**Full path (this machine):**
-```
-c:\Users\gurin\OneDrive\Desktop\Ai_Agent\FormBuilder\knowledge\
-```
+---
+
+## Products
+
+Two products are registered in `src/data/products.ts`, each plugging its own questions + calculator into the shared engine and result UI:
+
+| Product | Questions file | Calculator |
+|---|---|---|
+| Vacant Home (`vacant-home`) | `src/data/questions.ts` | `calculateQuote` |
+| Jeweller's Block (`jeweller-block`) | `src/data/jewellerQuestions.ts` | `calculateJewellerQuote` |
 
 ---
 
 ## Adding a New Question
 
-1. Open `src/data/questions.ts`
-2. Add a new object to the `QUESTIONS` array
+1. Open the relevant product's questions file (`src/data/questions.ts` or `src/data/jewellerQuestions.ts`)
+2. Add a new object to the `QUESTIONS` / `JEWELLER_QUESTIONS` array
 3. Set the previous question's `defaultNextQuestionId` to your new question's `id`
 4. Set your new question's `defaultNextQuestionId` to the next question's `id`
 
@@ -97,63 +103,117 @@ underwritingRules: [
 ```typescript
 conditionalBranches: [
   {
-    when: { operator: "equals", value: "yes" },
+    when: { operator: "equals", value: "yes" },   // tests THIS question's answer
     nextQuestionId: "follow_up_question_id",
   },
 ],
 defaultNextQuestionId: "default_if_no_branch_matches",
 ```
 
+Branches are checked **in order**; the first match wins. To branch on a *different* question's answer, add `questionId`:
+
+```typescript
+conditionalBranches: [
+  // Branch this question based on the earlier prior_claims answer
+  { when: { questionId: "prior_claims", operator: "equals", value: "3+" },
+    nextQuestionId: "claim_3_cause" },
+],
+```
+
+`questionId` defaults to the current question's `id` when omitted.
+
 ---
 
 ## Operator Reference
 
+Used by both `underwritingRules` and `conditionalBranches` `when` clauses.
+
 | Operator | Example test | Notes |
 |---|---|---|
-| `"equals"` | `value === "yes"` | Exact, case-sensitive |
-| `"not_equals"` | `value !== "no"` | |
-| `"greater_than"` | `value > 1900` | Numbers only |
-| `"less_than"` | `value < 5` | Numbers only |
-| `"greater_than_or_equal"` | `value >= 80` | Numbers only |
-| `"less_than_or_equal"` | `value <= 100` | Numbers only |
-| `"contains"` | `"fire"` in value | Case-insensitive string match |
-| `"in_list"` | `value: ["HI","AK"]` | Checks if answer is in the array |
+| `"equals"` | `value === "yes"` | Strict — `2` ≠ `"2"`. Match the option's value type. |
+| `"not_equals"` | `value !== "no"` | Strict |
+| `"greater_than"` | `value > 1900` | Coerced to Number |
+| `"less_than"` | `value < 5` | Coerced to Number |
+| `"greater_than_or_equal"` | `value >= 80` | Coerced to Number |
+| `"less_than_or_equal"` | `value <= 100` | Coerced to Number |
+| `"contains"` | `"fire"` in value | Case-insensitive substring match |
+| `"in_list"` | `value: ["NT","NU","YT"]` | True if answer is in the array |
 
 ---
 
-## Input Type Reference
+## Question Type Reference
 
 | `type` | Best for | Needs `options`? |
 |---|---|---|
 | `"choice"` | 2–6 button options | Yes |
 | `"toggle"` | Yes / No | Yes (exactly 2) |
-| `"text"` | Name, email, free text | No |
+| `"text"` | Name, email, phone, free text (see `inputType`) | No |
 | `"number"` | Year, sq ft, count | No (add `min`/`max`) |
-| `"currency"` | Dollar amounts | No (add `min`/`max`) |
-| `"dropdown"` | 7+ options with search | Yes |
+| `"currency"` | Dollar amounts ($ prefix) | No (add `min`/`max`) |
+| `"dropdown"` | Many options with search | Yes |
+| `"address"` | Google Places autocomplete + map preview | No |
 | `"date"` | Calendar date | No |
+
+For `type: "text"`, set `inputType` to drive validation: `"name"`, `"email"`, `"phone"`, or `"text"`.
+
+---
+
+## Question Field Reference
+
+| Field | Applies to | Purpose |
+|---|---|---|
+| `id` | all | Unique snake_case key; also the answer key |
+| `type` | all | One of the Question Types above |
+| `brokerText` | all | What "Alex" asks (supports `{{answer_id}}`) |
+| `helperText` | all | Subtext hint |
+| `placeholder` | text/number/currency/address | Input placeholder |
+| `options` | choice/toggle/dropdown | `{ label, value, emoji?, description? }[]` |
+| `defaultNextQuestionId` | all | Default routing (`"__SUBMIT__"` ends the flow) |
+| `conditionalBranches` | all | Routing overrides; `when` supports optional `questionId` |
+| `underwritingRules` | all | Decline/refer triggers (see Operator Reference) |
+| `ratingFactor` | all | Doc-only key; does NOT auto-wire the calculator |
+| `required` | all | Block until answered |
+| `inputType` | text | `"name"` / `"email"` / `"phone"` / `"text"` validation |
+| `min` / `max` | number/currency | Value bounds |
+| `prefix` / `suffix` | number/currency | e.g. `"$"` / `"sq ft"` |
+| `mustBeInteger` | number | Reject decimals |
+| `noGrouping` | number | No thousands separator (e.g. a year) |
+| `minLength` / `maxLength` | text | Length bounds |
+| `summaryLabel` | all | Short label for summary / detail / PDF views |
+| `summarySection` | all | Groups answers into sections in detail / PDF views |
 
 ---
 
 ## Pricing Formula (Summary)
 
+**Vacant Home** — `src/data/ratingFactors.ts` + `src/engine/quoteCalculator.ts`:
+
 ```
 Premium = $500 (base)
-  × province_factor
-  × vacancy_duration_factor
-  × property_type_factor
-  × property_value_factor
-  × year_built_factor
-  × inspection_frequency_factor
-  × security_factor
-  × prior_claims_factor
-  × deductible_factor
+  × province_factor × vacancy_duration_factor × property_type_factor
+  × property_value_factor × year_built_factor × inspection_frequency_factor
+  × security_factor × prior_claims_factor × deductible_factor
   × coverage_percent_factor
   + flat_adjustments ($)
+
+Coverage = property_value × (coverage_percent / 100)
 ```
 
-All factors live in `src/data/ratingFactors.ts`.
-Handlers live in `src/engine/quoteCalculator.ts`.
+**Jeweller's Block** — `src/data/jewellerRatingFactors.ts` + `src/engine/jewellerQuoteCalculator.ts`:
+
+```
+Base = max_stock_value × 0.01 (1% of sum insured)
+Premium = Base
+  × business_type_factor × province_factor × years_in_business_factor
+  × stock_in_safe_factor × safe_rating_factor × alarm_factor
+  × window_display_factor × offsite_value_factor (only if off-site)
+  × prior_losses_factor × deductible_factor
+  + flat_loadings ($)
+
+Coverage = max_stock_value (the sum insured)
+```
+
+See `docs/UNDERWRITING_ENGINE.md` for the full factor tables.
 
 ---
 
@@ -168,6 +228,18 @@ Handlers live in `src/engine/quoteCalculator.ts`.
 Decline always beats Refer if both are triggered.
 
 When a broker clicks **Buy This Policy**, a confirmation email is sent (Ethereal preview in dev, real SMTP in production) and a full-screen confirmation card replaces the quote result.
+
+Decline rules live in the **product's** questions file; the engine runs the same way for every product.
+
+---
+
+## Adding a New Product
+
+1. Create `src/data/<product>Questions.ts` exporting a `Question[]` array + a `FIRST_QUESTION_ID`.
+2. Create `src/engine/<product>QuoteCalculator.ts` exporting a `calculate(answers): QuoteDetails` function. Call `runUnderwritingEngine(answers, <product>Questions)` first, then apply your factors. Reuse a `<product>RatingFactors.ts` file for the multipliers.
+3. Register it in `src/data/products.ts` under `PRODUCTS` with `id`, `policyType`, `questions`, `firstQuestionId`, `calculate`, and `intro`.
+
+The conversational engine, persistence, summary/PDF, and result screens are shared — no other code changes needed.
 
 ---
 
@@ -211,11 +283,15 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 
 | I want to change… | Edit this file |
 |---|---|
-| Questions / options / branching | `src/data/questions.ts` |
-| Rating multipliers | `src/data/ratingFactors.ts` |
-| Decline / Refer rules | `src/data/questions.ts` → `underwritingRules` |
-| Quote calculation logic | `src/engine/quoteCalculator.ts` |
-| Underwriting evaluation logic | `src/engine/underwritingEngine.ts` |
+| Product registry (add/edit products) | `src/data/products.ts` |
+| Vacant-home questions / options / branching | `src/data/questions.ts` |
+| Jeweller questions / options / branching | `src/data/jewellerQuestions.ts` |
+| Vacant-home rating multipliers | `src/data/ratingFactors.ts` |
+| Jeweller rating multipliers | `src/data/jewellerRatingFactors.ts` |
+| Decline / Refer rules | the product's questions file → `underwritingRules` |
+| Vacant-home quote calculation | `src/engine/quoteCalculator.ts` |
+| Jeweller quote calculation | `src/engine/jewellerQuoteCalculator.ts` |
+| Underwriting evaluation logic (shared) | `src/engine/underwritingEngine.ts` |
 | Chat bubble style | `src/components/ChatBubble.tsx` |
 | Typing delay (ms) | `src/components/ConversationView.tsx` → `TYPING_DELAY_MS` |
 | Progress bar | `src/components/ProgressBar.tsx` |

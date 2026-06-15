@@ -5,15 +5,20 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { loadGoogleMaps, mapEmbedUrl } from "@/utils/googleMaps";
 
+type Extra = Record<string, { value: string | number | boolean; displayValue: string }>;
+
 interface Props {
   placeholder?: string;
-  onSubmit: (value: string, displayValue: string) => void;
+  initialValue?: string;
+  onSubmit: (value: string, displayValue: string, extra?: Extra) => void;
 }
 
-export default function AddressInput({ placeholder, onSubmit }: Props) {
-  const [value, setValue] = useState("");
-  const [selected, setSelected] = useState("");
+export default function AddressInput({ placeholder, initialValue, onSubmit }: Props) {
+  const [value, setValue] = useState(initialValue ?? "");
+  const [selected, setSelected] = useState(initialValue ?? "");
   const inputRef = useRef<HTMLInputElement>(null);
+  // Province (administrative_area_level_1) derived from the chosen place.
+  const provinceRef = useRef<{ code: string; name: string } | null>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -25,13 +30,19 @@ export default function AddressInput({ placeholder, onSubmit }: Props) {
         autocomplete = new maps.places.Autocomplete(inputRef.current, {
           types: ["address"],
           componentRestrictions: { country: "ca" },
-          fields: ["formatted_address"],
+          fields: ["formatted_address", "address_components"],
         });
         autocomplete.addListener("place_changed", () => {
           const place = autocomplete.getPlace();
           const addr = place?.formatted_address ?? inputRef.current?.value ?? "";
           setValue(addr);
           setSelected(addr);
+          const comp = (place?.address_components ?? []).find((c: any) =>
+            c.types?.includes("administrative_area_level_1")
+          );
+          provinceRef.current = comp
+            ? { code: comp.short_name, name: comp.long_name }
+            : null;
         });
       })
       .catch(() => {});
@@ -40,7 +51,11 @@ export default function AddressInput({ placeholder, onSubmit }: Props) {
   const handleSubmit = () => {
     const addr = value.trim();
     if (!addr) return;
-    onSubmit(addr, addr);
+    const prov = provinceRef.current;
+    const extra: Extra | undefined = prov
+      ? { property_province: { value: prov.code, displayValue: prov.name } }
+      : undefined;
+    onSubmit(addr, addr, extra);
   };
 
   const embed = selected ? mapEmbedUrl(selected) : null;
@@ -61,6 +76,7 @@ export default function AddressInput({ placeholder, onSubmit }: Props) {
             onChange={(e) => {
               setValue(e.target.value);
               if (selected) setSelected("");
+              provinceRef.current = null;
             }}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             placeholder={placeholder ?? "Start typing the address…"}

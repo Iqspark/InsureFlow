@@ -339,6 +339,11 @@ export const JEWELLER_QUESTIONS: Question[] = [
       { label: "3 or more", value: "3+", emoji: "⚠️" },
     ],
     defaultNextQuestionId: "deductible",
+    conditionalBranches: [
+      { when: { operator: "equals", value: 1 },    nextQuestionId: "loss_1_cause" },
+      { when: { operator: "equals", value: 2 },    nextQuestionId: "loss_1_cause" },
+      { when: { operator: "equals", value: "3+" }, nextQuestionId: "loss_1_cause" },
+    ],
     underwritingRules: [
       {
         operator: "equals",
@@ -350,6 +355,116 @@ export const JEWELLER_QUESTIONS: Question[] = [
     ],
     ratingFactor: "priorLosses",
     summaryLabel: "Losses (5 yrs)",
+    summarySection: "Loss History",
+  },
+
+  // ── LOSS DETAILS — asked only when 1+ prior losses ──────
+  // The number of "cause" questions scales with the loss count
+  // (1 → loss_1, 2 → loss_1/2, 3+ → loss_1/2/3), then two shared
+  // follow-ups about remediation and severity.
+  {
+    id: "loss_1_cause",
+    type: "choice",
+    brokerText: "What was the nature of the most recent loss?",
+    options: [
+      { label: "Burglary (forced entry)", value: "burglary", emoji: "🔨" },
+      { label: "Robbery (hold-up)", value: "robbery", emoji: "🔫" },
+      { label: "Theft (employee / shoplifting)", value: "theft", emoji: "🦹" },
+      { label: "Mysterious disappearance", value: "disappearance", emoji: "❓" },
+      { label: "In-transit loss", value: "transit", emoji: "🚚" },
+      { label: "Other", value: "other", emoji: "📋" },
+    ],
+    defaultNextQuestionId: "losses_addressed",
+    conditionalBranches: [
+      { when: { questionId: "prior_losses", operator: "equals", value: 2 },    nextQuestionId: "loss_2_cause" },
+      { when: { questionId: "prior_losses", operator: "equals", value: "3+" }, nextQuestionId: "loss_2_cause" },
+    ],
+    summaryLabel: "Loss 1 — Type",
+    summarySection: "Loss History",
+  },
+
+  {
+    id: "loss_2_cause",
+    type: "choice",
+    brokerText: "What was the nature of the second loss?",
+    options: [
+      { label: "Burglary (forced entry)", value: "burglary", emoji: "🔨" },
+      { label: "Robbery (hold-up)", value: "robbery", emoji: "🔫" },
+      { label: "Theft (employee / shoplifting)", value: "theft", emoji: "🦹" },
+      { label: "Mysterious disappearance", value: "disappearance", emoji: "❓" },
+      { label: "In-transit loss", value: "transit", emoji: "🚚" },
+      { label: "Other", value: "other", emoji: "📋" },
+    ],
+    defaultNextQuestionId: "losses_addressed",
+    conditionalBranches: [
+      { when: { questionId: "prior_losses", operator: "equals", value: "3+" }, nextQuestionId: "loss_3_cause" },
+    ],
+    summaryLabel: "Loss 2 — Type",
+    summarySection: "Loss History",
+  },
+
+  {
+    id: "loss_3_cause",
+    type: "choice",
+    brokerText: "What was the nature of the third loss?",
+    options: [
+      { label: "Burglary (forced entry)", value: "burglary", emoji: "🔨" },
+      { label: "Robbery (hold-up)", value: "robbery", emoji: "🔫" },
+      { label: "Theft (employee / shoplifting)", value: "theft", emoji: "🦹" },
+      { label: "Mysterious disappearance", value: "disappearance", emoji: "❓" },
+      { label: "In-transit loss", value: "transit", emoji: "🚚" },
+      { label: "Other", value: "other", emoji: "📋" },
+    ],
+    defaultNextQuestionId: "losses_addressed",
+    summaryLabel: "Loss 3 — Type",
+    summarySection: "Loss History",
+  },
+
+  {
+    id: "losses_addressed",
+    type: "toggle",
+    brokerText:
+      "Have the security weaknesses behind these losses been corrected?",
+    options: [
+      { label: "Yes — corrected", value: "yes" },
+      { label: "No — still outstanding", value: "no" },
+    ],
+    defaultNextQuestionId: "losses_largest_amount",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "no",
+        decision: "refer",
+        message:
+          "Uncorrected security weaknesses behind a prior loss require underwriter review.",
+      },
+    ],
+    summaryLabel: "Weaknesses Corrected",
+    summarySection: "Loss History",
+  },
+
+  {
+    id: "losses_largest_amount",
+    type: "choice",
+    brokerText: "Roughly how large was the biggest loss?",
+    helperText: "An approximate amount is fine.",
+    options: [
+      { label: "Under $25,000", value: "under_25k", emoji: "💵" },
+      { label: "$25,000 – $100,000", value: "k25_100", emoji: "💰" },
+      { label: "$100,000 – $500,000", value: "k100_500", emoji: "💴" },
+      { label: "Over $500,000", value: "over_500k", emoji: "⚠️" },
+    ],
+    defaultNextQuestionId: "deductible",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_500k",
+        decision: "refer",
+        message:
+          "A prior loss exceeding $500,000 CAD requires underwriter review.",
+      },
+    ],
+    summaryLabel: "Largest Loss",
     summarySection: "Loss History",
   },
 

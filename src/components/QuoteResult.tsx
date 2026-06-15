@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useQuote } from "@/context/QuoteContext";
-import { FactorBreakdown } from "@/types";
 
 export default function QuoteResult() {
   const { quoteDetails, answers, restart } = useQuote();
@@ -29,8 +28,8 @@ function AcceptResult({
   onRestart: () => void;
 }) {
   const router  = useRouter();
-  const { submissionId, answers } = useQuote();
-  const { finalAnnualPremium, finalMonthlyPremium, coverageAmount, deductible, factors, basePremium } = quoteDetails;
+  const { submissionId, answers, policyType } = useQuote();
+  const { finalAnnualPremium, finalMonthlyPremium, coverageAmount, deductible } = quoteDetails;
 
   const [buyStatus, setBuyStatus] = useState<BuyStatus>("idle");
   const [sentEmail, setSentEmail] = useState("");
@@ -189,40 +188,23 @@ function AcceptResult({
         </motion.div>
       </div>
 
-      {/* Breakdown */}
+      {/* Quote summary — relevant policy terms only (no premium math) */}
       <div className="px-5 py-5 space-y-3 flex-1">
         <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wide">
-          How we calculated this
+          Quote summary
         </h2>
 
-        <FactorRow
-          name="Base premium"
-          value={`$${basePremium.toLocaleString()}`}
-          description="Starting point for this policy"
-          i={0}
-        />
-
-        {factors
-          .filter((f) => f.multiplier !== 1 || f.adjustment === 0)
-          .map((f, i) => (
-            <FactorRow
-              key={f.name}
-              name={f.name}
-              value={
-                f.adjustment > 0
-                  ? `+$${f.adjustment.toLocaleString()}`
-                  : f.multiplier === 1
-                  ? "—"
-                  : f.multiplier > 1
-                  ? `+${Math.round((f.multiplier - 1) * 100)}%`
-                  : `${Math.round((f.multiplier - 1) * 100)}%`
-              }
-              description={f.description}
-              positive={f.multiplier < 1}
-              negative={f.multiplier > 1 || f.adjustment > 0}
-              i={i + 1}
-            />
-          ))}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-100 overflow-hidden">
+          <SummaryRow label="Policy" value={policyType} />
+          <SummaryRow label="Coverage amount" value={`$${coverageAmount.toLocaleString()} CAD`} />
+          <SummaryRow label="Deductible" value={`$${deductible.toLocaleString()} CAD`} />
+          <SummaryRow label="Policy term" value="12 months" />
+          <SummaryRow
+            label="Annual premium"
+            value={`$${finalAnnualPremium.toLocaleString()} CAD`}
+            highlight
+          />
+        </div>
 
         {/* CTA */}
         <div className="pt-4 space-y-3">
@@ -406,43 +388,21 @@ function Pill({ label, value }: { label: string; value: string }) {
   );
 }
 
-function FactorRow({
-  name,
+function SummaryRow({
+  label,
   value,
-  description,
-  positive,
-  negative,
-  i,
+  highlight,
 }: {
-  name: string;
+  label: string;
   value: string;
-  description: string;
-  positive?: boolean;
-  negative?: boolean;
-  i: number;
+  highlight?: boolean;
 }) {
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -8 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ delay: 0.05 + i * 0.04 }}
-      className="flex items-center justify-between bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-100"
-    >
-      <div>
-        <p className="text-sm font-semibold text-slate-700">{name}</p>
-        <p className="text-xs text-slate-400">{description}</p>
-      </div>
-      <span
-        className={`text-sm font-bold ${
-          positive ? "text-emerald-600" : negative ? "text-rose-500" : "text-slate-500"
-        }`}
-      >
+    <div className="flex items-center justify-between px-4 py-3">
+      <span className="text-sm text-slate-500">{label}</span>
+      <span className={`text-sm font-semibold ${highlight ? "text-indigo-700" : "text-slate-800"}`}>
         {value}
       </span>
-    </motion.div>
+    </div>
   );
 }
-
-// Suppress unused import warning — FactorBreakdown is used by the parent engine
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _FB = FactorBreakdown;
