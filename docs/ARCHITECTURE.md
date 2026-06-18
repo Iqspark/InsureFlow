@@ -112,13 +112,17 @@ src/
     products.ts             ← PRODUCTS registry, getProduct, productSlugForPolicyType
     questions.ts / ratingFactors.ts           ← Vacant Home flow + factors
     jewellerQuestions.ts / jewellerRatingFactors.ts ← Jeweller Block flow + factors
+    farmQuestions.ts / farmRatingFactors.ts   ← Farm Insurance flow + factors
+    …Questions.ts / …RatingFactors.ts         ← cyber, contractor, AE, retailers, rental, items, batteries
   engine/
     underwritingEngine.ts   ← Accept / Decline / Refer rule evaluation (shared)
     quoteCalculator.ts      ← Vacant Home premium
     jewellerQuoteCalculator.ts ← Jeweller Block premium
+    farmQuoteCalculator.ts  ← Farm Insurance premium
   lib/
     auth.ts                 ← NextAuth options (Credentials, JWT, role + active check)
     access.ts               ← Role helpers (scope/can*/requireRole) — RBAC source of truth
+    aiUnderwriter.ts        ← Pluggable AI underwriter engine (inline OpenAI; Skill-ready)
     prisma.ts               ← Prisma client singleton
     email.ts                ← Nodemailer + Ethereal fallback; templated senders
     policyPdf.tsx           ← React-PDF document (renderPolicyPdf)
@@ -150,13 +154,23 @@ first-question id, premium calculator, policy type label, and intro copy.
 |---|---|---|---|
 | `vacant-home` | `Vacant Home Insurance` | `QUESTIONS` | `calculateQuote` |
 | `jeweller-block` | `Jeweller Block Insurance` | `JEWELLER_QUESTIONS` | `calculateJewellerQuote` |
+| `farm` | `Farm Insurance` | `FARM_QUESTIONS` | `calculateFarmQuote` |
+| `cyber-liability` | `Cyber Liability Insurance` | `CYBER_QUESTIONS` | `calculateCyberQuote` |
+| `contractor` | `Contractor Insurance` | `CONTRACTOR_QUESTIONS` | `calculateContractorQuote` |
+| `architects-engineers` | `Architects & Engineers Insurance` | `AE_QUESTIONS` | `calculateArchitectsEngineersQuote` |
+| `retailers` | `Retailers Insurance` | `RETAIL_QUESTIONS` | `calculateRetailersQuote` |
+| `rental-home` | `Rental Home Insurance` | `RENTAL_QUESTIONS` | `calculateRentalHomeQuote` |
+| `personal-items` | `Personal Items Insurance` | `ITEMS_QUESTIONS` | `calculatePersonalItemsQuote` |
+| `lithium-batteries` | `Lithium Battery Insurance` | `BATTERY_QUESTIONS` | `calculateLithiumBatteriesQuote` |
 
 Helpers:
 
 - `getProduct(productId)` — returns the config, falling back to `DEFAULT_PRODUCT_ID` (`vacant-home`) for unknown ids.
 - `productSlugForPolicyType(policyType)` — reverse lookup used by the detail page's "Resume Quote" link to route a draft back to its product flow.
 
-Each product page (`/new-quote/vacant-home`, `/new-quote/jeweller-block`) is a thin wrapper that renders `<QuoteExperience productId="…" />`. The category picker at `/new-quote` lists many categories; only Vacant Homes and Jeweller Block have live `href`s today — the rest render a "Coming Soon" badge.
+Each product page (`/new-quote/<slug>`) is a thin wrapper that renders `<QuoteExperience productId="…" />`. The category picker at `/new-quote` groups products into categories (incl. an **Agriculture** category for `farm`); each live product has an `href` and unbuilt ones render a "Coming Soon" badge.
+
+**Farm Insurance** is the most extensive flow: ~55 questions structured to mirror the paper application's modules (General Information, Locations, Habitational, Farm Buildings, Machinery & Equipment, Livestock, Earnings & Profits, Tank Data, Liability, Loss History, Property & Coverage, Broker Information), with conditional branches (oil-tank detail, bush cords, livestock skip, tank detail, loss detail) and decline/refer rules. Repeating tables (multiple locations/buildings/machinery/livestock/tanks) are captured as counts + aggregate values + the primary item in detail, since the chat engine is linear.
 
 ---
 
@@ -386,6 +400,13 @@ result (decision + reasons + premiums + coverage + factors).
   value × `JEWELLER_BASE_RATE`, then business type × province × years trading × % in safe ×
   safe grade × alarm × window exposure × (off-site, only if carried) × losses × deductible,
   plus flat loadings (high window value, transit). Coverage amount = max stock value.
+- **Farm** (`farmQuoteCalculator.ts`): sum-insured driven — base = total sum insured ×
+  `FARM_BASE_RATE`, then operation type × province × experience × revenue × dwelling
+  age/construction/roof/wiring/plumbing/heating × solid-fuel heat × fire-protection/security/pool
+  × building schedule × liability limit × loss history × deductible, plus flat loadings
+  (certified wood heat, agritourism, livestock bailee). Coverage amount = total sum insured.
+- **Other products** (cyber, contractor, AE, retailers, rental, personal items, lithium batteries)
+  follow the same sum-insured/exposure-driven pattern in their own `…QuoteCalculator.ts`.
 
 Factors with `multiplier !== 1` or a positive `adjustment` are rendered in the breakdown UI;
 the engine result's `decision` selects the Accept/Decline/Refer screen.
@@ -415,6 +436,15 @@ A single `Submission` row models both drafts and completed quotes/policies, dist
   all brokers). Opening one shows `ReviewActions`; `POST /api/submissions/[id]/review` flips the
   decision to accept/decline, stamps `reviewedById`/`reviewedAt`/`reviewNote`, and emails the
   broker on approval. The broker then sees an **Action Required** item on their dashboard.
+- **AI recommendation (advisory)** — `ReviewActions` has a "Get AI Recommendation" button →
+  `POST /api/submissions/[id]/ai-review` (underwriter/admin, refer-only). It returns a typed
+  verdict — `approve`/`decline` + confidence + 2–5 reasons — rendered as an "AI Suggestion" card
+  and used to pre-fill the review note; the human still confirms. The engine is **pluggable** via
+  the `UnderwriterEngine` interface in `src/lib/aiUnderwriter.ts`; the active engine is an inline
+  OpenAI call (`gpt-4o-mini`, JSON output, funded by `OPENAI_API_KEY`). A future Anthropic
+  Agent-Skill engine (render submission → PDF → Files API → custom Skill + code execution) can be
+  dropped in by swapping `activeEngine` without touching the route or UI. Gated by
+  `isAiUnderwriterConfigured()` (`503` "not configured" without the key).
 - **Payment** — pressing Buy binds the policy and emails the *applicant* a tokenised
   `/pay/<token>` link (`paymentToken` is a unique column). The customer pays on the public page
   with a card form that is **format-validated only — no real charge** (a real gateway can be

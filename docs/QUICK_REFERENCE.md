@@ -57,6 +57,8 @@ Two products are registered in `src/data/products.ts`, each plugging its own que
 |---|---|---|
 | Vacant Home (`vacant-home`) | `src/data/questions.ts` | `calculateQuote` |
 | Jeweller's Block (`jeweller-block`) | `src/data/jewellerQuestions.ts` | `calculateJewellerQuote` |
+| Farm (`farm`) | `src/data/farmQuestions.ts` | `calculateFarmQuote` |
+| Cyber / Contractor / AE / Retailers / Rental / Items / Batteries | `src/data/<product>Questions.ts` | `calculate<Product>Quote` |
 
 ---
 
@@ -293,12 +295,16 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 | Product registry (add/edit products) | `src/data/products.ts` |
 | Vacant-home questions / options / branching | `src/data/questions.ts` |
 | Jeweller questions / options / branching | `src/data/jewellerQuestions.ts` |
+| Farm questions / options / branching | `src/data/farmQuestions.ts` |
 | Vacant-home rating multipliers | `src/data/ratingFactors.ts` |
 | Jeweller rating multipliers | `src/data/jewellerRatingFactors.ts` |
+| Farm rating multipliers | `src/data/farmRatingFactors.ts` |
 | Decline / Refer rules | the product's questions file → `underwritingRules` |
 | Vacant-home quote calculation | `src/engine/quoteCalculator.ts` |
 | Jeweller quote calculation | `src/engine/jewellerQuoteCalculator.ts` |
+| Farm quote calculation | `src/engine/farmQuoteCalculator.ts` |
 | Underwriting evaluation logic (shared) | `src/engine/underwritingEngine.ts` |
+| AI underwriter recommendation (advisory) | `src/lib/aiUnderwriter.ts` → `/api/submissions/[id]/ai-review` |
 | Chat bubble style | `src/components/ChatBubble.tsx` |
 | Typing delay (ms) | `src/components/ConversationView.tsx` → `TYPING_DELAY_MS` |
 | Progress bar | `src/components/ProgressBar.tsx` |

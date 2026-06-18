@@ -26,8 +26,9 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 ## Features
 
 - **Conversational quoting** — one question at a time, chat bubbles, typing indicators, conditional branching, and a "change a previous answer" assistant.
-- **Two insurance packages** — Vacant Home Insurance and Jeweller's Block, each with their own questions, rating factors, and underwriting rules (a product registry makes adding more easy).
+- **Multiple insurance packages** — Vacant Home, Jeweller's Block, Farm, Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries — each with their own questions, rating factors, and underwriting rules (a product registry makes adding more easy).
 - **Underwriting decision** — every quote resolves to **Accept**, **Decline**, or **Refer to underwriter**, with the reasons recorded.
+- **AI underwriter recommendation** — on a referred quote, an underwriter can get an advisory **approve/decline** verdict (with confidence + reasons) that pre-fills the review note; the human confirms. Pluggable engine, currently an inline OpenAI call.
 - **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** (the dashboard and search show which is which).
 - **Property address + map** — Vacant Home quotes capture the address with Google Places autocomplete and show the location on a map (portal + PDF).
 - **Downloadable PDF** — a branded one-click PDF of any quote/policy, including the location map and a Quote/Policy stamp.
@@ -125,6 +126,8 @@ Selected from **New Quote**:
 
 - **Vacant Home Insurance** (Personal → Vacant Homes)
 - **Jeweller's Block** (Commercial → Jeweller Block) — covers a jeweller's stock against theft/burglary/robbery; rated on sum insured, safe/alarm grade, % of stock in the safe overnight, window exposure, transit, and loss history.
+- **Farm Insurance** (Agriculture → Farm Insurance) — mirrors the Mutual Fire farm application's modules (General Information, Locations, Habitational, Farm Buildings, Machinery & Equipment, Livestock, Earnings & Profits, Tank Data, Liability, Loss History, Property & Coverage, Broker Information). Sum-insured driven, rated on operation type, province, dwelling construction/heating/wiring/plumbing, fire protection, building schedule, liability limit, and loss history, with extensive decline/refer rules (unlicensed cannabis, clandestine lab, uncertified wood heat, knob-and-tube, single/aged oil tank, unfenced pool, 3+ losses, and more).
+- **Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, Lithium Batteries** — additional packages, each with its own flow and calculator.
 
 Each package lives in the product registry (`src/data/products.ts`) and supplies its own questions, rating factors, and calculator. The chat engine, persistence, PDF, and result screens are shared.
 
@@ -204,25 +207,33 @@ src/
 │   │   ├── search/                ← Search quotes/policies
 │   │   ├── new-quote/             ← Package picker
 │   │   │   ├── vacant-home/       ← Vacant Home quote flow
-│   │   │   └── jeweller-block/    ← Jeweller's Block quote flow
+│   │   │   ├── jeweller-block/    ← Jeweller's Block quote flow
+│   │   │   ├── farm/              ← Farm Insurance quote flow
+│   │   │   └── …/                 ← cyber, contractor, AE, retailers, rental, items, batteries
 │   │   ├── policy/[id]/           ← Saved quote/policy detail (map, PDF, buy)
+│   │   ├── review/                ← Underwriter review queue (+ AI recommendation)
 │   │   ├── privacy / terms / support
 │   │   ├── icon / apple-icon / pwa-icon / manifest   ← PWA assets (dynamic)
 │   └── api/                       ← submissions, drafts, buy-policy, search,
-│                                     policy/[id]/document (PDF), chat-intent, help-chat
+│                                     policy/[id]/document (PDF), chat-intent, help-chat,
+│                                     submissions/[id]/review, submissions/[id]/ai-review
 ├── data/
 │   ├── products.ts                ← Product registry
 │   ├── questions.ts               ← Vacant Home questions + UW rules
 │   ├── jewellerQuestions.ts       ← Jeweller's Block questions + UW rules
+│   ├── farmQuestions.ts           ← Farm Insurance questions + UW rules
 │   ├── ratingFactors.ts           ← Vacant Home pricing factors
-│   └── jewellerRatingFactors.ts   ← Jeweller's Block pricing factors
+│   ├── jewellerRatingFactors.ts   ← Jeweller's Block pricing factors
+│   └── farmRatingFactors.ts       ← Farm Insurance pricing factors
 ├── engine/
 │   ├── underwritingEngine.ts      ← Answers → Accept/Decline/Refer
 │   ├── quoteCalculator.ts         ← Vacant Home premium
-│   └── jewellerQuoteCalculator.ts ← Jeweller's Block premium
+│   ├── jewellerQuoteCalculator.ts ← Jeweller's Block premium
+│   └── farmQuoteCalculator.ts     ← Farm Insurance premium
 ├── context/QuoteContext.tsx       ← Conversation state (product-aware)
 ├── lib/
 │   ├── policyPdf.tsx              ← PDF document (react-pdf)
+│   ├── aiUnderwriter.ts          ← Pluggable AI underwriter engine (inline OpenAI)
 │   ├── submissionSections.ts     ← Detail/PDF section builder
 │   ├── email.ts                  ← Confirmation + underwriter emails
 │   ├── auth.ts / prisma.ts
