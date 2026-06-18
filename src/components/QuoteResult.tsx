@@ -258,7 +258,7 @@ function DeclineResult({
             We're unable to offer coverage
           </h1>
           <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
-            Based on the information provided, this property falls outside our
+            Based on the information provided, this application falls outside our
             current underwriting guidelines. Here's why:
           </p>
         </div>
@@ -283,7 +283,7 @@ function DeclineResult({
         onClick={onRestart}
         className="w-full py-3 border-2 border-slate-200 rounded-2xl text-slate-600 font-semibold text-sm hover:border-indigo-400 hover:text-indigo-600 transition-all"
       >
-        Try a different property
+        Start a new quote
       </button>
     </motion.div>
   );
@@ -314,7 +314,7 @@ function ReferResult({
             A specialist will be in touch
           </h1>
           <p className="text-slate-500 text-sm leading-relaxed max-w-xs mx-auto">
-            Your property has a few characteristics that need a quick review by
+            This application has a few characteristics that need a quick review by
             one of our experienced underwriters. No worries — this is very
             common.
           </p>
@@ -326,7 +326,7 @@ function ReferResult({
           <ul className="text-sm text-amber-700 space-y-1.5 list-none">
             <li>✉️ We&apos;ll email you at <strong>{email || "the address provided"}</strong></li>
             <li>📞 A broker will call within 1 business day</li>
-            <li>🤝 We&apos;ll work to find a solution for your property</li>
+            <li>🤝 We&apos;ll work to find a solution for you</li>
           </ul>
         </div>
         {reasons.length > 0 && (
@@ -349,7 +349,7 @@ function ReferResult({
         onClick={onRestart}
         className="w-full py-3 border-2 border-slate-200 rounded-2xl text-slate-600 font-semibold text-sm hover:border-indigo-400 hover:text-indigo-600 transition-all"
       >
-        Get a quote for a different property
+        Start a new quote
       </button>
     </motion.div>
   );
