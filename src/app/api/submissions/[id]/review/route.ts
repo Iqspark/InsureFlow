@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canReview, type SessionUser } from "@/lib/access";
 import { sendQuoteApprovedEmail } from "@/lib/email";
+import { publicBaseUrl } from "@/lib/baseUrl";
 
 // POST /api/submissions/[id]/review
 // Underwriter/Admin approves or declines a referred submission.
@@ -61,7 +62,7 @@ export async function POST(
   let previewUrl: string | null = null;
   if (action === "approve" && sub.broker?.email) {
     try {
-      const origin = req.nextUrl.origin;
+      const origin = publicBaseUrl(req);
       const result = await sendQuoteApprovedEmail({
         to:            sub.broker.email,
         brokerName:    sub.broker.name ?? "there",

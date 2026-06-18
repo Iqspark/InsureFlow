@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendUnderwriterNotificationEmail, sendPaymentRequestEmail } from "@/lib/email";
+import { publicBaseUrl } from "@/lib/baseUrl";
 
 // POST /api/buy-policy
 // Binds an accepted quote as a policy (purchased=true, payment pending) and
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Email the applicant a link to pay on our site.
-    const payUrl = `${req.nextUrl.origin}/pay/${token}`;
+    const payUrl = `${publicBaseUrl(req)}/pay/${token}`;
     const sent = await sendPaymentRequestEmail({
       to,
       applicantName: sub.applicantName ?? "Valued Customer",
