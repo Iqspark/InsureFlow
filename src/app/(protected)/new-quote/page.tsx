@@ -77,6 +77,17 @@ const CATEGORIES: Category[] = [
     ],
   },
   {
+    id: "agriculture",
+    name: "Agriculture",
+    color: "bg-green-100 text-green-700 border-green-200",
+    icon: (
+      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 21v-4a4 4 0 014-4h0a4 4 0 014 4v4M11 21v-6a5 5 0 015-5h0a5 5 0 015 5v6M3 21h18M7 9a2 2 0 100-4 2 2 0 000 4z" />
+      </svg>
+    ),
+    sub: [{ name: "Farm Insurance", href: "/new-quote/farm" }],
+  },
+  {
     id: "manufacturing",
     name: "Manufacturing / Product",
     color: "bg-rose-100 text-rose-700 border-rose-200",
