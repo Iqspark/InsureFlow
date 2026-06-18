@@ -8,6 +8,7 @@ import { RETAIL_QUESTIONS, RETAIL_FIRST_QUESTION_ID } from "./retailersQuestions
 import { RENTAL_QUESTIONS, RENTAL_FIRST_QUESTION_ID } from "./rentalHomeQuestions";
 import { ITEMS_QUESTIONS, ITEMS_FIRST_QUESTION_ID } from "./personalItemsQuestions";
 import { BATTERY_QUESTIONS, BATTERY_FIRST_QUESTION_ID } from "./lithiumBatteriesQuestions";
+import { FARM_QUESTIONS, FARM_FIRST_QUESTION_ID } from "./farmQuestions";
 import { calculateQuote } from "@/engine/quoteCalculator";
 import { calculateJewellerQuote } from "@/engine/jewellerQuoteCalculator";
 import { calculateCyberQuote } from "@/engine/cyberQuoteCalculator";
@@ -17,6 +18,7 @@ import { calculateRetailersQuote } from "@/engine/retailersQuoteCalculator";
 import { calculateRentalHomeQuote } from "@/engine/rentalHomeQuoteCalculator";
 import { calculatePersonalItemsQuote } from "@/engine/personalItemsQuoteCalculator";
 import { calculateLithiumBatteriesQuote } from "@/engine/lithiumBatteriesQuoteCalculator";
+import { calculateFarmQuote } from "@/engine/farmQuoteCalculator";
 
 // ============================================================
 // PRODUCT REGISTRY
@@ -151,6 +153,19 @@ export const PRODUCTS: Record<string, ProductConfig> = {
       title: "Lithium Battery Product Liability",
       subtitle:
         "Product liability for battery makers, importers, and distributors. Get an instant quote in minutes.",
+    },
+  },
+  farm: {
+    id: "farm",
+    policyType: "Farm Insurance",
+    questions: FARM_QUESTIONS,
+    firstQuestionId: FARM_FIRST_QUESTION_ID,
+    calculate: calculateFarmQuote,
+    intro: {
+      emoji: "🚜",
+      title: "Farm Insurance",
+      subtitle:
+        "Cover farm buildings, equipment, livestock, and liability. Get an instant quote in minutes.",
     },
   },
 };
