@@ -192,7 +192,7 @@ export const FARM_QUESTIONS: Question[] = [
       { label: "No", value: "no" },
       { label: "Yes", value: "yes" },
     ],
-    defaultNextQuestionId: "num_locations",
+    defaultNextQuestionId: "property_address",
     underwritingRules: [
       {
         operator: "equals",
@@ -209,6 +209,23 @@ export const FARM_QUESTIONS: Question[] = [
   // ════════════════════════════════════════════════════════
   // MODULE 2 — PRINCIPAL & ADDITIONAL LOCATIONS
   // ════════════════════════════════════════════════════════
+  {
+    // `type: "address"` shows a live map preview on the form (Google Places
+    // autocomplete) and persists to the `propertyAddress` column, so the
+    // policy detail page and PDF render the location map automatically — same
+    // pipeline as Vacant Home / Rental Home. Province rating still uses the
+    // explicit `farm_province` dropdown above (robust without a Maps key).
+    id: "property_address",
+    type: "address",
+    brokerText:
+      "What's the full address of the principal farm location? Start typing and pick it from the suggestions — we'll show it on the map.",
+    helperText: "This is the main risk location shown on the policy and PDF.",
+    placeholder: "e.g. 123 Range Road 42, Olds, AB",
+    defaultNextQuestionId: "num_locations",
+    required: true,
+    summaryLabel: "Principal Location Address",
+    summarySection: "Locations",
+  },
   {
     id: "num_locations",
     type: "number",
