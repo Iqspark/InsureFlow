@@ -2,7 +2,9 @@
 
 This document explains exactly how the application decides **Accept / Decline / Refer** and how it computes the **final premium** for each product, so you can confidently extend the engine with your own rules and pricing logic. All dollar amounts are in Canadian dollars (CAD).
 
-InsureFlow now ships **two products** — **Vacant Home Insurance** and **Jeweller's Block Insurance**. Both share a single underwriting engine and a common result UI; each plugs in its own question flow and its own quote calculator via the product registry in `src/data/products.ts`.
+InsureFlow ships **several products** — including **Vacant Home Insurance**, **Jeweller's Block Insurance**, and **Farm Insurance** (plus Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries). All share a single underwriting engine and a common result UI; each plugs in its own question flow and its own quote calculator via the product registry in `src/data/products.ts`. The worked examples below focus on Vacant Home and Jeweller's Block, but the same mechanics apply to every product.
+
+> **AI underwriter recommendation (advisory):** for *referred* quotes, an underwriter can request an AI verdict (approve/decline + confidence + reasons) via `POST /api/submissions/[id]/ai-review`. This is advisory only — it pre-fills the review note and the human still decides. The engine is pluggable (`src/lib/aiUnderwriter.ts`), currently an inline OpenAI call. It does **not** change the deterministic rule-based engine documented here.
 
 ---
 

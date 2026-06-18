@@ -168,10 +168,10 @@ Each row is one quote. It holds the broker who created it, contact + property + 
 
 ### Typed Columns vs `allAnswers` (Multiple Products)
 
-The portal supports more than one insurance product (e.g. Vacant Home Insurance and Jeweller's Block). The named/typed columns above (`province`, `vacancyDuration`, `hasPool`, etc.) are tailored to the **Vacant Home** questionnaire.
+The portal supports many insurance products (e.g. Vacant Home Insurance, Jeweller's Block, Farm Insurance, and more). The named/typed columns above (`province`, `vacancyDuration`, `hasPool`, etc.) are tailored to the **Vacant Home** questionnaire.
 
 - **Vacant Home** answers are mapped one-by-one into the typed columns by `src/app/api/submissions/route.ts` (and `src/app/api/drafts/route.ts`), so they can be filtered and aggregated in SQL.
-- **Non-vacant products (e.g. Jeweller's Block)** do not have their own typed columns. Their answers are stored only in the `allAnswers` JSON blob. The product is identified by `policyType`. To read product-specific fields for these products, parse `allAnswers`.
+- **Non-vacant products (e.g. Jeweller's Block, Farm Insurance)** do not have their own typed columns. Their answers are stored only in the `allAnswers` JSON blob. The product is identified by `policyType`. To read product-specific fields for these products, parse `allAnswers`.
 
 In all cases, `allAnswers` always holds the complete `Record<string, Answer>` — it is the source of truth; typed columns are a denormalized convenience for the Vacant Home product.
 

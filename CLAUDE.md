@@ -39,7 +39,7 @@ npm run build && npm start   # Production build (needed to exercise the PWA)
 | Vacant Home pricing multipliers | `src/data/ratingFactors.ts` |
 | Jeweller's Block questions + UW rules | `src/data/jewellerQuestions.ts` |
 | Jeweller's Block pricing factors | `src/data/jewellerRatingFactors.ts` |
-| Quote calculators | `src/engine/quoteCalculator.ts`, `src/engine/jewellerQuoteCalculator.ts` |
+| Quote calculators | `src/engine/quoteCalculator.ts`, `src/engine/jewellerQuoteCalculator.ts`, `src/engine/farmQuoteCalculator.ts`, … |
 | Underwriting engine (takes a questions array) | `src/engine/underwritingEngine.ts` |
 | Conversation state (phases, answer-preservation/edit) | `src/context/QuoteContext.tsx` |
 | Shared quote shell (both products) | `src/components/QuoteExperience.tsx` |
@@ -51,6 +51,9 @@ npm run build && npm start   # Production build (needed to exercise the PWA)
 | Saved quote/policy detail + map + PDF/Buy | `src/app/(protected)/policy/[id]/page.tsx`, `src/components/PropertyMap.tsx` |
 | Role access rules (RBAC) | `src/lib/access.ts` (+ tests `src/lib/access.test.ts`) |
 | Underwriter review queue + action | `src/app/(protected)/review/page.tsx`, `src/components/ReviewActions.tsx`, `src/app/api/submissions/[id]/review/route.ts` |
+| AI underwriter recommendation (advisory) | `src/lib/aiUnderwriter.ts`, `src/app/api/submissions/[id]/ai-review/route.ts` |
+| Farm Insurance questions + UW rules | `src/data/farmQuestions.ts` |
+| Farm Insurance pricing factors | `src/data/farmRatingFactors.ts` |
 | Admin overview + user management | `src/app/(protected)/admin/page.tsx`, `admin/users/page.tsx`, `src/components/admin/UserManager.tsx`, `src/app/api/admin/users/*` |
 | Customer payment (public, simulated) | `src/app/pay/[token]/page.tsx`, `src/app/api/pay/[token]/route.ts`, `src/components/PaymentForm.tsx` |
 | PDF document (react-pdf) + section builder | `src/lib/policyPdf.tsx`, `src/lib/submissionSections.ts` |
@@ -91,15 +94,16 @@ UNDERWRITER_EMAIL=underwriting@yourco.com     # notified when a policy is bound
 
 ## Architecture Notes
 
-- **Multi-product:** `src/data/products.ts` maps a slug (`vacant-home`, `jeweller-block`) to its questions, `firstQuestionId`, calculator, and policy label. `QuoteProvider` takes a `productId`; the engine/persistence/PDF are product-agnostic. Non-Vacant-Home products store their answers in the `allAnswers` JSON column (no per-product DB columns).
+- **Multi-product:** `src/data/products.ts` maps a slug (`vacant-home`, `jeweller-block`, `farm`, plus cyber, contractor, architects-engineers, retailers, rental-home, personal-items, lithium-batteries) to its questions, `firstQuestionId`, calculator, and policy label. `QuoteProvider` takes a `productId`; the engine/persistence/PDF are product-agnostic. Non-Vacant-Home products store their answers in the `allAnswers` JSON column (no per-product DB columns). **Farm Insurance** mirrors the paper application's modules (General Information, Locations, Habitational, Farm Buildings, Machinery & Equipment, Livestock, Earnings & Profits, Tank Data, Liability, Loss History, Property & Coverage, Broker Information) as conversational sections — see `farmQuestions.ts`.
 - **Answer preservation:** editing an earlier answer re-walks the path, keeps still-reachable answers, and prunes answers from abandoned branches only once the path is fully answered (so phone/email aren't lost when an edit adds a question mid-flow). See `walkAnsweredPath` in `QuoteContext.tsx`.
 - **Quote → Policy → Paid:** a saved submission is a quote; `purchased=true` (set by `/api/buy-policy`) marks it a bound policy; `paymentStatus="paid"` (set by the public `/api/pay/[token]`) marks it paid. Buying emails the applicant a tokenised `/pay/<token>` link rather than charging the broker. Bound policies are protected from deletion (`/api/submissions/[id]` returns 409).
 - **Underwriter review:** referred quotes (`decision="refer"`) are decided in `/review` via `/api/submissions/[id]/review` (approve→accept / decline), which stamps `reviewedBy/At/Note` and emails the broker on approval.
+- **AI underwriter (advisory):** in `ReviewActions`, "Get AI Recommendation" → `POST /api/submissions/[id]/ai-review` (admin/underwriter only, refer-only) returns a typed verdict — `approve`/`decline` + confidence + reasons — that pre-fills the review note; the human still confirms. The engine is **pluggable** via the `UnderwriterEngine` interface in `src/lib/aiUnderwriter.ts`; the active engine is an inline OpenAI call (`gpt-4o-mini`, JSON output, funded by `OPENAI_API_KEY`). A future Anthropic Agent-Skill engine (PDF + code execution) can be dropped in by swapping `activeEngine` without touching the route or UI. Gated by `isAiUnderwriterConfigured()` — returns `503` "not configured" without the key.
 - **Route groups:** `(auth)` = no header/footer (login); `(protected)` = auth-guarded, role-aware Header + Footer + HelpChatWidget. The customer pay page `pay/[token]` lives at the top level (public, root layout, no login).
 - **Database:** PostgreSQL (Neon). `DATABASE_URL` is a Postgres connection string. Apply schema with `npx prisma db push`.
 - **Role-based access:** every list/detail/search/buy query goes through `src/lib/access.ts`. Brokers are scoped to their own `brokerId`; admins/underwriters see all. Use `requireRole(session, [...])` to guard server pages and `submissionScopeWhere(user)` for queries.
 - **Non-blocking DB save:** Quote result is shown immediately; DB save happens async in the background. `submissionId` is set via `useRef`/`useEffect` to avoid stale closure bugs.
-- **AI features need `OPENAI_API_KEY`:** Both `/api/help-chat` and `/api/chat-intent` use `gpt-4o-mini`. Without the key, the features show a "not configured" message.
+- **AI features need `OPENAI_API_KEY`:** `/api/help-chat`, `/api/chat-intent`, and the AI underwriter (`/api/submissions/[id]/ai-review`) all use `gpt-4o-mini`. Without the key, the features show a "not configured" message.
 - **Knowledge base:** Server reads all `.md`/`.txt` from `knowledge/` on each Help Navigator request. No restart needed when files change.
 - **Email:** Without SMTP vars, Nodemailer auto-creates an Ethereal test account; each sender returns a `previewUrl` surfaced as a button in the UI. Senders: payment-request, policy-confirmation, payment-receipt, quote-approved (broker), underwriter-notification.
 

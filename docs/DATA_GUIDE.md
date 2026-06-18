@@ -2,7 +2,7 @@
 
 This is the practical guide for converting your underwriting Excel spreadsheet into the JSON/TypeScript format the application reads. No deep programming experience is required for the day-to-day work — it is a structured data-entry task.
 
-InsureFlow is **multi-product**. Today it ships two packages — **Vacant Home** and **Jeweller's Block** — and each is a self-contained set of questions + a quote calculator that plug into a shared product registry. This guide teaches the question/pricing data model, then walks through adding a new question and adding a whole new product.
+InsureFlow is **multi-product**. It ships several packages — **Vacant Home**, **Jeweller's Block**, **Farm**, plus Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries — and each is a self-contained set of questions + a quote calculator that plug into a shared product registry. The examples below use Vacant Home and Jeweller's Block; the same pattern applies to every product (e.g. `farmQuestions.ts` / `farmRatingFactors.ts` / `farmQuoteCalculator.ts`). This guide teaches the question/pricing data model, then walks through adding a new question and adding a whole new product.
 
 ---
 
