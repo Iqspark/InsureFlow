@@ -10,7 +10,8 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
   BROKER: [
     { href: "/dashboard", label: "Dashboard" },
     { href: "/new-quote", label: "New Quote" },
-    { href: "/search", label: "Search" },
+    { href: "/policies", label: "Policies" },
+    { href: "/customers", label: "Customers" },
   ],
   UNDERWRITER: [
     { href: "/review", label: "Review Queue" },
@@ -19,6 +20,7 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
   ADMIN: [
     { href: "/admin", label: "Admin" },
     { href: "/review", label: "Review Queue" },
+    { href: "/customers", label: "Customers" },
     { href: "/search", label: "All Policies" },
     { href: "/admin/users", label: "Users" },
   ],
@@ -79,7 +81,7 @@ export async function Header() {
   }
 
   return (
-    <header className="h-16 bg-slate-900 flex items-center px-4 sm:px-6 shrink-0 z-10 border-b border-slate-800">
+    <header className="h-16 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 flex items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/10 shadow-lg shadow-indigo-950/20 supports-[backdrop-filter]:bg-slate-900/85 backdrop-blur-xl">
       {/* Logo */}
       <Link
         href={links[0].href}
@@ -119,7 +121,7 @@ export async function Header() {
             {brokerName}
           </p>
         </div>
-        <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-sm font-bold shrink-0">
+        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 ring-2 ring-white/15 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
           {brokerName.charAt(0).toUpperCase()}
         </div>
         <SignOutButton />

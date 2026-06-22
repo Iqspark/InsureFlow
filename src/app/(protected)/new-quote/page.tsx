@@ -101,8 +101,22 @@ const CATEGORIES: Category[] = [
   },
 ];
 
+// Flat list of every product (with its category) for the search box.
+const ALL_PRODUCTS = CATEGORIES.flatMap((cat) =>
+  cat.sub.map((sub) => ({ ...sub, category: cat.name }))
+);
+
 export default function NewQuotePage() {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const q = query.trim().toLowerCase();
+  const matches = q
+    ? ALL_PRODUCTS.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) || p.category.toLowerCase().includes(q)
+      )
+    : [];
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/50">
@@ -112,11 +126,82 @@ export default function NewQuotePage() {
             Select a Policy Type
           </h1>
           <p className="text-slate-500 text-sm">
-            Choose a category below, then pick a specific product to start the
+            Search for a product, or choose a category below to start the
             quoting process.
           </p>
         </div>
 
+        {/* Search box — filters all products */}
+        <div className="relative mb-4">
+          <svg
+            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 pointer-events-none"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z" />
+          </svg>
+          <input
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search policies — e.g. farm, cyber, jeweller…"
+            className="w-full pl-11 pr-10 py-3 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Search results — replace the accordion while searching */}
+        {q ? (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+            {matches.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-slate-400 text-center">
+                No policies match “{query}”.
+              </p>
+            ) : (
+              matches.map((p) =>
+                p.href ? (
+                  <Link
+                    key={p.name}
+                    href={p.href}
+                    className="flex items-center justify-between px-5 py-3.5 hover:bg-indigo-50 transition-colors group"
+                  >
+                    <span className="min-w-0">
+                      <span className="text-sm text-slate-700 group-hover:text-indigo-700 font-medium block truncate">
+                        {p.name}
+                      </span>
+                      <span className="text-xs text-slate-400">{p.category}</span>
+                    </span>
+                    <span className="text-xs font-medium text-indigo-600 bg-indigo-50 group-hover:bg-indigo-100 border border-indigo-200 px-2.5 py-1 rounded-full shrink-0">
+                      Start Quote
+                    </span>
+                  </Link>
+                ) : (
+                  <div key={p.name} className="flex items-center justify-between px-5 py-3.5">
+                    <span className="min-w-0">
+                      <span className="text-sm text-slate-400 block truncate">{p.name}</span>
+                      <span className="text-xs text-slate-300">{p.category}</span>
+                    </span>
+                    <span className="text-xs text-slate-400 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-full shrink-0">
+                      Coming Soon
+                    </span>
+                  </div>
+                )
+              )
+            )}
+          </div>
+        ) : (
         <div className="space-y-3">
           {CATEGORIES.map((cat) => {
             const isOpen = openId === cat.id;
@@ -193,6 +278,7 @@ export default function NewQuotePage() {
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

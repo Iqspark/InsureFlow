@@ -18,7 +18,9 @@ export async function GET(req: NextRequest) {
   const appId      = searchParams.get("appId")?.trim()      ?? "";
   const date       = searchParams.get("date")               ?? "";
   const policyType = searchParams.get("policyType")?.trim() ?? "";
-  const limit      = Math.min(100, Number(searchParams.get("limit") ?? 50));
+  const stage      = searchParams.get("stage")?.trim() ?? ""; // "quote" | "policy"
+  const limit      = Math.min(100, Math.max(1, Number(searchParams.get("limit") ?? 20)));
+  const page       = Math.max(1, Number(searchParams.get("page") ?? 1));
 
   // Build Prisma where clause
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -26,6 +28,8 @@ export async function GET(req: NextRequest) {
     ...submissionScopeWhere(user),
     ...(name       ? { applicantName: { contains: name } }   : {}),
     ...(policyType ? { policyType: { contains: policyType } } : {}),
+    ...(stage === "policy" ? { purchased: true } : {}),
+    ...(stage === "quote"  ? { purchased: false } : {}),
   };
 
   // Date filter: match records created on the given calendar day
@@ -43,26 +47,33 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const submissions = await prisma.submission.findMany({
-      where,
-      orderBy: { createdAt: "desc" },
-      take: limit,
-      select: {
-        id: true,
-        createdAt: true,
-        applicantName: true,
-        policyType: true,
-        decision: true,
-        status: true,
-        purchased: true,
-        paymentStatus: true,
-        province: true,
-        annualPremium: true,
-        broker: { select: { name: true } },
-      },
-    });
+    const [total, submissions] = await Promise.all([
+      prisma.submission.count({ where }),
+      prisma.submission.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        select: {
+          id: true,
+          createdAt: true,
+          applicantName: true,
+          policyType: true,
+          decision: true,
+          status: true,
+          purchased: true,
+          paymentStatus: true,
+          province: true,
+          annualPremium: true,
+          broker: { select: { name: true } },
+        },
+      }),
+    ]);
 
-    return NextResponse.json({ data: submissions, total: submissions.length });
+    return NextResponse.json({
+      data: submissions,
+      meta: { total, page, limit, totalPages: Math.max(1, Math.ceil(total / limit)) },
+    });
   } catch (err) {
     console.error("[GET /api/search]", err);
     return NextResponse.json(

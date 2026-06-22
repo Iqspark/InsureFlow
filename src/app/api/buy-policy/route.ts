@@ -51,10 +51,20 @@ export async function POST(req: NextRequest) {
     const alreadyBound = sub.purchased;
     const token = sub.paymentToken ?? globalThis.crypto.randomUUID();
 
+    // On first bind, stamp a 12-month policy term (annual).
+    const termData: { effectiveAt?: Date; expiresAt?: Date } = {};
+    if (!sub.effectiveAt) {
+      const effectiveAt = new Date();
+      const expiresAt = new Date(effectiveAt);
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+      termData.effectiveAt = effectiveAt;
+      termData.expiresAt = expiresAt;
+    }
+
     // Bind (idempotent) and ensure a payment token exists.
     await prisma.submission.update({
       where: { id: sub.id },
-      data: { purchased: true, paymentToken: token },
+      data: { purchased: true, paymentToken: token, ...termData },
     });
 
     // Email the applicant a link to pay on our site.

@@ -57,6 +57,25 @@ export default function LoginPage() {
     }
   }
 
+  async function demoLogin(demoEmail: string) {
+    setLoading(true);
+    setError("");
+    const result = await signIn("credentials", {
+      email: demoEmail,
+      password: "Demo1234!",
+      redirect: false,
+    });
+    setLoading(false);
+    if (result?.error) setError("Demo sign-in failed. Please try again.");
+    else window.location.href = "/dashboard";
+  }
+
+  const demoAccounts = [
+    { label: "Broker", email: "broker@demo.com", cls: "from-indigo-500 to-blue-500" },
+    { label: "Underwriter", email: "underwriter@demo.com", cls: "from-violet-500 to-fuchsia-500" },
+    { label: "Admin", email: "admin@demo.com", cls: "from-slate-600 to-slate-800" },
+  ];
+
   const stats = [
     { label: "Provinces", value: "13" },
     { label: "Policies", value: "1,200+" },
@@ -253,6 +272,32 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          {/* Demo quick-login */}
+          <div className="mt-6">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-px flex-1 bg-slate-200" />
+              <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Demo accounts</span>
+              <div className="h-px flex-1 bg-slate-200" />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {demoAccounts.map((d) => (
+                <button
+                  key={d.email}
+                  type="button"
+                  disabled={loading}
+                  onClick={() => demoLogin(d.email)}
+                  className="group flex flex-col items-center gap-1.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm disabled:opacity-60 transition-all"
+                >
+                  <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${d.cls} flex items-center justify-center text-white text-xs font-bold`}>
+                    {d.label.charAt(0)}
+                  </span>
+                  <span className="text-xs font-medium text-slate-600 group-hover:text-indigo-700">{d.label}</span>
+                </button>
+              ))}
+            </div>
+            <p className="text-center text-[11px] text-slate-400 mt-2">One-tap sign-in · password <span className="font-mono">Demo1234!</span></p>
+          </div>
 
           {/* Security badge — desktop only */}
           <div className="hidden lg:flex items-center justify-center gap-1.5 mt-6 text-slate-400">
