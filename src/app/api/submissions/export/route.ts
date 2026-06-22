@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     ...submissionScopeWhere(user),
-    ...(name ? { applicantName: { contains: name } } : {}),
+    ...(name ? { applicantName: { contains: name, mode: "insensitive" } } : {}),
     ...(policyType ? { policyType: { contains: policyType } } : {}),
     ...(stage === "policy" ? { purchased: true } : {}),
     ...(stage === "quote" ? { purchased: false } : {}),

@@ -7,6 +7,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submissionScopeWhere, type SessionUser } from "@/lib/access";
 import CustomerCard from "@/components/CustomerCard";
+import CustomerSearchBox from "@/components/CustomerSearchBox";
 import EmptyState from "@/components/EmptyState";
 
 const cad = (v: number) =>
@@ -69,8 +70,8 @@ export default async function CustomersPage({
     ...(q
       ? {
           OR: [
-            { applicantName: { contains: q } },
-            { contactEmail: { contains: q } },
+            { applicantName: { contains: q, mode: "insensitive" } },
+            { contactEmail: { contains: q, mode: "insensitive" } },
           ],
         }
       : {}),
@@ -131,24 +132,8 @@ export default async function CustomersPage({
           </p>
         </div>
 
-        {/* Lookup */}
-        <form method="get" className="flex gap-2 mb-6">
-          <input
-            type="text"
-            name="q"
-            defaultValue={q}
-            placeholder="Search by customer name or email…"
-            className="flex-1 px-4 py-2.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition"
-          />
-          <button type="submit" className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-lg text-sm transition-colors">
-            Search
-          </button>
-          {q && (
-            <Link href="/customers" className="px-5 py-2.5 bg-white hover:bg-slate-50 text-slate-600 font-medium rounded-lg border border-slate-200 text-sm transition-colors">
-              Clear
-            </Link>
-          )}
-        </form>
+        {/* Typeahead lookup — suggests customers by name or email */}
+        <CustomerSearchBox initialValue={q} />
 
         {customers.length === 0 ? (
           <EmptyState

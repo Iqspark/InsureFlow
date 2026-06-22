@@ -12,6 +12,7 @@ import PaymentBadge from "@/components/PaymentBadge";
 import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import EmptyState from "@/components/EmptyState";
+import PolicySearchBox from "@/components/PolicySearchBox";
 
 const PAGE_SIZE = 10;
 
@@ -41,15 +42,25 @@ function DecisionBadge({ decision, status }: { decision: string | null; status: 
 export default async function PoliciesPage({
   searchParams,
 }: {
-  searchParams: { page?: string };
+  searchParams: { page?: string; q?: string };
 }) {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
   const user = session.user as unknown as SessionUser;
 
+  const q = (searchParams.q ?? "").trim();
   const page = Math.max(1, Number(searchParams.page ?? 1));
   // Policies tab = bound policies only (quotes live under Search).
-  const where = { ...submissionScopeWhere(user), purchased: true };
+  // Optional filter by policy number (app id prefix, stored lowercase).
+  const where = {
+    ...submissionScopeWhere(user),
+    purchased: true,
+    ...(q
+      ? { OR: [{ applicantName: { contains: q, mode: "insensitive" as const } }, { id: { startsWith: q.toLowerCase() } }] }
+      : {}),
+  };
+  const pageHref = (n: number) =>
+    `/policies?${new URLSearchParams({ ...(q ? { q } : {}), page: String(n) }).toString()}`;
 
   const [total, rows] = await Promise.all([
     prisma.submission.count({ where }),
@@ -88,17 +99,33 @@ export default async function PoliciesPage({
           <ExportCsvButton label="Export CSV" params={{ stage: "policy" }} />
         </div>
 
+        {/* Typeahead — search by customer name or policy number */}
+        <PolicySearchBox initialValue={q} />
+
         {total === 0 ? (
-          <EmptyState
-            iconPath="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            title="No bound policies yet"
-            subtitle="Bind an accepted quote and it’ll show up here as an active policy."
-            action={
-              <Link href="/new-quote" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold shadow-md shadow-indigo-100 transition-all">
-                Start a new quote →
-              </Link>
-            }
-          />
+          q ? (
+            <EmptyState
+              iconPath="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z"
+              title="No policy found"
+              subtitle={`No bound policy matches “${q}”. Try a different name or policy number.`}
+              action={
+                <Link href="/policies" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-sm font-semibold transition-all">
+                  Clear search
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              iconPath="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              title="No bound policies yet"
+              subtitle="Bind an accepted quote and it’ll show up here as an active policy."
+              action={
+                <Link href="/new-quote" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold shadow-md shadow-indigo-100 transition-all">
+                  Start a new quote →
+                </Link>
+              }
+            />
+          )
         ) : (
           <>
             <div className="space-y-2">
@@ -148,7 +175,7 @@ export default async function PoliciesPage({
                 </p>
                 <div className="flex items-center gap-1">
                   {page > 1 ? (
-                    <Link href={`/policies?page=${page - 1}`} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                    <Link href={pageHref(page - 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                       ← Prev
                     </Link>
                   ) : (
@@ -158,7 +185,7 @@ export default async function PoliciesPage({
                     Page {page} of {totalPages}
                   </span>
                   {page < totalPages ? (
-                    <Link href={`/policies?page=${page + 1}`} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-50 transition-colors">
+                    <Link href={pageHref(page + 1)} className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white text-sm text-slate-600 hover:bg-slate-50 transition-colors">
                       Next →
                     </Link>
                   ) : (
