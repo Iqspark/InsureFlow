@@ -12,6 +12,7 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
     { href: "/new-quote", label: "New Quote" },
     { href: "/policies", label: "Policies" },
     { href: "/customers", label: "Customers" },
+    { href: "/search", label: "Search" },
   ],
   UNDERWRITER: [
     { href: "/review", label: "Review Queue" },

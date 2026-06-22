@@ -98,9 +98,12 @@ export default function SearchPage() {
     runSearch(1);
   }
 
-  // Show all quotes & policies by default when the page opens.
+  // Start with an empty search. Only auto-load all when arriving via a
+  // "View all" link (/search?show=all).
   useEffect(() => {
-    runSearch(1);
+    if (new URLSearchParams(window.location.search).get("show") === "all") {
+      runSearch(1);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

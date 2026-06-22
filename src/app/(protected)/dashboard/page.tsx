@@ -297,7 +297,7 @@ export default async function DashboardPage() {
         <div className="mb-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-slate-900 text-sm">Recent Submissions</h2>
-            <Link href="/search" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+            <Link href="/search?show=all" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
               View all →
             </Link>
           </div>
