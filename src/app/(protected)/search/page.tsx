@@ -54,6 +54,8 @@ function DecisionBadge({ decision, status }: { decision: string | null; status: 
 export default function SearchPage() {
   const { data: sessionData } = useSession();
   const showBroker = sessionData?.user?.role !== "BROKER";
+  // Underwriters work with bound policies only — no quotes in their search.
+  const isUnderwriter = sessionData?.user?.role === "UNDERWRITER";
   const [name, setName]       = useState("");
   const [appId, setAppId]     = useState("");
   const [date, setDate]       = useState("");
@@ -74,7 +76,8 @@ export default function SearchPage() {
     if (appId) params.set("appId", appId.trim());
     if (date)  params.set("date", date);
     if (type)  params.set("policyType", type);
-    if (stage) params.set("stage", stage);
+    const effectiveStage = isUnderwriter ? "policy" : stage;
+    if (effectiveStage) params.set("stage", effectiveStage);
     params.set("limit", String(PAGE_SIZE));
     params.set("page", String(targetPage));
 
@@ -197,17 +200,29 @@ export default function SearchPage() {
               <label htmlFor="search-stage" className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
                 Stage
               </label>
-              <select
-                id="search-stage"
-                value={stage}
-                onChange={(e) => setStage(e.target.value)}
-                title="Stage"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
-              >
-                <option value="">Quotes &amp; Policies</option>
-                <option value="quote">Quotes only</option>
-                <option value="policy">Policies only</option>
-              </select>
+              {isUnderwriter ? (
+                <select
+                  id="search-stage"
+                  value="policy"
+                  disabled
+                  title="Stage"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 cursor-not-allowed outline-none text-sm"
+                >
+                  <option value="policy">Policies only</option>
+                </select>
+              ) : (
+                <select
+                  id="search-stage"
+                  value={stage}
+                  onChange={(e) => setStage(e.target.value)}
+                  title="Stage"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+                >
+                  <option value="">Quotes &amp; Policies</option>
+                  <option value="quote">Quotes only</option>
+                  <option value="policy">Policies only</option>
+                </select>
+              )}
             </div>
           </div>
 
@@ -258,7 +273,7 @@ export default function SearchPage() {
                 {results.length > 0 && (
                   <ExportCsvButton
                     label="Export CSV"
-                    params={{ name: name.trim(), appId: appId.trim(), date, policyType: type, stage }}
+                    params={{ name: name.trim(), appId: appId.trim(), date, policyType: type, stage: isUnderwriter ? "policy" : stage }}
                   />
                 )}
               </div>

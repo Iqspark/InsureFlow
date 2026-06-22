@@ -32,6 +32,9 @@ export async function GET(req: NextRequest) {
     ...(stage === "quote"  ? { purchased: false } : {}),
   };
 
+  // Underwriters are scoped to bound policies only — never quotes.
+  if (user.role === "UNDERWRITER") where.purchased = true;
+
   // Date filter: match records created on the given calendar day
   if (date) {
     const start = new Date(date);

@@ -15,12 +15,16 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
     { href: "/search", label: "Search" },
   ],
   UNDERWRITER: [
-    { href: "/review", label: "Review Queue" },
+    { href: "/review", label: "Overview" },
+    { href: "/queue", label: "Pending" },
+    { href: "/reviews", label: "All Reviews" },
     { href: "/search", label: "All Policies" },
   ],
   ADMIN: [
     { href: "/admin", label: "Admin" },
-    { href: "/review", label: "Review Queue" },
+    { href: "/review", label: "Overview" },
+    { href: "/queue", label: "Pending" },
+    { href: "/reviews", label: "All Reviews" },
     { href: "/customers", label: "Customers" },
     { href: "/search", label: "All Policies" },
     { href: "/admin/users", label: "Users" },

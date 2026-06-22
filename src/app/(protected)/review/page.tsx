@@ -7,7 +7,6 @@ import Link from "next/link";
 import { requireRole } from "@/lib/access";
 import ReviewStats from "@/components/ReviewStats";
 import ExportCsvButton from "@/components/ExportCsvButton";
-import RecentReviewedList from "@/components/RecentReviewedList";
 
 function fmtCurrency(v: number | null): string {
   if (v === null) return "—";
@@ -47,7 +46,7 @@ export default async function ReviewPage() {
       prisma.submission.findMany({
         where: { reviewedAt: { not: null } },
         orderBy: { reviewedAt: "desc" },
-        take: 50,
+        take: 5,
         select: {
           id: true, applicantName: true, policyType: true, decision: true,
           reviewedAt: true, reviewedBy: { select: { name: true } },
@@ -147,7 +146,14 @@ export default async function ReviewPage() {
         <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900 text-sm">Pending Review</h2>
-            <span className="text-xs text-slate-400">{pending.length} referred · oldest first</span>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-slate-400">{pendingCount} referred · oldest first</span>
+              {pendingCount > 5 && (
+                <Link href="/queue" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                  View all →
+                </Link>
+              )}
+            </div>
           </div>
 
           {pending.length === 0 ? (
@@ -174,7 +180,7 @@ export default async function ReviewPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {pending.map((s) => {
+                  {pending.slice(0, 5).map((s) => {
                     const days = Math.floor((now.getTime() - new Date(s.createdAt).getTime()) / MS_DAY);
                     const age =
                       days >= 5 ? { cls: "text-red-700 bg-red-50 border-red-200" }
@@ -211,17 +217,35 @@ export default async function ReviewPage() {
 
         {recentlyReviewed.length > 0 && (
           <>
-            <h2 className="font-semibold text-slate-900 text-sm mb-3">Recently Reviewed</h2>
-            <RecentReviewedList
-              items={recentlyReviewed.map((s) => ({
-                id: s.id,
-                applicantName: s.applicantName,
-                policyType: s.policyType,
-                reviewerName: s.reviewedBy?.name ?? null,
-                reviewedAtLabel: s.reviewedAt ? fmtDate(s.reviewedAt) : "",
-                decision: s.decision,
-              }))}
-            />
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold text-slate-900 text-sm">Recently Reviewed</h2>
+              <Link href="/reviews" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                View all →
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {recentlyReviewed.map((s) => (
+                <Link
+                  key={s.id}
+                  href={`/policy/${s.id}`}
+                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-3 hover:border-indigo-300 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">{s.applicantName ?? "—"}</p>
+                    <p className="text-xs text-slate-400 mt-0.5 truncate">
+                      {s.policyType} · by {s.reviewedBy?.name ?? "—"} · {s.reviewedAt ? fmtDate(s.reviewedAt) : ""}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    s.decision === "accept"
+                      ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      : "bg-red-100 text-red-700 border border-red-200"
+                  }`}>
+                    {s.decision === "accept" ? "Approved" : "Declined"}
+                  </span>
+                </Link>
+              ))}
+            </div>
           </>
         )}
       </div>

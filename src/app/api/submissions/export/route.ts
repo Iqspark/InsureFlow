@@ -30,6 +30,9 @@ export async function GET(req: NextRequest) {
     ...(stage === "policy" ? { purchased: true } : {}),
     ...(stage === "quote" ? { purchased: false } : {}),
   };
+
+  // Underwriters export bound policies only — never quotes.
+  if (user.role === "UNDERWRITER") where.purchased = true;
   if (date) {
     const start = new Date(date);
     start.setHours(0, 0, 0, 0);
