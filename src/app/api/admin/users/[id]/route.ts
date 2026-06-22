@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
+import bcrypt from "bcryptjs";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canManageUsers, type Role, type SessionUser } from "@/lib/access";
@@ -18,9 +19,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  let role: string | undefined, active: boolean | undefined;
+  let role: string | undefined, active: boolean | undefined, password: string | undefined;
   try {
-    ({ role, active } = await req.json());
+    ({ role, active, password } = await req.json());
   } catch {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
@@ -30,6 +31,9 @@ export async function PATCH(
 
   if (role !== undefined && !ROLES.includes(role as Role)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
+  }
+  if (password !== undefined && password.length < 8) {
+    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
   }
 
   // Guard: never lock yourself out, and never remove the last admin.
@@ -53,6 +57,7 @@ export async function PATCH(
     data: {
       ...(role !== undefined ? { role: role as Role } : {}),
       ...(active !== undefined ? { active } : {}),
+      ...(password !== undefined ? { password: bcrypt.hashSync(password, 10) } : {}),
     },
     select: { id: true, name: true, email: true, role: true, active: true, licenseId: true, createdAt: true },
   });
