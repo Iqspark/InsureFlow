@@ -95,7 +95,7 @@ export default function LoginPage() {
           <ul className="space-y-3">
             {[
               "Instant underwriting decisions in under 5 minutes",
-              "13 provinces covered across Canada",
+              "10 provinces and 3 territories covered across Canada",
               "Instant policy binding with email confirmation",
               "Full quote history and policy management",
               "Email confirmations sent automatically",
