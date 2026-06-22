@@ -142,7 +142,7 @@ export default function LoginPage() {
         </div>
 
         <p className="relative text-xs text-slate-600">
-          © {new Date().getFullYear()} InsureFlow. Broker use only.
+          © {new Date().getFullYear()} InsureFlow. For authorized use only.
         </p>
       </div>
 
