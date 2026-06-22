@@ -395,10 +395,143 @@ export const CONTRACTOR_QUESTIONS: Question[] = [
       { label: "$5,000 CAD", value: 5000, description: "Lower premium" },
       { label: "$10,000 CAD", value: 10000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "residential_commercial",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Coverage",
+  },
+
+  // ── ADDITIONAL OPERATIONS DETAIL ─────────────────────────
+  {
+    id: "residential_commercial",
+    type: "choice",
+    brokerText: "What type of clients does the business mainly work for?",
+    helperText:
+      "Residential and commercial work carry different liability and contractual exposures.",
+    options: [
+      { label: "Mostly residential", value: "residential", emoji: "🏡" },
+      { label: "Mix of both", value: "mixed", emoji: "🏘️" },
+      { label: "Mostly commercial", value: "commercial", emoji: "🏢" },
+      { label: "Industrial / institutional", value: "industrial", emoji: "🏭", description: "Higher exposure" },
+    ],
+    defaultNextQuestionId: "annual_payroll",
+    ratingFactor: "clientType",
+    summaryLabel: "Client Type",
+    summarySection: "Operations",
+  },
+
+  {
+    id: "annual_payroll",
+    type: "currency",
+    brokerText: "What is the business's estimated annual payroll (in CAD)?",
+    helperText:
+      "Include wages for all employees and working owners — payroll is a key exposure base for a contractor.",
+    placeholder: "250,000",
+    min: 0,
+    max: 25000000,
+    prefix: "$",
+    defaultNextQuestionId: "subs_carry_insurance",
+    ratingFactor: "annualPayroll",
+    summaryLabel: "Annual Payroll",
+    summarySection: "Operations",
+  },
+
+  {
+    id: "subs_carry_insurance",
+    type: "choice",
+    brokerText:
+      "Do the subcontractors you hire carry their own general liability insurance?",
+    helperText:
+      "Uninsured subcontractors expose your policy to their losses; we look for certificates of insurance on every sub.",
+    options: [
+      { label: "Yes — COIs collected from all subs", value: "all", emoji: "✅", description: "Best rate" },
+      { label: "Some do, some don't", value: "some", emoji: "⚠️", description: "Surcharge" },
+      { label: "No / not verified", value: "none", emoji: "🚫", description: "Requires review" },
+      { label: "Not applicable — no subs", value: "na", emoji: "➖" },
+    ],
+    defaultNextQuestionId: "largest_job_value",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "none",
+        decision: "refer",
+        message:
+          "Hiring subcontractors who do not carry (or whose insurance is not verified with certificates) their own general liability coverage materially increases vicarious liability and requires underwriter review.",
+      },
+    ],
+    ratingFactor: "subsInsurance",
+    summaryLabel: "Subs Carry Insurance",
+    summarySection: "Operations",
+  },
+
+  {
+    id: "largest_job_value",
+    type: "choice",
+    brokerText: "What is the value of the largest single job you typically take on?",
+    helperText:
+      "Larger contracts concentrate exposure and often carry stricter indemnity and hold-harmless terms.",
+    options: [
+      { label: "Under $50,000", value: "under_50k", emoji: "🔩" },
+      { label: "$50,000 – $250,000", value: "k50_250", emoji: "🏗️" },
+      { label: "$250,000 – $1,000,000", value: "k250_1m", emoji: "🏢", description: "Surcharge" },
+      { label: "Over $1,000,000", value: "over_1m", emoji: "⚠️", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "hot_works",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_1m",
+        decision: "refer",
+        message:
+          "Single contracts exceeding $1,000,000 concentrate exposure and require underwriter review of the contract terms and indemnity provisions.",
+      },
+    ],
+    ratingFactor: "largestJob",
+    summaryLabel: "Largest Single Job",
+    summarySection: "Operations",
+  },
+
+  {
+    id: "hot_works",
+    type: "toggle",
+    brokerText:
+      "Does the business perform any hot works — welding, cutting, soldering, or torch work?",
+    helperText:
+      "Hot works are a leading cause of construction fire losses and carry a distinct property-damage exposure.",
+    options: [
+      { label: "Yes — we perform hot works", value: "yes" },
+      { label: "No — no hot works", value: "no" },
+    ],
+    defaultNextQuestionId: "wsib_coverage",
+    ratingFactor: "hotWorks",
+    summaryLabel: "Hot Works",
+    summarySection: "Operations",
+  },
+
+  {
+    id: "wsib_coverage",
+    type: "toggle",
+    brokerText:
+      "Does the business carry WSIB / WCB workers' compensation coverage for its workers?",
+    helperText:
+      "Valid workers' compensation coverage is a standard requirement and reduces bodily-injury exposure to the GL policy.",
+    options: [
+      { label: "Yes — coverage in good standing", value: "yes" },
+      { label: "No — no WSIB/WCB coverage", value: "no" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "no",
+        decision: "refer",
+        message:
+          "Operating without valid WSIB/WCB workers' compensation coverage shifts injury exposure onto the GL policy and requires underwriter review.",
+      },
+    ],
+    ratingFactor: "wsibCoverage",
+    summaryLabel: "WSIB / WCB Coverage",
+    summarySection: "Operations",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

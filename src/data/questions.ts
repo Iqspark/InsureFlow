@@ -611,7 +611,7 @@ export const QUESTIONS: Question[] = [
       { label: "Yes — currently or recently insured", value: "yes" },
       { label: "No — no coverage / lapse in coverage", value: "no" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "roof_age",
     underwritingRules: [
       {
         operator: "equals",
@@ -622,6 +622,150 @@ export const QUESTIONS: Question[] = [
       },
     ],
     ratingFactor: "priorInsurance",
+  },
+
+  // ── SECTION 8B: BUILDING SYSTEMS & FIRE PROTECTION ───────
+  {
+    id: "roof_age",
+    type: "choice",
+    brokerText: "How old is the roof covering?",
+    helperText:
+      "Roof age is one of the strongest predictors of water and storm losses on vacant homes.",
+    summaryLabel: "Roof Age",
+    summarySection: "Building Systems",
+    options: [
+      { label: "0 – 10 years", value: "0-10", emoji: "✅", description: "Newer roof — discount" },
+      { label: "11 – 20 years", value: "11-20", emoji: "🏠", description: "Standard rate" },
+      { label: "21 – 30 years", value: "21-30", emoji: "🔧", description: "Aging — surcharge" },
+      { label: "More than 30 years", value: "30+", emoji: "⚠️", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "systems_updated",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "30+",
+        decision: "refer",
+        message:
+          "A roof older than 30 years on a vacant property requires underwriter review.",
+      },
+    ],
+    ratingFactor: "roofAge",
+  },
+
+  {
+    id: "systems_updated",
+    type: "toggle",
+    brokerText:
+      "Have the electrical and plumbing systems been updated within the last 25 years?",
+    helperText:
+      "Knob-and-tube wiring, aluminum wiring, and galvanized/lead plumbing are common in older homes and raise fire and water exposure.",
+    summaryLabel: "Electrical/Plumbing Updated",
+    summarySection: "Building Systems",
+    options: [
+      { label: "Yes — updated within 25 years", value: "yes" },
+      { label: "No — original or aged systems", value: "no" },
+    ],
+    defaultNextQuestionId: "heating_type",
+    ratingFactor: "systemsUpdated",
+  },
+
+  {
+    id: "heating_type",
+    type: "choice",
+    brokerText: "What is the primary heating source for the property?",
+    helperText:
+      "Wood and oil heating carry higher fire and environmental exposure, especially when a home is unoccupied.",
+    summaryLabel: "Heating Type",
+    summarySection: "Building Systems",
+    options: [
+      { label: "Natural Gas", value: "gas", emoji: "🔥" },
+      { label: "Electric", value: "electric", emoji: "⚡" },
+      { label: "Oil / Furnace Oil", value: "oil", emoji: "🛢️" },
+      { label: "Wood / Solid Fuel", value: "wood", emoji: "🪵" },
+      { label: "No active heating", value: "none", emoji: "❄️" },
+    ],
+    defaultNextQuestionId: "fire_protection",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "wood",
+        decision: "refer",
+        message:
+          "Wood or solid-fuel heating on a vacant property requires underwriter review due to elevated fire exposure.",
+      },
+    ],
+    ratingFactor: "heatingType",
+  },
+
+  {
+    id: "fire_protection",
+    type: "choice",
+    brokerText:
+      "How well protected is the property in terms of fire services?",
+    helperText:
+      "Distance to the nearest fire hydrant and fire hall directly affects how quickly a fire can be contained.",
+    summaryLabel: "Fire Protection",
+    summarySection: "Building Systems",
+    options: [
+      { label: "Hydrant within 300m + nearby fire hall", value: "hydrant_close", emoji: "🚒", description: "Best rate" },
+      { label: "Standard protected area", value: "protected", emoji: "✅", description: "Standard rate" },
+      { label: "Limited / semi-protected", value: "semi_protected", emoji: "⚠️", description: "Surcharge" },
+      { label: "No nearby hydrant or fire hall", value: "unprotected", emoji: "🚫", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "renovation_in_progress",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "unprotected",
+        decision: "refer",
+        message:
+          "Properties with no nearby fire hydrant or fire hall require underwriter review.",
+      },
+    ],
+    ratingFactor: "fireProtection",
+  },
+
+  {
+    id: "renovation_in_progress",
+    type: "choice",
+    brokerText: "Is there any renovation or construction work currently in progress?",
+    helperText:
+      "Active renovations introduce tools, materials, and trades on site — and can change the fire and liability profile.",
+    summaryLabel: "Renovation In Progress",
+    summarySection: "Building Systems",
+    options: [
+      { label: "No renovations underway", value: "none", emoji: "✅" },
+      { label: "Minor / cosmetic work", value: "minor", emoji: "🎨" },
+      { label: "Major structural renovation", value: "major", emoji: "🏗️" },
+    ],
+    defaultNextQuestionId: "site_secured",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "major",
+        decision: "refer",
+        message:
+          "Major structural renovations in progress require underwriter review and may need a course-of-construction policy.",
+      },
+    ],
+    ratingFactor: "renovation",
+  },
+
+  {
+    id: "site_secured",
+    type: "toggle",
+    brokerText:
+      "Is the property fenced or otherwise secured against unauthorized access?",
+    helperText:
+      "A secured site deters trespassers, vandalism, and liability claims on a vacant property.",
+    summaryLabel: "Fenced / Secured Site",
+    summarySection: "Building Systems",
+    options: [
+      { label: "Yes — fenced / secured", value: "yes" },
+      { label: "No — open / unsecured", value: "no" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    ratingFactor: "siteSecured",
   },
 
   // ── SECTION 9: CONTACT INFO ──────────────────────────────

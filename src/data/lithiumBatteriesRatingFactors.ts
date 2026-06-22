@@ -100,6 +100,58 @@ export const BATTERY_DEDUCTIBLE_FACTORS: Record<number, number> = {
   50000: 0.80,
 };
 
+// ── COUNTRY OF MANUFACTURE FACTORS ───────────────────────────
+// Reflects QA maturity, factory-audit access, and recall logistics.
+export const MANUFACTURE_COUNTRY_FACTORS: Record<string, number> = {
+  canada:        0.90,
+  usa:           0.92,
+  western_europe:0.92,
+  japan_korea:   0.95,
+  china:         1.15,
+  other_asia:    1.20,
+  other:         1.10,
+};
+
+// ── ANNUAL UNITS SOLD BAND FACTORS ───────────────────────────
+// More units in the field raises the probability of a defective unit reaching a claimant.
+export function getUnitsSoldBandFactor(units: number): number {
+  if (units < 1_000)      return 0.95;
+  if (units < 10_000)     return 1.00;
+  if (units < 100_000)    return 1.10;
+  if (units < 1_000_000)  return 1.20;
+  return 1.30; // >1M units in the field
+}
+
+// ── US-MARKET DISTRIBUTION FACTORS ───────────────────────────
+// US product-liability litigation severity is materially higher.
+export const USA_SALES_FACTORS: Record<string, number> = {
+  none:    1.00, // not sold in the USA
+  some:    1.25, // some US distribution
+  primary: 1.45, // USA is the primary market
+};
+
+// ── UN38.3 TRANSPORT COMPLIANCE FACTORS ──────────────────────
+export const UN38_3_FACTORS: Record<string, number> = {
+  yes:     0.92, // fully UN38.3 tested for transport
+  partial: 1.10, // some SKUs untested
+  no:      1.30, // not UN38.3 compliant
+};
+
+// ── THIRD-PARTY TESTING FACTORS ──────────────────────────────
+export const THIRD_PARTY_TESTING_FACTORS: Record<string, number> = {
+  ongoing:   0.88, // ongoing independent batch testing
+  initial:   0.97, // initial type-test only
+  none:      1.25, // no independent testing
+};
+
+// ── BATCH TRACEABILITY FACTORS ───────────────────────────────
+// Serial/batch tracking limits the scope and cost of a recall.
+export const TRACEABILITY_FACTORS: Record<string, number> = {
+  full:    0.90, // full per-unit/batch traceability
+  partial: 1.05, // batch-level only
+  none:    1.25, // no traceability
+};
+
 // ── FLAT DOLLAR LOADINGS (CAD) — applied after multipliers ───
 export const BATTERY_FLAT_ADJUSTMENTS = {
   prior_recall: 1500, // flat loading for any product recall in the last 5 years

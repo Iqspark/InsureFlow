@@ -395,9 +395,142 @@ export const RETAIL_QUESTIONS: Question[] = [
       { label: "$5,000 CAD", value: 5000, description: "Lower premium" },
       { label: "$10,000 CAD", value: 10000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "building_age",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
+    summarySection: "Stock & Coverage",
+  },
+
+  // ── PROPERTY & RISK DETAIL ───────────────────────────────
+  {
+    id: "building_age",
+    type: "choice",
+    brokerText: "Roughly how old is the building the store occupies?",
+    helperText:
+      "Older wiring and plumbing increase the fire and water-damage exposure.",
+    options: [
+      { label: "Under 15 years", value: "under_15", emoji: "🏢", description: "Best rate" },
+      { label: "15 – 40 years", value: "y15_40", emoji: "🏚️", description: "Standard" },
+      { label: "40 – 75 years", value: "y40_75", emoji: "🧱", description: "Surcharge" },
+      { label: "Over 75 years", value: "over_75", emoji: "🏰", description: "Higher surcharge" },
+    ],
+    defaultNextQuestionId: "online_sales_share",
+    ratingFactor: "buildingAge",
+    summaryLabel: "Building Age",
+    summarySection: "Property",
+  },
+
+  {
+    id: "online_sales_share",
+    type: "choice",
+    brokerText: "Roughly what share of sales is made online / shipped to customers?",
+    helperText:
+      "A higher online share usually means lower on-site footfall and theft exposure.",
+    options: [
+      { label: "None — all in-store", value: "none", emoji: "🏬" },
+      { label: "Up to 25%", value: "upto25", emoji: "📦" },
+      { label: "25% – 60%", value: "upto60", emoji: "🛍️" },
+      { label: "Over 60%", value: "over60", emoji: "🌐" },
+    ],
+    defaultNextQuestionId: "age_restricted_goods",
+    ratingFactor: "onlineSales",
+    summaryLabel: "Online Sales Share",
+    summarySection: "Business",
+  },
+
+  {
+    id: "age_restricted_goods",
+    type: "choice",
+    brokerText:
+      "Does the store sell age-restricted goods such as alcohol, tobacco or vape products?",
+    helperText:
+      "These attract higher theft, liability and regulatory exposure.",
+    options: [
+      { label: "No — none sold", value: "none", emoji: "🚫" },
+      { label: "Yes — a minor part of sales", value: "some", emoji: "🍷" },
+      { label: "Yes — a primary line of business", value: "primary", emoji: "🚬", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "food_cooking",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "primary",
+        decision: "refer",
+        message:
+          "A store whose primary line is alcohol, tobacco or vape requires underwriter review of licensing and theft controls.",
+      },
+    ],
+    ratingFactor: "ageRestricted",
+    summaryLabel: "Age-Restricted Goods",
+    summarySection: "Business",
+  },
+
+  {
+    id: "food_cooking",
+    type: "choice",
+    brokerText: "Is there any food preparation or cooking on the premises?",
+    helperText:
+      "Open-flame cooking and deep-fat frying are a leading cause of commercial fires.",
+    options: [
+      { label: "None", value: "none", emoji: "🚫", description: "Best rate" },
+      { label: "Light — microwaves / kettles only", value: "light", emoji: "☕", description: "Minor surcharge" },
+      { label: "Deep fryer / open-flame cooking", value: "deep_fryer", emoji: "🍟", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "after_hours_cash",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "deep_fryer",
+        decision: "refer",
+        message:
+          "On-site deep-fat frying or open-flame cooking requires underwriter review of the fire-suppression controls.",
+      },
+    ],
+    ratingFactor: "cooking",
+    summaryLabel: "On-Site Cooking",
+    summarySection: "Security",
+  },
+
+  {
+    id: "after_hours_cash",
+    type: "choice",
+    brokerText: "How much cash is typically left on the premises after hours?",
+    helperText:
+      "Cash held overnight drives the burglary exposure.",
+    options: [
+      { label: "Under $1,000", value: "under_1k", emoji: "💵", description: "Best rate" },
+      { label: "$1,000 – $10,000", value: "k1_10", emoji: "💰" },
+      { label: "Over $10,000", value: "over_10k", emoji: "🏦", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "liability_limit",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_10k",
+        decision: "refer",
+        message:
+          "More than $10,000 cash held on premises after hours requires underwriter review of the safe and security controls.",
+      },
+    ],
+    ratingFactor: "cashOnPremises",
+    summaryLabel: "After-Hours Cash",
+    summarySection: "Security",
+  },
+
+  {
+    id: "liability_limit",
+    type: "choice",
+    brokerText: "What public liability limit would you like on the package?",
+    helperText:
+      "This is the most we'll pay for a third-party injury or property-damage claim.",
+    options: [
+      { label: "$1,000,000 CAD", value: "l1m", description: "Standard" },
+      { label: "$2,000,000 CAD", value: "l2m", description: "Most popular" },
+      { label: "$5,000,000 CAD", value: "l5m", description: "Highest cover" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    ratingFactor: "liabilityLimit",
+    summaryLabel: "Liability Limit",
     summarySection: "Stock & Coverage",
   },
 

@@ -383,10 +383,148 @@ export const AE_QUESTIONS: Question[] = [
       { label: "$25,000 CAD", value: 25000, description: "Lower premium" },
       { label: "$50,000 CAD", value: 50000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "staff_count",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Coverage",
+  },
+
+  // ── FIRM SCALE & RISK MANAGEMENT ─────────────────────────
+  {
+    id: "staff_count",
+    type: "number",
+    brokerText:
+      "How many qualified professionals and technical staff does the firm employ?",
+    helperText: "Include architects, engineers, designers and drafting staff.",
+    placeholder: "e.g. 8",
+    min: 1,
+    max: 5000,
+    suffix: "staff",
+    noGrouping: true,
+    mustBeInteger: true,
+    defaultNextQuestionId: "high_risk_project_pct",
+    ratingFactor: "staffCount",
+    summaryLabel: "Professional / Technical Staff",
+    summarySection: "Exposure",
+  },
+
+  {
+    id: "high_risk_project_pct",
+    type: "choice",
+    brokerText:
+      "What share of the firm's work is on high-risk project types — condominiums, bridges, foundations or other heavy structures?",
+    helperText:
+      "These project types generate the most severe professional-indemnity claims.",
+    options: [
+      { label: "None", value: "none", emoji: "✅", description: "Best rate" },
+      { label: "Under 25%", value: "under_25", emoji: "🟢" },
+      { label: "25–50%", value: "25_50", emoji: "🟡", description: "Surcharge" },
+      { label: "Over 50%", value: "over_50", emoji: "🔴", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "written_contracts_limitation",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_50",
+        decision: "refer",
+        message:
+          "More than 50% of work on high-risk project types (condos, bridges, foundations) is high-hazard and requires individual underwriter review.",
+      },
+    ],
+    ratingFactor: "highRiskProjects",
+    summaryLabel: "High-Risk Project Share",
+    summarySection: "Exposure",
+  },
+
+  {
+    id: "written_contracts_limitation",
+    type: "choice",
+    brokerText:
+      "How often does the firm use written contracts that include a limitation-of-liability clause?",
+    helperText:
+      "Written contracts with capped liability are one of the strongest defences against a PI claim.",
+    options: [
+      { label: "Always — on all engagements", value: "always", emoji: "✅", description: "Best rate" },
+      { label: "Sometimes", value: "sometimes", emoji: "🟡" },
+      { label: "Never / no written contracts", value: "never", emoji: "🔴", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "pct_subcontracted",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "never",
+        decision: "refer",
+        message:
+          "Operating without written contracts or limitation-of-liability clauses materially increases exposure and requires underwriter review.",
+      },
+    ],
+    ratingFactor: "writtenContracts",
+    summaryLabel: "Written Contracts / Liability Cap",
+    summarySection: "Risk Management",
+  },
+
+  {
+    id: "pct_subcontracted",
+    type: "choice",
+    brokerText:
+      "What portion of the firm's work is subcontracted out to other design firms or consultants?",
+    helperText:
+      "Work passed to outside firms still exposes you to vicarious liability.",
+    options: [
+      { label: "None", value: "none", emoji: "✅" },
+      { label: "Under 25%", value: "under_25", emoji: "🟢" },
+      { label: "25–50%", value: "25_50", emoji: "🟡" },
+      { label: "Over 50%", value: "over_50", emoji: "🟠" },
+    ],
+    defaultNextQuestionId: "largest_project_value",
+    ratingFactor: "subcontracted",
+    summaryLabel: "Work Subcontracted Out",
+    summarySection: "Exposure",
+  },
+
+  {
+    id: "largest_project_value",
+    type: "choice",
+    brokerText:
+      "What is the construction value of the largest single project the firm has worked on?",
+    helperText: "An approximate figure is fine.",
+    options: [
+      { label: "Under $1,000,000", value: "under_1m", emoji: "💵" },
+      { label: "$1M – $10M", value: "m1_10", emoji: "💰" },
+      { label: "$10M – $50M", value: "m10_50", emoji: "💴" },
+      { label: "Over $50,000,000", value: "over_50m", emoji: "🏙️" },
+    ],
+    defaultNextQuestionId: "usa_work",
+    ratingFactor: "largestProject",
+    summaryLabel: "Largest Project Value",
+    summarySection: "Exposure",
+  },
+
+  {
+    id: "usa_work",
+    type: "choice",
+    brokerText:
+      "Does the firm undertake any projects located in the United States, and if so, how much?",
+    helperText:
+      "US-based work carries a significantly higher litigation and award severity.",
+    options: [
+      { label: "None — Canada only", value: "none", emoji: "🇨🇦", description: "Best rate" },
+      { label: "Under 25% of work", value: "under_25", emoji: "🟡" },
+      { label: "Over 25% of work", value: "over_25", emoji: "🔴", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_25",
+        decision: "refer",
+        message:
+          "Material US project exposure (over 25% of work) carries elevated litigation severity and requires individual underwriter review.",
+      },
+    ],
+    ratingFactor: "usaWork",
+    summaryLabel: "US Project Exposure",
+    summarySection: "Exposure",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

@@ -397,10 +397,151 @@ export const RENTAL_QUESTIONS: Question[] = [
       { label: "$5,000 CAD", value: 5000, description: "Lower premium" },
       { label: "$10,000 CAD", value: 10000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "lease_length",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Coverage",
+  },
+
+  // ── TENANCY DETAILS ──────────────────────────────────────
+  {
+    id: "lease_length",
+    type: "choice",
+    brokerText: "What is the typical lease term for this property?",
+    helperText: "Longer leases mean lower turnover and a more stable risk.",
+    options: [
+      { label: "Month-to-Month", value: "month_to_month", emoji: "📅", description: "Higher turnover" },
+      { label: "6 Months", value: "six_months", emoji: "🗓️" },
+      { label: "1 Year", value: "one_year", emoji: "📆", description: "Standard" },
+      { label: "2+ Years", value: "multi_year", emoji: "🤝", description: "Best rate" },
+    ],
+    defaultNextQuestionId: "furnished_status",
+    ratingFactor: "leaseLength",
+    summaryLabel: "Lease Term",
+    summarySection: "Tenancy",
+  },
+
+  {
+    id: "furnished_status",
+    type: "toggle",
+    brokerText: "Is the property let furnished or unfurnished?",
+    helperText: "Furnished lets include landlord-owned contents in the cover.",
+    options: [
+      { label: "Unfurnished", value: "unfurnished" },
+      { label: "Furnished", value: "furnished" },
+    ],
+    defaultNextQuestionId: "pets_policy",
+    summaryLabel: "Furnishing",
+    summarySection: "Tenancy",
+  },
+
+  {
+    id: "pets_policy",
+    type: "toggle",
+    brokerText: "Are pets permitted under the tenancy agreement?",
+    helperText: "Pets can increase wear and liability exposure.",
+    options: [
+      { label: "No pets allowed", value: "no_pets" },
+      { label: "Pets allowed", value: "pets_allowed" },
+    ],
+    defaultNextQuestionId: "property_management",
+    ratingFactor: "petsPolicy",
+    summaryLabel: "Pets Policy",
+    summarySection: "Tenancy",
+  },
+
+  // ── MANAGEMENT & CONSTRUCTION ────────────────────────────
+  {
+    id: "property_management",
+    type: "choice",
+    brokerText: "How is the property managed day-to-day?",
+    options: [
+      { label: "Professionally Managed", value: "professional", emoji: "🏢", description: "Best rate" },
+      { label: "Self-Managed", value: "self_managed", emoji: "🧑‍💼" },
+    ],
+    defaultNextQuestionId: "heating_type",
+    ratingFactor: "management",
+    summaryLabel: "Management",
+    summarySection: "Tenancy",
+  },
+
+  {
+    id: "heating_type",
+    type: "choice",
+    brokerText: "What is the primary heating source?",
+    helperText: "Heating type affects fire and leakage exposure.",
+    options: [
+      { label: "Gas Forced-Air", value: "gas_forced_air", emoji: "🔥" },
+      { label: "Electric", value: "electric", emoji: "⚡" },
+      { label: "Heat Pump", value: "heat_pump", emoji: "♻️", description: "Best rate" },
+      { label: "Oil", value: "oil", emoji: "🛢️", description: "Surcharge" },
+      { label: "Wood / Solid Fuel", value: "wood_solid", emoji: "🪵", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "electrical_wiring",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "wood_solid",
+        decision: "refer",
+        message:
+          "Wood or solid-fuel heating is a fire exposure that requires underwriter review of installation, clearances, and WETT certification.",
+      },
+    ],
+    ratingFactor: "heatingType",
+    summaryLabel: "Heating",
+    summarySection: "Property",
+  },
+
+  {
+    id: "electrical_wiring",
+    type: "choice",
+    brokerText: "What type of electrical wiring does the property have?",
+    helperText: "Legacy wiring is a known fire risk for habitational properties.",
+    options: [
+      { label: "Updated Breaker Panel", value: "updated_breakers", emoji: "✅", description: "Best rate" },
+      { label: "Standard / Modern", value: "standard", emoji: "🔌" },
+      { label: "Aluminum Wiring", value: "aluminum", emoji: "⚠️", description: "Surcharge" },
+      { label: "Knob-and-Tube", value: "knob_and_tube", emoji: "🚫", description: "Not eligible" },
+    ],
+    defaultNextQuestionId: "roof_age",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "knob_and_tube",
+        decision: "decline",
+        message:
+          "Properties with active knob-and-tube wiring are not eligible for Landlord cover until the wiring has been fully replaced and certified.",
+      },
+    ],
+    ratingFactor: "wiring",
+    summaryLabel: "Wiring",
+    summarySection: "Property",
+  },
+
+  {
+    id: "roof_age",
+    type: "choice",
+    brokerText: "How old is the roof covering?",
+    helperText: "An aging roof increases water-ingress and storm exposure.",
+    options: [
+      { label: "Under 5 years", value: "under_5", emoji: "🆕", description: "Best rate" },
+      { label: "5–15 years", value: "five_15", emoji: "🏠" },
+      { label: "15–25 years", value: "fifteen_25", emoji: "🔸", description: "Surcharge" },
+      { label: "Over 25 years", value: "over_25", emoji: "⚠️", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "over_25",
+        decision: "refer",
+        message:
+          "A roof over 25 years old is near end-of-life and requires underwriter review of condition and any planned replacement.",
+      },
+    ],
+    ratingFactor: "roofAge",
+    summaryLabel: "Roof Age",
+    summarySection: "Property",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

@@ -102,8 +102,54 @@ export const COVERAGE_LIMIT_FACTORS: Record<number, number> = {
   10000000: 1.40,
 };
 
+// ── CLIENT TYPE FACTORS ──────────────────────────────────────
+export const CLIENT_TYPE_FACTORS: Record<string, number> = {
+  residential: 1.00,
+  mixed:       1.05,
+  commercial:  1.15, // larger contracts, stricter indemnity
+  industrial:  1.30, // industrial/institutional exposure
+};
+
+// ── ANNUAL PAYROLL BAND FACTORS ──────────────────────────────
+// More payroll = more workers in the field = more BI/PD exposure.
+export function getPayrollFactor(payroll: number): number {
+  if (payroll < 100000)   return 0.95;
+  if (payroll < 500000)   return 1.00;
+  if (payroll < 2000000)  return 1.10;
+  return 1.20;
+}
+
+// ── SUBCONTRACTOR INSURANCE FACTORS ──────────────────────────
+export const SUBS_INSURANCE_FACTORS: Record<string, number> = {
+  all:  0.95, // all subs insured, COIs on file
+  some: 1.20, // mixed — gaps in coverage
+  none: 1.45, // uninsured/unverified (also REFER)
+  na:   1.00, // no subs used
+};
+
+// ── LARGEST SINGLE JOB FACTORS ───────────────────────────────
+export const LARGEST_JOB_FACTORS: Record<string, number> = {
+  under_50k: 0.95,
+  k50_250:   1.00,
+  k250_1m:   1.15,
+  over_1m:   1.35, // concentrated exposure (also REFER)
+};
+
+// ── HOT WORKS FACTOR ─────────────────────────────────────────
+export const HOT_WORKS_FACTORS: Record<string, number> = {
+  yes: 1.25, // fire exposure
+  no:  1.00,
+};
+
+// ── WSIB / WCB COVERAGE FACTOR ───────────────────────────────
+export const WSIB_COVERAGE_FACTORS: Record<string, number> = {
+  yes: 1.00,
+  no:  1.20, // injury exposure shifts to GL (also REFER)
+};
+
 // ── FLAT DOLLAR LOADINGS (CAD) — applied after multipliers ───
 export const CONTRACTOR_FLAT_ADJUSTMENTS = {
   works_at_height: 350, // any regular work at height
   frequent_subs:   250, // frequent subcontracting administration loading
+  hot_works:       300, // hot-works fire-safety loading
 };

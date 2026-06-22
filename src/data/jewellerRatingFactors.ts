@@ -107,6 +107,55 @@ export const JEWELLER_DEDUCTIBLE_FACTORS: Record<number, number> = {
   25000: 0.78,
 };
 
+// ── PRINCIPAL PRODUCT WORKED WITH ────────────────────────────
+// Diamonds/loose stones are the highest-value, most-targeted class.
+export const PRODUCT_FOCUS_FACTORS: Record<string, number> = {
+  watches:   0.95, // serialised, traceable
+  gold:      1.00, // precious metal, scrap-recoverable
+  mixed:     1.05, // general jewellery mix
+  diamonds:  1.20, // high value-density, hard to trace
+};
+
+// ── % OF STOCK HELD ON CONSIGNMENT / MEMO ────────────────────
+// Memo stock raises values-at-risk and third-party recovery disputes.
+export const CONSIGNMENT_FACTORS: Record<string, number> = {
+  none:    0.95, // owned outright
+  low:     1.00, // under 25%
+  medium:  1.15, // 25–50%
+  high:    1.35, // over 50% (also REFER)
+};
+
+// ── ON-SITE SECURITY MEASURES ────────────────────────────────
+export const ENTRY_CONTROL_FACTORS: Record<string, number> = {
+  mantrap:       0.85, // mantrap / double-door interlock + buzzer
+  buzzer:        0.95, // buzzer / locked-door entry
+  guard:         0.90, // on-site security guard during trading
+  none:          1.15, // open-door, no access control
+};
+
+// ── CCTV COVERAGE ────────────────────────────────────────────
+export const CCTV_FACTORS: Record<string, number> = {
+  full_recorded: 0.90, // full coverage, recorded & monitored
+  partial:       1.05, // partial coverage
+  none:          1.30, // no CCTV (also REFER)
+};
+
+// ── ON-PREMISES REPAIRS / WORKSHOP ───────────────────────────
+// A workshop adds work-in-progress, customers' goods, and tools/fire risk.
+export const REPAIRS_FACTORS: Record<string, number> = {
+  no:        1.00,
+  yes:       1.10, // bench repairs on premises
+};
+
+// ── EMPLOYEE COUNT FACTOR ────────────────────────────────────
+// More staff → greater internal-theft and access exposure.
+export function getEmployeeCountFactor(count: number): number {
+  if (count <= 2)  return 0.95; // owner-operated / very small
+  if (count <= 5)  return 1.00;
+  if (count <= 15) return 1.10;
+  return 1.20; // large staff
+}
+
 // ── FLAT DOLLAR LOADINGS (CAD) — applied after multipliers ───
 export const JEWELLER_FLAT_ADJUSTMENTS = {
   high_window_value: 500, // >$50k left in windows overnight

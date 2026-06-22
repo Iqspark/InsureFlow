@@ -11,6 +11,12 @@ import {
   OFFSITE_VALUE_FACTORS,
   JEWELLER_CLAIMS_FACTORS,
   JEWELLER_DEDUCTIBLE_FACTORS,
+  PRODUCT_FOCUS_FACTORS,
+  CONSIGNMENT_FACTORS,
+  ENTRY_CONTROL_FACTORS,
+  CCTV_FACTORS,
+  REPAIRS_FACTORS,
+  getEmployeeCountFactor,
   JEWELLER_FLAT_ADJUSTMENTS,
 } from "@/data/jewellerRatingFactors";
 import { JEWELLER_QUESTIONS } from "@/data/jewellerQuestions";
@@ -134,7 +140,55 @@ export function calculateJewellerQuote(
     `$${deductible.toLocaleString()} deductible`
   );
 
-  // 11. Flat loadings
+  // 11. Principal stock / product focus
+  const focus = String(answers.product_focus?.value ?? "mixed");
+  applyFactor(
+    "Principal Stock",
+    PRODUCT_FOCUS_FACTORS[focus] ?? 1.0,
+    answers.product_focus?.displayValue ?? focus
+  );
+
+  // 12. Consignment / memo stock
+  const consignment = String(answers.consignment_pct?.value ?? "low");
+  applyFactor(
+    "Consignment / Memo Stock",
+    CONSIGNMENT_FACTORS[consignment] ?? 1.0,
+    answers.consignment_pct?.displayValue ?? consignment
+  );
+
+  // 13. On-site entry control
+  const entry = String(answers.entry_control?.value ?? "buzzer");
+  applyFactor(
+    "Entry Control",
+    ENTRY_CONTROL_FACTORS[entry] ?? 1.0,
+    answers.entry_control?.displayValue ?? entry
+  );
+
+  // 14. CCTV coverage
+  const cctv = String(answers.cctv_coverage?.value ?? "partial");
+  applyFactor(
+    "CCTV Coverage",
+    CCTV_FACTORS[cctv] ?? 1.0,
+    answers.cctv_coverage?.displayValue ?? cctv
+  );
+
+  // 15. Employee count
+  const employees = Number(answers.employee_count?.value ?? 3);
+  applyFactor(
+    "Staff Headcount",
+    getEmployeeCountFactor(employees),
+    `${employees} employee${employees === 1 ? "" : "s"}`
+  );
+
+  // 16. On-premises repairs / workshop
+  const repairs = String(answers.repairs_on_premises?.value ?? "no");
+  applyFactor(
+    "On-Premises Repairs",
+    REPAIRS_FACTORS[repairs] ?? 1.0,
+    answers.repairs_on_premises?.displayValue ?? repairs
+  );
+
+  // 17. Flat loadings
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });

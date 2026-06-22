@@ -10,6 +10,12 @@ import {
   CONTRACTOR_CLAIMS_FACTORS,
   CONTRACTOR_DEDUCTIBLE_FACTORS,
   COVERAGE_LIMIT_FACTORS,
+  CLIENT_TYPE_FACTORS,
+  getPayrollFactor,
+  SUBS_INSURANCE_FACTORS,
+  LARGEST_JOB_FACTORS,
+  HOT_WORKS_FACTORS,
+  WSIB_COVERAGE_FACTORS,
   CONTRACTOR_FLAT_ADJUSTMENTS,
 } from "@/data/contractorRatingFactors";
 import { CONTRACTOR_QUESTIONS } from "@/data/contractorQuestions";
@@ -123,7 +129,55 @@ export function calculateContractorQuote(
     `$${deductible.toLocaleString()} deductible`
   );
 
-  // 10. Flat loadings
+  // 10. Client type
+  const clientType = String(answers.residential_commercial?.value ?? "residential");
+  applyFactor(
+    "Client Type",
+    CLIENT_TYPE_FACTORS[clientType] ?? 1.0,
+    answers.residential_commercial?.displayValue ?? clientType
+  );
+
+  // 11. Annual payroll band
+  const payroll = Number(answers.annual_payroll?.value ?? 0);
+  applyFactor(
+    "Payroll Band",
+    getPayrollFactor(payroll),
+    `$${payroll.toLocaleString()} annual payroll`
+  );
+
+  // 12. Subcontractor insurance
+  const subsIns = String(answers.subs_carry_insurance?.value ?? "na");
+  applyFactor(
+    "Subcontractor Insurance",
+    SUBS_INSURANCE_FACTORS[subsIns] ?? 1.0,
+    answers.subs_carry_insurance?.displayValue ?? subsIns
+  );
+
+  // 13. Largest single job
+  const largestJob = String(answers.largest_job_value?.value ?? "k50_250");
+  applyFactor(
+    "Largest Single Job",
+    LARGEST_JOB_FACTORS[largestJob] ?? 1.0,
+    answers.largest_job_value?.displayValue ?? largestJob
+  );
+
+  // 14. Hot works
+  const hotWorks = String(answers.hot_works?.value ?? "no");
+  applyFactor(
+    "Hot Works",
+    HOT_WORKS_FACTORS[hotWorks] ?? 1.0,
+    hotWorks === "yes" ? "Performs hot works" : "No hot works"
+  );
+
+  // 15. WSIB / WCB coverage
+  const wsib = String(answers.wsib_coverage?.value ?? "yes");
+  applyFactor(
+    "WSIB / WCB Coverage",
+    WSIB_COVERAGE_FACTORS[wsib] ?? 1.0,
+    wsib === "yes" ? "Coverage in good standing" : "No WSIB/WCB coverage"
+  );
+
+  // 16. Flat loadings
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });
@@ -141,6 +195,13 @@ export function calculateContractorQuote(
       "Subcontractor Loading",
       CONTRACTOR_FLAT_ADJUSTMENTS.frequent_subs,
       "Frequent subcontracting — COI administration"
+    );
+  }
+  if (answers.hot_works?.value === "yes") {
+    applyFlat(
+      "Hot Works Loading",
+      CONTRACTOR_FLAT_ADJUSTMENTS.hot_works,
+      "Hot works — welding / cutting / torch fire-safety loading"
     );
   }
 

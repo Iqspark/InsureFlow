@@ -81,8 +81,52 @@ export const CYBER_DEDUCTIBLE_FACTORS: Record<number, number> = {
   50000: 0.80,
 };
 
+// ── SECURITY AWARENESS TRAINING FACTORS ──────────────────────
+export const TRAINING_FACTORS: Record<string, number> = {
+  ongoing:  0.90, // regular phishing simulations + training
+  annual:   1.00, // once-a-year training
+  none:     1.25, // no employee security training
+};
+
+// ── PATCH / VULNERABILITY MANAGEMENT FACTORS ─────────────────
+export const PATCH_FACTORS: Record<string, number> = {
+  auto:      0.88, // automated, within days
+  monthly:   1.00, // routine monthly cadence
+  ad_hoc:    1.30, // ad-hoc / no defined cadence
+};
+
+// ── ENCRYPTED-BACKUPS / DATA-AT-REST ENCRYPTION FACTORS ──────
+export const ENCRYPTION_FACTORS: Record<string, number> = {
+  yes:     0.90, // sensitive data + backups encrypted
+  partial: 1.05, // partially encrypted
+  no:      1.30, // not encrypted
+};
+
+// ── REMOTE ACCESS / VPN FACTORS ──────────────────────────────
+export const REMOTE_ACCESS_FACTORS: Record<string, number> = {
+  vpn_mfa:    0.90, // VPN/ZTNA with MFA
+  vpn_only:   1.05, // VPN without MFA
+  rdp_open:   1.40, // direct RDP exposed to internet (also REFER)
+  none:       0.95, // no remote access
+};
+
+// ── THIRD-PARTY VENDOR DEPENDENCY FACTORS ────────────────────
+export const VENDOR_DEPENDENCY_FACTORS: Record<string, number> = {
+  low:     0.95, // minimal critical-vendor reliance
+  medium:  1.10, // some critical SaaS/IT vendors
+  high:    1.30, // heavy reliance on critical third parties
+};
+
+// ── INCIDENT RESPONSE PLAN FACTORS ───────────────────────────
+export const IR_PLAN_FACTORS: Record<string, number> = {
+  tested:    0.88, // documented + tested in last 12 months
+  documented:1.00, // documented but untested
+  none:      1.25, // no incident response plan
+};
+
 // ── FLAT DOLLAR LOADINGS (CAD) — applied after multipliers ───
 export const CYBER_FLAT_ADJUSTMENTS = {
   no_mfa:       1000, // MFA not enforced — elevated breach likelihood
   no_endpoint:   750, // no endpoint protection deployed
+  no_ir_plan:    500, // no incident response plan
 };

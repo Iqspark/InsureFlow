@@ -9,6 +9,12 @@ import {
   ITEMS_CLAIMS_FACTORS,
   ITEMS_DEDUCTIBLE_FACTORS,
   ITEMS_FLAT_ADJUSTMENTS,
+  ITEM_COUNT_FACTORS,
+  WORN_FREQUENCY_FACTORS,
+  ALARM_MONITORED_FACTORS,
+  INTERNATIONAL_TRAVEL_FACTORS,
+  PRIOR_THEFT_FACTOR,
+  DOCUMENTATION_FACTORS,
 } from "@/data/personalItemsRatingFactors";
 import { ITEMS_QUESTIONS } from "@/data/personalItemsQuestions";
 import { runUnderwritingEngine } from "./underwritingEngine";
@@ -103,7 +109,56 @@ export function calculatePersonalItemsQuote(
     `$${deductible.toLocaleString()} deductible`
   );
 
-  // 8. Flat loadings
+  // 8. Number of scheduled items
+  const itemCount = String(answers.number_of_items?.value ?? "4_10");
+  applyFactor(
+    "Number of Items",
+    ITEM_COUNT_FACTORS[itemCount] ?? 1.0,
+    answers.number_of_items?.displayValue ?? itemCount
+  );
+
+  // 9. Worn / used frequency
+  const worn = String(answers.worn_frequency?.value ?? "occasional");
+  applyFactor(
+    "Worn / Used Frequency",
+    WORN_FREQUENCY_FACTORS[worn] ?? 1.0,
+    answers.worn_frequency?.displayValue ?? worn
+  );
+
+  // 10. Monitored alarm
+  const alarm = String(answers.alarm_monitored?.value ?? "self_monitored");
+  applyFactor(
+    "Monitored Alarm",
+    ALARM_MONITORED_FACTORS[alarm] ?? 1.0,
+    answers.alarm_monitored?.displayValue ?? alarm
+  );
+
+  // 11. International travel
+  const travel = String(answers.travel_international?.value ?? "never");
+  applyFactor(
+    "International Travel",
+    INTERNATIONAL_TRAVEL_FACTORS[travel] ?? 1.0,
+    answers.travel_international?.displayValue ?? travel
+  );
+
+  // 12. Prior theft of valuables
+  if (answers.prior_theft_valuables?.value === "yes") {
+    applyFactor(
+      "Prior Theft of Valuables",
+      PRIOR_THEFT_FACTOR,
+      answers.prior_theft_valuables?.displayValue ?? "Prior theft reported"
+    );
+  }
+
+  // 13. Documentation on file
+  const documentation = String(answers.documentation_on_file?.value ?? "no");
+  applyFactor(
+    "Documentation on File",
+    DOCUMENTATION_FACTORS[documentation] ?? 1.0,
+    answers.documentation_on_file?.displayValue ?? documentation
+  );
+
+  // 14. Flat loadings
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });

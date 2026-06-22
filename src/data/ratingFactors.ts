@@ -86,6 +86,50 @@ export const COVERAGE_PERCENT_FACTORS: Record<string, number> = {
   "80":  0.82,
 };
 
+// ── ROOF AGE FACTORS ──────────────────────────────────────────
+export const ROOF_AGE_FACTORS: Record<string, number> = {
+  "0-10":  0.90, // Newer roof — discount
+  "11-20": 1.00, // Base
+  "21-30": 1.20, // Aging roof — surcharge
+  "30+":   1.40, // Very old roof (also REFER)
+};
+
+// ── HEATING TYPE FACTORS ──────────────────────────────────────
+export const HEATING_TYPE_FACTORS: Record<string, number> = {
+  gas:        1.00,
+  electric:   0.95,
+  oil:        1.20, // Oil tanks — leak/environmental exposure
+  wood:       1.35, // Wood/solid fuel — fire exposure (also REFER)
+  none:       1.10, // No heat — freeze risk in vacant home
+};
+
+// ── FIRE HYDRANT / HALL DISTANCE FACTORS ──────────────────────
+export const FIRE_PROTECTION_FACTORS: Record<string, number> = {
+  hydrant_close:  0.90, // Hydrant within 300m + nearby hall
+  protected:      1.00, // Standard protected
+  semi_protected: 1.20, // Limited fire protection
+  unprotected:    1.50, // No nearby hydrant or hall (also REFER)
+};
+
+// ── RENOVATION IN PROGRESS FACTORS ────────────────────────────
+export const RENOVATION_FACTORS: Record<string, number> = {
+  none:        1.00,
+  minor:       1.10, // Cosmetic / minor work
+  major:       1.30, // Major structural reno (also REFER)
+};
+
+// ── SITE SECURITY (FENCED / SECURED) FACTORS ──────────────────
+export const SITE_SECURED_FACTORS: Record<string, number> = {
+  yes: 0.92, // Fenced / secured site — discount
+  no:  1.10,
+};
+
+// ── ELECTRICAL / PLUMBING UPDATES FACTORS ─────────────────────
+export const SYSTEMS_UPDATED_FACTORS: Record<string, number> = {
+  yes: 0.95, // Updated within 25 years — discount
+  no:  1.15, // Original/aged systems — surcharge
+};
+
 // ── FLAT DOLLAR ADJUSTMENTS (CAD) ─────────────────────────────
 // Applied after all multipliers
 export const FLAT_ADJUSTMENTS = {

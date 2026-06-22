@@ -411,10 +411,128 @@ export const CYBER_QUESTIONS: Question[] = [
       { label: "$25,000 CAD", value: 25000, description: "Lower premium" },
       { label: "$50,000 CAD", value: 50000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "security_training",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Coverage",
+  },
+
+  // ── SECURITY MATURITY ────────────────────────────────────
+  {
+    id: "security_training",
+    type: "choice",
+    brokerText:
+      "How often do employees receive security-awareness training (e.g. phishing simulations)?",
+    helperText:
+      "Human error drives most breaches — ongoing training measurably lowers claim frequency.",
+    options: [
+      { label: "Ongoing — regular phishing tests", value: "ongoing", emoji: "🎓", description: "Best rate" },
+      { label: "Annual training", value: "annual", emoji: "📅", description: "Standard" },
+      { label: "No formal training", value: "none", emoji: "🚫", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "patch_cadence",
+    ratingFactor: "securityTraining",
+    summaryLabel: "Security Training",
+    summarySection: "Security Controls",
+  },
+
+  {
+    id: "patch_cadence",
+    type: "choice",
+    brokerText:
+      "How quickly are critical security patches applied across systems?",
+    helperText:
+      "Unpatched, internet-facing systems are the most common ransomware entry point.",
+    options: [
+      { label: "Automated — within days", value: "auto", emoji: "⚡", description: "Best rate" },
+      { label: "Routine monthly cadence", value: "monthly", emoji: "🗓️", description: "Standard" },
+      { label: "Ad-hoc / no set schedule", value: "ad_hoc", emoji: "⚠️", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "data_encryption",
+    ratingFactor: "patchCadence",
+    summaryLabel: "Patch Cadence",
+    summarySection: "Security Controls",
+  },
+
+  {
+    id: "data_encryption",
+    type: "choice",
+    brokerText:
+      "Is sensitive data — including backups — encrypted at rest?",
+    helperText:
+      "Encryption limits the impact of a breach and can reduce notification obligations.",
+    options: [
+      { label: "Yes — fully encrypted", value: "yes", emoji: "🔐", description: "Best rate" },
+      { label: "Partially encrypted", value: "partial", emoji: "🔓", description: "Standard" },
+      { label: "Not encrypted", value: "no", emoji: "🚫", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "remote_access",
+    ratingFactor: "dataEncryption",
+    summaryLabel: "Data Encryption",
+    summarySection: "Security Controls",
+  },
+
+  {
+    id: "remote_access",
+    type: "choice",
+    brokerText: "How do staff connect to internal systems remotely?",
+    helperText:
+      "Open RDP exposed to the internet is a leading ransomware vector and sits outside most appetites.",
+    options: [
+      { label: "VPN / ZTNA with MFA", value: "vpn_mfa", emoji: "🛡️", description: "Best rate" },
+      { label: "VPN without MFA", value: "vpn_only", emoji: "🔌", description: "Standard" },
+      { label: "Direct RDP exposed to internet", value: "rdp_open", emoji: "⚠️", description: "Requires review" },
+      { label: "No remote access", value: "none", emoji: "🏢" },
+    ],
+    defaultNextQuestionId: "vendor_dependency",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "rdp_open",
+        decision: "refer",
+        message:
+          "Remote Desktop (RDP) exposed directly to the internet is a primary ransomware vector and requires underwriter review.",
+      },
+    ],
+    ratingFactor: "remoteAccess",
+    summaryLabel: "Remote Access",
+    summarySection: "Security Controls",
+  },
+
+  {
+    id: "vendor_dependency",
+    type: "choice",
+    brokerText:
+      "How reliant is the business on critical third-party IT or SaaS vendors?",
+    helperText:
+      "Heavy reliance on a few critical vendors concentrates supply-chain risk.",
+    options: [
+      { label: "Low — minimal critical vendors", value: "low", emoji: "🟢" },
+      { label: "Medium — some critical SaaS/IT", value: "medium", emoji: "🟡", description: "Standard" },
+      { label: "High — heavy critical reliance", value: "high", emoji: "🔴", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "incident_response_plan",
+    ratingFactor: "vendorDependency",
+    summaryLabel: "Vendor Reliance",
+    summarySection: "Security Controls",
+  },
+
+  {
+    id: "incident_response_plan",
+    type: "choice",
+    brokerText:
+      "Does the business have a documented incident response plan?",
+    helperText:
+      "A tested plan dramatically reduces the cost and duration of a breach.",
+    options: [
+      { label: "Documented & tested (last 12 mo)", value: "tested", emoji: "✅", description: "Best rate" },
+      { label: "Documented but untested", value: "documented", emoji: "📄", description: "Standard" },
+      { label: "No plan", value: "none", emoji: "🚫", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    ratingFactor: "incidentResponsePlan",
+    summaryLabel: "Incident Response Plan",
+    summarySection: "Security Controls",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

@@ -9,6 +9,12 @@ import {
   RENTAL_CLAIMS_FACTORS,
   SMOKE_ALARM_FACTORS,
   RENTAL_DEDUCTIBLE_FACTORS,
+  LEASE_LENGTH_FACTORS,
+  HEATING_TYPE_FACTORS,
+  WIRING_FACTORS,
+  ROOF_AGE_FACTORS,
+  MANAGEMENT_FACTORS,
+  PETS_FACTORS,
   RENTAL_FLAT_ADJUSTMENTS,
 } from "@/data/rentalHomeRatingFactors";
 import { RENTAL_QUESTIONS } from "@/data/rentalHomeQuestions";
@@ -112,7 +118,55 @@ export function calculateRentalHomeQuote(
     `$${deductible.toLocaleString()} deductible`
   );
 
-  // 9. Flat loadings
+  // 9. Lease length
+  const leaseLength = String(answers.lease_length?.value ?? "one_year");
+  applyFactor(
+    "Lease Term",
+    LEASE_LENGTH_FACTORS[leaseLength] ?? 1.0,
+    answers.lease_length?.displayValue ?? leaseLength
+  );
+
+  // 10. Pets policy
+  const pets = String(answers.pets_policy?.value ?? "no_pets");
+  applyFactor(
+    "Pets Policy",
+    PETS_FACTORS[pets] ?? 1.0,
+    answers.pets_policy?.displayValue ?? pets
+  );
+
+  // 11. Property management
+  const management = String(answers.property_management?.value ?? "self_managed");
+  applyFactor(
+    "Management",
+    MANAGEMENT_FACTORS[management] ?? 1.0,
+    answers.property_management?.displayValue ?? management
+  );
+
+  // 12. Heating type
+  const heating = String(answers.heating_type?.value ?? "gas_forced_air");
+  applyFactor(
+    "Heating Type",
+    HEATING_TYPE_FACTORS[heating] ?? 1.0,
+    answers.heating_type?.displayValue ?? heating
+  );
+
+  // 13. Electrical wiring
+  const wiring = String(answers.electrical_wiring?.value ?? "standard");
+  applyFactor(
+    "Electrical Wiring",
+    WIRING_FACTORS[wiring] ?? 1.0,
+    answers.electrical_wiring?.displayValue ?? wiring
+  );
+
+  // 14. Roof age
+  const roofAge = String(answers.roof_age?.value ?? "five_15");
+  applyFactor(
+    "Roof Age",
+    ROOF_AGE_FACTORS[roofAge] ?? 1.0,
+    answers.roof_age?.displayValue ?? roofAge
+  );
+
+  // 15. Flat loadings
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });

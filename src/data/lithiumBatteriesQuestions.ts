@@ -450,10 +450,147 @@ export const BATTERY_QUESTIONS: Question[] = [
       { label: "$25,000 CAD", value: 25000, description: "Lower premium" },
       { label: "$50,000 CAD", value: 50000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "manufacture_country",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Exposure & Coverage",
+  },
+
+  // ── MANUFACTURING & QUALITY ──────────────────────────────
+  {
+    id: "manufacture_country",
+    type: "dropdown",
+    brokerText: "Where are the cells and packs primarily manufactured?",
+    helperText:
+      "Country of manufacture affects quality-control maturity and our ability to audit the factory.",
+    options: [
+      { label: "Canada", value: "canada" },
+      { label: "United States", value: "usa" },
+      { label: "Western Europe", value: "western_europe" },
+      { label: "Japan / South Korea", value: "japan_korea" },
+      { label: "China", value: "china" },
+      { label: "Other Asia", value: "other_asia" },
+      { label: "Other", value: "other" },
+    ],
+    defaultNextQuestionId: "units_sold_annually",
+    ratingFactor: "manufactureCountry",
+    summaryLabel: "Country of Manufacture",
+    summarySection: "Product",
+  },
+
+  {
+    id: "units_sold_annually",
+    type: "number",
+    brokerText:
+      "Roughly how many battery units do you sell or distribute per year?",
+    helperText:
+      "The number of units in the field drives how likely a defective unit is to reach an end user.",
+    placeholder: "25,000",
+    min: 1,
+    max: 50000000,
+    mustBeInteger: true,
+    defaultNextQuestionId: "sold_in_usa",
+    ratingFactor: "unitsSold",
+    summaryLabel: "Annual Units Sold",
+    summarySection: "Exposure & Coverage",
+  },
+
+  {
+    id: "sold_in_usa",
+    type: "choice",
+    brokerText: "Are any of these products sold or distributed in the USA?",
+    helperText:
+      "US product-liability litigation is materially more severe, so US exposure affects pricing.",
+    options: [
+      { label: "No — not sold in the USA", value: "none", emoji: "🚫" },
+      { label: "Yes — some US distribution", value: "some", emoji: "🌎" },
+      { label: "Yes — USA is the primary market", value: "primary", emoji: "🇺🇸", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "un38_3_compliance",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "primary",
+        decision: "refer",
+        message:
+          "Products whose primary market is the USA carry elevated litigation severity and require individual underwriter review.",
+      },
+    ],
+    ratingFactor: "usaSales",
+    summaryLabel: "Sold in USA",
+    summarySection: "Exposure & Coverage",
+  },
+
+  {
+    id: "un38_3_compliance",
+    type: "choice",
+    brokerText:
+      "Are the cells UN38.3 tested for safe transport?",
+    helperText:
+      "UN38.3 is the mandatory transport-safety test for lithium cells and packs.",
+    options: [
+      { label: "Yes — all SKUs tested", value: "yes", emoji: "✅", description: "Best rate" },
+      { label: "Partially — some SKUs untested", value: "partial", emoji: "⚠️" },
+      { label: "No — not UN38.3 compliant", value: "no", emoji: "🚫", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "third_party_testing",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "no",
+        decision: "refer",
+        message:
+          "Cells without UN38.3 transport certification require underwriter review of the supply chain and shipping practices.",
+      },
+    ],
+    ratingFactor: "un383",
+    summaryLabel: "UN38.3 Compliant",
+    summarySection: "Product",
+  },
+
+  {
+    id: "third_party_testing",
+    type: "choice",
+    brokerText:
+      "How is the product independently safety-tested?",
+    helperText:
+      "Ongoing independent batch testing attracts the strongest terms.",
+    options: [
+      { label: "Ongoing independent batch testing", value: "ongoing", emoji: "🔬", description: "Best rate" },
+      { label: "Initial type-test only", value: "initial", emoji: "🧾" },
+      { label: "No independent testing", value: "none", emoji: "🚫", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "batch_traceability",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "none",
+        decision: "refer",
+        message:
+          "Products with no independent safety testing require underwriter review.",
+      },
+    ],
+    ratingFactor: "thirdPartyTesting",
+    summaryLabel: "Independent Testing",
+    summarySection: "Product",
+  },
+
+  {
+    id: "batch_traceability",
+    type: "choice",
+    brokerText:
+      "What level of batch / serial traceability do you maintain?",
+    helperText:
+      "Traceability limits the scope and cost of a recall by isolating affected units.",
+    options: [
+      { label: "Full per-unit / batch traceability", value: "full", emoji: "🏆", description: "Best rate" },
+      { label: "Batch-level only", value: "partial", emoji: "📦" },
+      { label: "No traceability", value: "none", emoji: "🚫" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    ratingFactor: "traceability",
+    summaryLabel: "Batch Traceability",
+    summarySection: "Product",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

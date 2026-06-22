@@ -83,3 +83,46 @@ export const ITEMS_FLAT_ADJUSTMENTS = {
   high_single_item: 150, // a single item valued above $50k
   carried_outside:  100, // items regularly carried off-premises
 };
+
+// ── WORN/USED FREQUENCY FACTORS ──────────────────────────────
+// How often the items are actually worn or used (exposure to loss).
+export const WORN_FREQUENCY_FACTORS: Record<string, number> = {
+  vault_kept:   0.85, // stored away, rarely handled
+  occasional:   1.00, // worn on special occasions
+  weekly:       1.15,
+  daily:        1.30, // worn/used every day
+};
+
+// ── MONITORED ALARM RESPONSE FACTORS ─────────────────────────
+export const ALARM_MONITORED_FACTORS: Record<string, number> = {
+  central_station: 0.90, // professionally monitored, central station
+  self_monitored:  1.05, // app/self-monitored only
+  none:            1.25, // no alarm
+};
+
+// ── INTERNATIONAL TRAVEL FACTORS ─────────────────────────────
+// Items taken on international trips broaden the territory of risk.
+export const INTERNATIONAL_TRAVEL_FACTORS: Record<string, number> = {
+  never:        1.00,
+  occasionally: 1.15,
+  frequently:   1.35, // also REFER
+};
+
+// ── DOCUMENTATION / ENGRAVING ON FILE FACTORS ────────────────
+// Photos / engraving / serials on file aid recovery and verification.
+export const DOCUMENTATION_FACTORS: Record<string, number> = {
+  yes: 0.92,
+  no:  1.10,
+};
+
+// ── NUMBER OF SCHEDULED ITEMS FACTORS ────────────────────────
+export const ITEM_COUNT_FACTORS: Record<string, number> = {
+  "1_3":   0.95,
+  "4_10":  1.00,
+  "11_25": 1.10,
+  "26+":   1.20,
+};
+
+// ── PRIOR THEFT OF VALUABLES FACTOR ──────────────────────────
+// A prior theft (vs. accidental loss) is a stronger predictor.
+export const PRIOR_THEFT_FACTOR = 1.30; // applied when "yes" (also REFER)

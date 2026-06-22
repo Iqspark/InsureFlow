@@ -11,6 +11,12 @@ import {
   BATTERY_CLAIMS_FACTORS,
   BATTERY_DEDUCTIBLE_FACTORS,
   BATTERY_FLAT_ADJUSTMENTS,
+  MANUFACTURE_COUNTRY_FACTORS,
+  getUnitsSoldBandFactor,
+  USA_SALES_FACTORS,
+  UN38_3_FACTORS,
+  THIRD_PARTY_TESTING_FACTORS,
+  TRACEABILITY_FACTORS,
 } from "@/data/lithiumBatteriesRatingFactors";
 import { BATTERY_QUESTIONS } from "@/data/lithiumBatteriesQuestions";
 import { runUnderwritingEngine } from "./underwritingEngine";
@@ -119,6 +125,56 @@ export function calculateLithiumBatteriesQuote(
     "Deductible",
     BATTERY_DEDUCTIBLE_FACTORS[deductible] ?? 1.0,
     `$${deductible.toLocaleString()} deductible`
+  );
+
+  // 11. Country of manufacture
+  const country = String(answers.manufacture_country?.value ?? "");
+  applyFactor(
+    "Country of Manufacture",
+    MANUFACTURE_COUNTRY_FACTORS[country] ?? 1.0,
+    answers.manufacture_country?.displayValue ?? country
+  );
+
+  // 12. Annual units sold band
+  if (answers.units_sold_annually?.value !== undefined) {
+    const unitsSold = Number(answers.units_sold_annually.value);
+    applyFactor(
+      "Annual Units Sold",
+      getUnitsSoldBandFactor(unitsSold),
+      `${unitsSold.toLocaleString()} units/yr`
+    );
+  }
+
+  // 13. US-market distribution
+  const usaSales = String(answers.sold_in_usa?.value ?? "none");
+  applyFactor(
+    "US-Market Distribution",
+    USA_SALES_FACTORS[usaSales] ?? 1.0,
+    answers.sold_in_usa?.displayValue ?? usaSales
+  );
+
+  // 14. UN38.3 transport compliance
+  const un383 = String(answers.un38_3_compliance?.value ?? "yes");
+  applyFactor(
+    "UN38.3 Transport Compliance",
+    UN38_3_FACTORS[un383] ?? 1.0,
+    answers.un38_3_compliance?.displayValue ?? un383
+  );
+
+  // 15. Independent third-party testing
+  const testing = String(answers.third_party_testing?.value ?? "initial");
+  applyFactor(
+    "Independent Testing",
+    THIRD_PARTY_TESTING_FACTORS[testing] ?? 1.0,
+    answers.third_party_testing?.displayValue ?? testing
+  );
+
+  // 16. Batch / serial traceability
+  const traceability = String(answers.batch_traceability?.value ?? "partial");
+  applyFactor(
+    "Batch Traceability",
+    TRACEABILITY_FACTORS[traceability] ?? 1.0,
+    answers.batch_traceability?.displayValue ?? traceability
   );
 
   // 10. Flat loadings

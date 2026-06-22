@@ -480,10 +480,163 @@ export const JEWELLER_QUESTIONS: Question[] = [
       { label: "$10,000 CAD", value: 10000, description: "Lower premium" },
       { label: "$25,000 CAD", value: 25000, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "product_focus",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Stock & Coverage",
+  },
+
+  // ── STOCK PROFILE & OPERATIONS ───────────────────────────
+  {
+    id: "product_focus",
+    type: "choice",
+    brokerText:
+      "What does the bulk of the stock consist of? This shapes the theft profile.",
+    helperText:
+      "Loose diamonds and high-value stones are the most targeted and hardest to trace.",
+    options: [
+      { label: "Watches", value: "watches", emoji: "⌚", description: "Serialised" },
+      { label: "Gold & precious metals", value: "gold", emoji: "🥇" },
+      { label: "Mixed jewellery", value: "mixed", emoji: "💍", description: "General mix" },
+      { label: "Diamonds / loose stones", value: "diamonds", emoji: "💎", description: "High value-density" },
+    ],
+    defaultNextQuestionId: "consignment_pct",
+    ratingFactor: "productFocus",
+    summaryLabel: "Principal Stock",
+    summarySection: "Stock & Coverage",
+  },
+
+  {
+    id: "consignment_pct",
+    type: "choice",
+    brokerText:
+      "What portion of the stock is held on consignment or memo (owned by others)?",
+    helperText:
+      "Memo stock increases the values at risk and can complicate recovery after a loss.",
+    options: [
+      { label: "None — all owned outright", value: "none", emoji: "✅" },
+      { label: "Under 25%", value: "low", emoji: "📊" },
+      { label: "25% – 50%", value: "medium", emoji: "⚠️" },
+      { label: "Over 50%", value: "high", emoji: "❗", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "max_single_item_value",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "high",
+        decision: "refer",
+        message:
+          "More than 50% of stock held on consignment/memo requires underwriter review of values at risk and consignor agreements.",
+      },
+    ],
+    ratingFactor: "consignment",
+    summaryLabel: "Stock on Consignment",
+    summarySection: "Stock & Coverage",
+  },
+
+  {
+    id: "max_single_item_value",
+    type: "currency",
+    brokerText:
+      "What is the value (in CAD) of the single most valuable item you hold?",
+    helperText:
+      "This sets the maximum any one loss could reach and may need a per-item sub-limit.",
+    placeholder: "50,000",
+    min: 1000,
+    max: 5000000,
+    prefix: "$",
+    defaultNextQuestionId: "entry_control",
+    underwritingRules: [
+      {
+        operator: "greater_than",
+        value: 500000,
+        decision: "refer",
+        message:
+          "A single item valued over $500,000 CAD requires underwriter review and a specific per-item sub-limit.",
+      },
+    ],
+    ratingFactor: "maxSingleItem",
+    summaryLabel: "Max Single Item Value",
+    summarySection: "Stock & Coverage",
+  },
+
+  // ── ON-SITE SECURITY ─────────────────────────────────────
+  {
+    id: "entry_control",
+    type: "choice",
+    brokerText:
+      "How is entry to the premises controlled during trading hours?",
+    helperText:
+      "Mantraps (double-door interlocks) and buzzer entry slow down hold-ups and walk-in theft.",
+    options: [
+      { label: "Mantrap / double-door interlock", value: "mantrap", emoji: "🚪", description: "Best rate" },
+      { label: "Buzzer / locked-door entry", value: "buzzer", emoji: "🔔" },
+      { label: "On-site security guard", value: "guard", emoji: "👮" },
+      { label: "Open door — no access control", value: "none", emoji: "🚫", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "cctv_coverage",
+    ratingFactor: "entryControl",
+    summaryLabel: "Entry Control",
+    summarySection: "Security",
+  },
+
+  {
+    id: "cctv_coverage",
+    type: "choice",
+    brokerText: "What CCTV coverage protects the premises?",
+    helperText:
+      "Recorded, well-positioned cameras aid both deterrence and post-loss recovery.",
+    options: [
+      { label: "Full coverage, recorded & monitored", value: "full_recorded", emoji: "📹", description: "Best rate" },
+      { label: "Partial coverage", value: "partial", emoji: "🎥" },
+      { label: "No CCTV", value: "none", emoji: "🚫", description: "Requires review" },
+    ],
+    defaultNextQuestionId: "employee_count",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "none",
+        decision: "refer",
+        message:
+          "A jewellery premises with no CCTV requires underwriter review; recorded camera coverage is expected for this class.",
+      },
+    ],
+    ratingFactor: "cctvCoverage",
+    summaryLabel: "CCTV Coverage",
+    summarySection: "Security",
+  },
+
+  // ── STAFF & WORKSHOP ─────────────────────────────────────
+  {
+    id: "employee_count",
+    type: "number",
+    brokerText: "How many employees work in the business (including owners)?",
+    helperText: "An approximate headcount is fine.",
+    placeholder: "e.g. 4",
+    min: 1,
+    max: 500,
+    suffix: "staff",
+    defaultNextQuestionId: "repairs_on_premises",
+    ratingFactor: "employeeCount",
+    summaryLabel: "Employees",
+    summarySection: "Operations",
+  },
+
+  {
+    id: "repairs_on_premises",
+    type: "toggle",
+    brokerText:
+      "Are jewellery repairs or manufacturing carried out on the premises?",
+    helperText:
+      "A workshop adds work-in-progress, customers' goods, and tooling/fire exposures.",
+    options: [
+      { label: "Yes — bench work on site", value: "yes" },
+      { label: "No — sent out", value: "no" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    ratingFactor: "repairsOnPremises",
+    summaryLabel: "Repairs On Premises",
+    summarySection: "Operations",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

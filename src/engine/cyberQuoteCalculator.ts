@@ -9,6 +9,12 @@ import {
   ENDPOINT_FACTORS,
   CYBER_CLAIMS_FACTORS,
   CYBER_DEDUCTIBLE_FACTORS,
+  TRAINING_FACTORS,
+  PATCH_FACTORS,
+  ENCRYPTION_FACTORS,
+  REMOTE_ACCESS_FACTORS,
+  VENDOR_DEPENDENCY_FACTORS,
+  IR_PLAN_FACTORS,
   CYBER_FLAT_ADJUSTMENTS,
 } from "@/data/cyberRatingFactors";
 import { CYBER_QUESTIONS } from "@/data/cyberQuestions";
@@ -112,7 +118,55 @@ export function calculateCyberQuote(
     `$${deductible.toLocaleString()} deductible`
   );
 
-  // 9. Flat loadings
+  // 9. Security-awareness training
+  const training = String(answers.security_training?.value ?? "annual");
+  applyFactor(
+    "Security Training",
+    TRAINING_FACTORS[training] ?? 1.0,
+    answers.security_training?.displayValue ?? training
+  );
+
+  // 10. Patch cadence
+  const patch = String(answers.patch_cadence?.value ?? "monthly");
+  applyFactor(
+    "Patch Cadence",
+    PATCH_FACTORS[patch] ?? 1.0,
+    answers.patch_cadence?.displayValue ?? patch
+  );
+
+  // 11. Data encryption
+  const encryption = String(answers.data_encryption?.value ?? "partial");
+  applyFactor(
+    "Data Encryption",
+    ENCRYPTION_FACTORS[encryption] ?? 1.0,
+    answers.data_encryption?.displayValue ?? encryption
+  );
+
+  // 12. Remote access
+  const remote = String(answers.remote_access?.value ?? "vpn_only");
+  applyFactor(
+    "Remote Access",
+    REMOTE_ACCESS_FACTORS[remote] ?? 1.0,
+    answers.remote_access?.displayValue ?? remote
+  );
+
+  // 13. Third-party vendor dependency
+  const vendor = String(answers.vendor_dependency?.value ?? "medium");
+  applyFactor(
+    "Vendor Reliance",
+    VENDOR_DEPENDENCY_FACTORS[vendor] ?? 1.0,
+    answers.vendor_dependency?.displayValue ?? vendor
+  );
+
+  // 14. Incident response plan
+  const irPlan = String(answers.incident_response_plan?.value ?? "documented");
+  applyFactor(
+    "Incident Response Plan",
+    IR_PLAN_FACTORS[irPlan] ?? 1.0,
+    answers.incident_response_plan?.displayValue ?? irPlan
+  );
+
+  // 15. Flat loadings
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });
@@ -130,6 +184,13 @@ export function calculateCyberQuote(
       "No Endpoint Loading",
       CYBER_FLAT_ADJUSTMENTS.no_endpoint,
       "No endpoint protection deployed"
+    );
+  }
+  if (answers.incident_response_plan?.value === "none") {
+    applyFlat(
+      "No IR Plan Loading",
+      CYBER_FLAT_ADJUSTMENTS.no_ir_plan,
+      "No documented incident response plan"
     );
   }
 

@@ -8,6 +8,12 @@ import {
   BURGLAR_ALARM_FACTORS,
   RETAIL_CLAIMS_FACTORS,
   RETAIL_DEDUCTIBLE_FACTORS,
+  BUILDING_AGE_FACTORS,
+  ONLINE_SALES_FACTORS,
+  AGE_RESTRICTED_FACTORS,
+  COOKING_FACTORS,
+  CASH_ON_PREMISES_FACTORS,
+  LIABILITY_LIMIT_FACTORS,
   getTurnoverLiabilityLoading,
 } from "@/data/retailersRatingFactors";
 import { RETAIL_QUESTIONS } from "@/data/retailersQuestions";
@@ -104,7 +110,55 @@ export function calculateRetailersQuote(
     `$${deductible.toLocaleString()} deductible`
   );
 
-  // 8. General liability loading (flat, by turnover band)
+  // 8. Building age
+  const buildingAge = String(answers.building_age?.value ?? "y15_40");
+  applyFactor(
+    "Building Age",
+    BUILDING_AGE_FACTORS[buildingAge] ?? 1.0,
+    answers.building_age?.displayValue ?? buildingAge
+  );
+
+  // 9. Online sales share
+  const onlineSales = String(answers.online_sales_share?.value ?? "upto25");
+  applyFactor(
+    "Online Sales Share",
+    ONLINE_SALES_FACTORS[onlineSales] ?? 1.0,
+    answers.online_sales_share?.displayValue ?? onlineSales
+  );
+
+  // 10. Age-restricted goods
+  const ageRestricted = String(answers.age_restricted_goods?.value ?? "none");
+  applyFactor(
+    "Age-Restricted Goods",
+    AGE_RESTRICTED_FACTORS[ageRestricted] ?? 1.0,
+    answers.age_restricted_goods?.displayValue ?? ageRestricted
+  );
+
+  // 11. On-site cooking
+  const cooking = String(answers.food_cooking?.value ?? "none");
+  applyFactor(
+    "On-Site Cooking",
+    COOKING_FACTORS[cooking] ?? 1.0,
+    answers.food_cooking?.displayValue ?? cooking
+  );
+
+  // 12. After-hours cash on premises
+  const cash = String(answers.after_hours_cash?.value ?? "under_1k");
+  applyFactor(
+    "After-Hours Cash",
+    CASH_ON_PREMISES_FACTORS[cash] ?? 1.0,
+    answers.after_hours_cash?.displayValue ?? cash
+  );
+
+  // 13. Public liability limit
+  const liabilityLimit = String(answers.liability_limit?.value ?? "l1m");
+  applyFactor(
+    "Liability Limit",
+    LIABILITY_LIMIT_FACTORS[liabilityLimit] ?? 1.0,
+    answers.liability_limit?.displayValue ?? liabilityLimit
+  );
+
+  // 14. General liability loading (flat, by turnover band)
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });

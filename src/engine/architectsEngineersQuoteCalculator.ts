@@ -10,6 +10,12 @@ import {
   AE_CLAIMS_FACTORS,
   AE_COVERAGE_LIMIT_FACTORS,
   AE_DEDUCTIBLE_FACTORS,
+  getStaffFactor,
+  AE_HIGH_RISK_FACTORS,
+  AE_CONTRACT_FACTORS,
+  AE_SUBCONTRACT_FACTORS,
+  AE_LARGEST_PROJECT_FACTORS,
+  AE_USA_WORK_FACTORS,
 } from "@/data/architectsEngineersRatingFactors";
 import { AE_QUESTIONS } from "@/data/architectsEngineersQuestions";
 import { runUnderwritingEngine } from "./underwritingEngine";
@@ -116,6 +122,54 @@ export function calculateArchitectsEngineersQuote(
     "Deductible",
     AE_DEDUCTIBLE_FACTORS[deductible] ?? 1.0,
     `$${deductible.toLocaleString()} deductible`
+  );
+
+  // 10. Professional / technical staff count
+  const staff = Number(answers.staff_count?.value ?? 8);
+  applyFactor(
+    "Firm Size",
+    getStaffFactor(staff),
+    `${staff} professional / technical staff`
+  );
+
+  // 11. High-risk project share (condos / bridges / foundations)
+  const highRisk = String(answers.high_risk_project_pct?.value ?? "under_25");
+  applyFactor(
+    "High-Risk Project Share",
+    AE_HIGH_RISK_FACTORS[highRisk] ?? 1.0,
+    answers.high_risk_project_pct?.displayValue ?? highRisk
+  );
+
+  // 12. Written contracts / limitation of liability
+  const contracts = String(answers.written_contracts_limitation?.value ?? "sometimes");
+  applyFactor(
+    "Contracts & Liability Cap",
+    AE_CONTRACT_FACTORS[contracts] ?? 1.0,
+    answers.written_contracts_limitation?.displayValue ?? contracts
+  );
+
+  // 13. Work subcontracted out
+  const subcontracted = String(answers.pct_subcontracted?.value ?? "none");
+  applyFactor(
+    "Subcontracted Work",
+    AE_SUBCONTRACT_FACTORS[subcontracted] ?? 1.0,
+    answers.pct_subcontracted?.displayValue ?? subcontracted
+  );
+
+  // 14. Largest project value
+  const largestProject = String(answers.largest_project_value?.value ?? "m1_10");
+  applyFactor(
+    "Largest Project",
+    AE_LARGEST_PROJECT_FACTORS[largestProject] ?? 1.0,
+    answers.largest_project_value?.displayValue ?? largestProject
+  );
+
+  // 15. US project exposure
+  const usaWork = String(answers.usa_work?.value ?? "none");
+  applyFactor(
+    "US Project Exposure",
+    AE_USA_WORK_FACTORS[usaWork] ?? 1.0,
+    answers.usa_work?.displayValue ?? usaWork
   );
 
   const finalAnnualPremium = Math.round(premium);

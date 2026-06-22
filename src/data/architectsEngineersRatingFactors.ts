@@ -100,3 +100,55 @@ export const AE_DEDUCTIBLE_FACTORS: Record<number, number> = {
   25000: 0.90,
   50000: 0.80,
 };
+
+// ── STAFF / NUMBER OF PROFESSIONALS FACTORS ──────────────────
+// More professionals = more concurrent design output = more exposure.
+export function getStaffFactor(staff: number): number {
+  if (staff <= 2)  return 0.92; // sole practitioner / very small
+  if (staff <= 10) return 1.00;
+  if (staff <= 25) return 1.10;
+  if (staff <= 50) return 1.20;
+  return 1.35; // large practice
+}
+
+// ── HIGH-RISK PROJECT SHARE FACTORS ──────────────────────────
+// % of work in condos, bridges, foundations and similar high-hazard
+// project types that drive the most severe PI claims.
+export const AE_HIGH_RISK_FACTORS: Record<string, number> = {
+  none:     0.90,
+  under_25: 1.00,
+  "25_50":  1.25,
+  over_50:  1.50, // high-hazard project concentration (also REFER)
+};
+
+// ── WRITTEN CONTRACTS / LIMITATION OF LIABILITY FACTORS ───────
+export const AE_CONTRACT_FACTORS: Record<string, number> = {
+  always:    0.88, // written contracts with limitation of liability on all work
+  sometimes: 1.05,
+  never:     1.30, // no written contracts (also REFER)
+};
+
+// ── SUBCONTRACTED-WORK SHARE FACTORS ─────────────────────────
+// Vicarious liability rises with reliance on outside firms.
+export const AE_SUBCONTRACT_FACTORS: Record<string, number> = {
+  none:     1.00,
+  under_25: 1.05,
+  "25_50":  1.20,
+  over_50:  1.40,
+};
+
+// ── LARGEST PROJECT VALUE FACTORS (CAD) ──────────────────────
+export const AE_LARGEST_PROJECT_FACTORS: Record<string, number> = {
+  under_1m: 0.95,
+  m1_10:    1.05,
+  m10_50:   1.20,
+  over_50m: 1.45, // mega-project exposure
+};
+
+// ── USA WORK FACTORS ─────────────────────────────────────────
+// US exposure carries a much higher litigation and award severity.
+export const AE_USA_WORK_FACTORS: Record<string, number> = {
+  none:     1.00,
+  under_25: 1.25,
+  over_25:  1.50, // material US exposure (also REFER)
+};

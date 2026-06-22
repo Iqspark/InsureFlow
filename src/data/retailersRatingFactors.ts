@@ -90,3 +90,51 @@ export function getTurnoverLiabilityLoading(turnover: number): number {
   if (turnover < 5000000)  return 1200;
   return 2500;
 }
+
+// ── BUILDING AGE FACTORS ─────────────────────────────────────
+// Older wiring / plumbing carries higher fire & water exposure.
+export const BUILDING_AGE_FACTORS: Record<string, number> = {
+  under_15:  0.95,
+  y15_40:    1.00,
+  y40_75:    1.15,
+  over_75:   1.35,
+};
+
+// ── PUBLIC LIABILITY LIMIT FACTORS ───────────────────────────
+// Higher chosen liability limits cost more.
+export const LIABILITY_LIMIT_FACTORS: Record<string, number> = {
+  l1m: 1.00,
+  l2m: 1.10,
+  l5m: 1.25,
+};
+
+// ── AGE-RESTRICTED GOODS FACTORS ─────────────────────────────
+// Alcohol / tobacco / vape carry theft, liability & regulatory load.
+export const AGE_RESTRICTED_FACTORS: Record<string, number> = {
+  none:    1.00,
+  some:    1.20,
+  primary: 1.45,
+};
+
+// ── COOKING / DEEP FRYER FACTORS ─────────────────────────────
+export const COOKING_FACTORS: Record<string, number> = {
+  none:        1.00,
+  light:       1.15, // microwaves / kettles, no open flame
+  deep_fryer:  1.40, // deep-fat frying / open-flame cooking
+};
+
+// ── ONLINE SALES (ECOMMERCE) FACTORS ─────────────────────────
+// More online sales = lower on-site footfall/theft exposure.
+export const ONLINE_SALES_FACTORS: Record<string, number> = {
+  none:    1.05,
+  upto25:  1.00,
+  upto60:  0.95,
+  over60:  0.90,
+};
+
+// ── AFTER-HOURS CASH ON PREMISES FACTORS ─────────────────────
+export const CASH_ON_PREMISES_FACTORS: Record<string, number> = {
+  under_1k:  0.95,
+  k1_10:     1.05,
+  over_10k:  1.30,
+};

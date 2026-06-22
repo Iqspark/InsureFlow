@@ -9,6 +9,12 @@ import {
   PRIOR_CLAIMS_FACTORS,
   DEDUCTIBLE_FACTORS,
   COVERAGE_PERCENT_FACTORS,
+  ROOF_AGE_FACTORS,
+  HEATING_TYPE_FACTORS,
+  FIRE_PROTECTION_FACTORS,
+  RENOVATION_FACTORS,
+  SITE_SECURED_FACTORS,
+  SYSTEMS_UPDATED_FACTORS,
   FLAT_ADJUSTMENTS,
   getPropertyValueFactor,
   getYearBuiltFactor,
@@ -138,7 +144,73 @@ export function calculateQuote(answers: Record<string, Answer>): QuoteDetails {
     `${coveragePct}% of replacement cost`
   );
 
-  // 11. Flat Adjustments
+  // 11. Roof Age
+  const roofAge = String(answers.roof_age?.value ?? "11-20");
+  if (answers.roof_age?.value !== undefined) {
+    const roofFactor = ROOF_AGE_FACTORS[roofAge] ?? 1.0;
+    applyFactor(
+      "Roof Age",
+      roofFactor,
+      answers.roof_age?.displayValue ?? roofAge
+    );
+  }
+
+  // 12. Electrical / Plumbing Updates
+  const systemsUpdated = String(answers.systems_updated?.value ?? "");
+  if (systemsUpdated) {
+    const systemsFactor = SYSTEMS_UPDATED_FACTORS[systemsUpdated] ?? 1.0;
+    applyFactor(
+      "Electrical / Plumbing",
+      systemsFactor,
+      answers.systems_updated?.displayValue ?? systemsUpdated
+    );
+  }
+
+  // 13. Heating Type
+  const heatingType = String(answers.heating_type?.value ?? "");
+  if (heatingType) {
+    const heatingFactor = HEATING_TYPE_FACTORS[heatingType] ?? 1.0;
+    applyFactor(
+      "Heating Type",
+      heatingFactor,
+      answers.heating_type?.displayValue ?? heatingType
+    );
+  }
+
+  // 14. Fire Protection
+  const fireProtection = String(answers.fire_protection?.value ?? "");
+  if (fireProtection) {
+    const fireFactor = FIRE_PROTECTION_FACTORS[fireProtection] ?? 1.0;
+    applyFactor(
+      "Fire Protection",
+      fireFactor,
+      answers.fire_protection?.displayValue ?? fireProtection
+    );
+  }
+
+  // 15. Renovation In Progress
+  const renovation = String(answers.renovation_in_progress?.value ?? "");
+  if (renovation) {
+    const renoFactor = RENOVATION_FACTORS[renovation] ?? 1.0;
+    applyFactor(
+      "Renovation In Progress",
+      renoFactor,
+      answers.renovation_in_progress?.displayValue ?? renovation
+    );
+  }
+
+  // 16. Site Secured
+  const siteSecured = String(answers.site_secured?.value ?? "");
+  if (siteSecured) {
+    const siteFactor = SITE_SECURED_FACTORS[siteSecured] ?? 1.0;
+    applyFactor(
+      "Fenced / Secured Site",
+      siteFactor,
+      answers.site_secured?.displayValue ?? siteSecured
+    );
+  }
+
+  // 17. Flat Adjustments
   const applyFlat = (name: string, amount: number, description: string) => {
     flatTotal += amount;
     factors.push({ name, multiplier: 1, adjustment: amount, description });

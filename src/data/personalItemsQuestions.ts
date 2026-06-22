@@ -359,10 +359,135 @@ export const ITEMS_QUESTIONS: Question[] = [
       { label: "$1,000 CAD", value: 1000, description: "Lower premium" },
       { label: "$2,500 CAD", value: 2500, description: "Lowest premium" },
     ],
-    defaultNextQuestionId: "contact_phone",
+    defaultNextQuestionId: "number_of_items",
     ratingFactor: "deductible",
     summaryLabel: "Deductible",
     summarySection: "Items & Coverage",
+  },
+
+  // ── SCHEDULE DETAIL & RISK ───────────────────────────────
+  {
+    id: "number_of_items",
+    type: "choice",
+    brokerText:
+      "How many individual items will be listed on the schedule?",
+    helperText:
+      "Each scheduled item is listed separately with its own value.",
+    options: [
+      { label: "1 – 3 items", value: "1_3", emoji: "🔢" },
+      { label: "4 – 10 items", value: "4_10", emoji: "🔟" },
+      { label: "11 – 25 items", value: "11_25", emoji: "📚" },
+      { label: "26 or more", value: "26+", emoji: "📈" },
+    ],
+    defaultNextQuestionId: "worn_frequency",
+    ratingFactor: "numberOfItems",
+    summaryLabel: "Number of Items",
+    summarySection: "Items & Coverage",
+  },
+
+  {
+    id: "worn_frequency",
+    type: "choice",
+    brokerText:
+      "How often are the items typically worn or used?",
+    helperText:
+      "More frequent wear or use increases the chance of loss or damage.",
+    options: [
+      { label: "Kept in a vault — rarely handled", value: "vault_kept", emoji: "🏦", description: "Lowest exposure" },
+      { label: "Special occasions only", value: "occasional", emoji: "🎉" },
+      { label: "Weekly", value: "weekly", emoji: "📅" },
+      { label: "Every day", value: "daily", emoji: "🔁", description: "Highest exposure" },
+    ],
+    defaultNextQuestionId: "alarm_monitored",
+    ratingFactor: "wornFrequency",
+    summaryLabel: "Worn / Used",
+    summarySection: "Security",
+  },
+
+  {
+    id: "alarm_monitored",
+    type: "choice",
+    brokerText:
+      "Is the home protected by a monitored burglar alarm?",
+    options: [
+      { label: "Yes — central station monitored", value: "central_station", emoji: "📡", description: "Best rate" },
+      { label: "Self / app monitored only", value: "self_monitored", emoji: "📱" },
+      { label: "No alarm", value: "none", emoji: "🚫", description: "Surcharge" },
+    ],
+    defaultNextQuestionId: "travel_international",
+    ratingFactor: "alarmMonitored",
+    summaryLabel: "Monitored Alarm",
+    summarySection: "Security",
+  },
+
+  {
+    id: "travel_international",
+    type: "choice",
+    brokerText:
+      "How often are any of the items taken on international trips?",
+    helperText:
+      "Items taken abroad face different theft and loss exposures.",
+    options: [
+      { label: "Never — they stay in Canada", value: "never", emoji: "🏠" },
+      { label: "Occasionally", value: "occasionally", emoji: "✈️" },
+      { label: "Frequently", value: "frequently", emoji: "🌍", description: "Underwriter review" },
+    ],
+    defaultNextQuestionId: "prior_theft_valuables",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "frequently",
+        decision: "refer",
+        message:
+          "Valuables taken internationally on a frequent basis require underwriter review of worldwide territory coverage.",
+      },
+    ],
+    ratingFactor: "travelInternational",
+    summaryLabel: "International Travel",
+    summarySection: "Security",
+  },
+
+  {
+    id: "prior_theft_valuables",
+    type: "toggle",
+    brokerText:
+      "Aside from any claims mentioned, have you ever had valuables stolen (whether insured or not)?",
+    helperText:
+      "Prior theft is an important factor in assessing the risk.",
+    options: [
+      { label: "Yes", value: "yes" },
+      { label: "No", value: "no" },
+    ],
+    defaultNextQuestionId: "documentation_on_file",
+    underwritingRules: [
+      {
+        operator: "equals",
+        value: "yes",
+        decision: "refer",
+        message:
+          "A prior theft of valuables requires underwriter review before terms can be confirmed.",
+      },
+    ],
+    ratingFactor: "priorTheft",
+    summaryLabel: "Prior Theft",
+    summarySection: "Loss History",
+  },
+
+  {
+    id: "documentation_on_file",
+    type: "toggle",
+    brokerText:
+      "Do you have photos, serial numbers, or engravings on file for the items?",
+    helperText:
+      "Documentation helps prove ownership and aids recovery after a loss.",
+    options: [
+      { label: "Yes — documented", value: "yes" },
+      { label: "No", value: "no" },
+    ],
+    defaultNextQuestionId: "contact_phone",
+    ratingFactor: "documentation",
+    summaryLabel: "Photos / Engraving on File",
+    summarySection: "Security",
   },
 
   // ── CONTACT ──────────────────────────────────────────────

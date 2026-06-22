@@ -90,6 +90,52 @@ export const RENTAL_DEDUCTIBLE_FACTORS: Record<number, number> = {
   10000: 0.82,
 };
 
+// ── LEASE LENGTH FACTORS ─────────────────────────────────────
+// Longer leases mean lower turnover and a more stable risk.
+export const LEASE_LENGTH_FACTORS: Record<string, number> = {
+  month_to_month: 1.15, // high turnover / unstable occupancy
+  six_months:     1.05,
+  one_year:       1.00, // standard
+  multi_year:     0.90, // settled, low-churn tenancy
+};
+
+// ── HEATING TYPE FACTORS ─────────────────────────────────────
+export const HEATING_TYPE_FACTORS: Record<string, number> = {
+  gas_forced_air: 1.00,
+  electric:       1.00,
+  heat_pump:      0.95,
+  oil:            1.20, // tank leakage / fire exposure
+  wood_solid:     1.30, // solid-fuel fire exposure (also REFER)
+};
+
+// ── ELECTRICAL WIRING FACTORS ────────────────────────────────
+export const WIRING_FACTORS: Record<string, number> = {
+  updated_breakers: 0.95, // modern breaker panel
+  standard:         1.00,
+  aluminum:         1.25, // aluminum branch wiring
+  knob_and_tube:    1.50, // legacy wiring (also DECLINE)
+};
+
+// ── ROOF AGE FACTORS ─────────────────────────────────────────
+export const ROOF_AGE_FACTORS: Record<string, number> = {
+  under_5:   0.92,
+  five_15:   1.00,
+  fifteen_25: 1.20,
+  over_25:   1.40, // end-of-life roof (also REFER)
+};
+
+// ── PROPERTY MANAGEMENT FACTORS ──────────────────────────────
+export const MANAGEMENT_FACTORS: Record<string, number> = {
+  professional: 0.90, // managed by a licensed agency
+  self_managed: 1.05,
+};
+
+// ── PETS POLICY FACTORS ──────────────────────────────────────
+export const PETS_FACTORS: Record<string, number> = {
+  no_pets:        1.00,
+  pets_allowed:   1.10, // increased wear / liability exposure
+};
+
 // ── FLAT DOLLAR LOADINGS (CAD) — applied after multipliers ───
 export const RENTAL_FLAT_ADJUSTMENTS = {
   partial_vacancy: 200, // partially occupied property
