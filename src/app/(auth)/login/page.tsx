@@ -77,7 +77,7 @@ export default function LoginPage() {
   ];
 
   const stats = [
-    { label: "Provinces & <strong>3</strong>Territories", value: "10" },
+    { label: "Provinces & 3 Territories", value: "10" },
     { label: "Access", value: "24/7" },
     { label: "Quote Time", value: "< 5 min" },
   ];
