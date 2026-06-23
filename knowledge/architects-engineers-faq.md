@@ -28,8 +28,14 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - The portion of work involving structural design or forensic / expert-witness engagements
 - The Professional Indemnity limit you want
 - Whether the firm has a documented quality-assurance / peer-review process
-- The number of professional-liability claims or circumstances in the last 5 years
+- The number of professional-liability claims or circumstances in the last 5 years (if any, we'll also ask the nature of each claim, whether the matters are fully resolved, and the size of the largest claim)
 - The deductible you prefer per claim
+- The number of qualified professionals and technical staff the firm employs
+- The share of work on high-risk project types (condominiums, bridges, foundations, other heavy structures)
+- How often the firm uses written contracts with a limitation-of-liability clause
+- The portion of work subcontracted out to other design firms or consultants
+- The construction value of the largest single project the firm has worked on
+- Whether (and how much) the firm undertakes projects located in the United States
 - Firm contact phone and email
 
 ## How is the premium calculated?
@@ -43,8 +49,14 @@ The annual premium is driven by the firm's **annual fee income** at a base rate 
 - **Claims history** — prior PI claims in the last 5 years
 - **PI limit** — the coverage limit selected
 - **Deductible** — the per-claim deductible chosen
+- **Firm size** — the number of professional / technical staff
+- **High-risk project share** — share of work on condos, bridges, foundations and similar high-hazard project types
+- **Contracts & liability cap** — how consistently written contracts with a limitation-of-liability clause are used
+- **Subcontracted work** — the portion of work passed to outside firms (vicarious-liability exposure)
+- **Largest project** — the construction value of the firm's biggest single project
+- **US project exposure** — the share of work on projects located in the United States
 
-Firms with a documented QA process, a long track record, and a clean claims history receive the most favourable rates.
+Firms with a documented QA process, a long track record, a clean claims history, consistent written contracts with capped liability, and Canada-only work receive the most favourable rates.
 
 ## What coverage limits are available?
 The Professional Indemnity limit is the most we would pay on a single claim. Available limits (CAD) are:
@@ -62,7 +74,7 @@ The deductible is the amount the firm pays out-of-pocket per claim. A higher ded
 - $50,000 — lowest premium
 
 ## What can cause a quote to be declined or referred?
-The quoting engine refers a quote for individual underwriter review (rather than declining outright) in the following cases:
+The quoting engine never declines a quote outright — instead it refers a quote for individual underwriter review in the following cases:
 - The firm is based in the **Northwest Territories, Nunavut, or Yukon** (remote project conditions and limited local infrastructure)
 - The primary discipline is **structural** or **civil engineering** (higher-hazard load-bearing and infrastructure design)
 - **Annual fee income exceeds $25,000,000 CAD** (requires senior underwriter approval and a project-profile review)
@@ -70,6 +82,11 @@ The quoting engine refers a quote for individual underwriter review (rather than
 - More than **50% of work** is structural or forensic / expert-witness engagements (high-hazard work mix)
 - The firm has **no documented QA / peer-review process**
 - The firm has had **3 or more** professional-liability claims or circumstances in the last 5 years
+- A prior professional-liability **matter is still open / unresolved**
+- The **largest prior claim exceeded $1,000,000**
+- More than **50% of work** is on high-risk project types — condos, bridges, or foundations
+- The firm operates **without written contracts or limitation-of-liability clauses**
+- The firm has **material US project exposure** (over 25% of work)
 
 A referred quote is reviewed by an underwriter rather than bound automatically.
 

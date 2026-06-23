@@ -2,7 +2,7 @@
 
 A chat-style insurance quoting portal for brokers, built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **Framer Motion**, **NextAuth**, and **Prisma + PostgreSQL**.
 
-Brokers log in, walk an applicant through a conversational questionnaire with a virtual broker named **Alex**, and get an instant **Accept / Decline / Refer** decision with a premium breakdown. Accepted quotes can be **saved as a quote** or **bound as a policy** (which emails a confirmation to the applicant and notifies the underwriting team). It installs on a phone as a **PWA**.
+Brokers log in, walk an applicant through a conversational questionnaire with a virtual broker named **Alex**, and get an instant **Accept / Decline / Refer** decision with a premium breakdown. Accepted quotes can be **saved as a quote** or **bound as a policy** — binding emails the applicant a payment link to a simulated checkout, starts a 12-month policy term, and notifies the underwriting team. The portal is **role-based** (Broker / Underwriter / Admin) with dashboards, analytics, Policies/Customers/Search, and Upcoming Renewals. It installs on a phone as a **PWA**.
 
 ---
 
@@ -29,11 +29,13 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 - **Multiple insurance packages** — Vacant Home, Jeweller's Block, Farm, Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries — each with their own questions, rating factors, and underwriting rules (a product registry makes adding more easy).
 - **Underwriting decision** — every quote resolves to **Accept**, **Decline**, or **Refer to underwriter**, with the reasons recorded.
 - **AI underwriter recommendation** — on a referred quote, an underwriter can get an advisory **approve/decline** verdict (with confidence + reasons) that pre-fills the review note; the human confirms. Pluggable engine, currently an inline OpenAI call.
-- **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** (the dashboard and search show which is which).
+- **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** and emails the applicant a payment link to a **simulated checkout** (no real charge). Binding stamps a **12-month policy term**.
+- **Role-based portal** — three roles (Broker / Underwriter / Admin). Brokers see their own book; underwriters review referred quotes; admins manage users and see everything.
+- **Dashboards & analytics** — broker/underwriter/admin dashboards with book analytics, plus **Policies**, **Customers**, and **Search** views with type-ahead suggestions and an **Upcoming Renewals** list (from the 12-month term).
 - **Property address + map** — Vacant Home quotes capture the address with Google Places autocomplete and show the location on a map (portal + PDF).
-- **Downloadable PDF** — a branded one-click PDF of any quote/policy, including the location map and a Quote/Policy stamp.
-- **Email** — applicant confirmation on bind + an underwriter/back-office notification.
-- **Broker portal** — login, dashboard, full-text-ish search, draft auto-save & resume, per-broker data isolation.
+- **Downloadable PDF & CSV export** — a branded one-click PDF of any quote/policy (with location map and a Quote/Policy stamp), and CSV export of list views.
+- **Help Navigator** — an in-portal knowledge-base assistant that answers from the `knowledge/` docs.
+- **Email** — applicant payment link + confirmation/receipt, broker approval notice, and an underwriter/back-office notification.
 - **Installable PWA** — add it to a phone home screen and run it full-screen.
 
 ---
@@ -142,7 +144,7 @@ Two independent dimensions are tracked per submission:
 | **Decision** | Accept · Decline · Refer | The underwriting outcome |
 | **Stage** | Quote · Policy | A quote, or a bound policy (Buy pressed) |
 
-On the result screen an accepted quote offers **Save as Quote** or **Buy This Policy**. Binding a policy emails the applicant, notifies the underwriter, and flips the badge to **Policy** across the dashboard, search, detail page, and PDF.
+On the result screen an accepted quote offers **Save as Quote** or **Buy This Policy**. Binding a policy emails the applicant a **payment link** to a simulated checkout, starts a **12-month term** (`effectiveAt`/`expiresAt`), notifies the underwriter, and flips the badge to **Policy** across the dashboard, search, detail page, and PDF.
 
 ---
 
@@ -203,8 +205,12 @@ src/
 ├── app/
 │   ├── (auth)/login/              ← Login (no header/footer)
 │   ├── (protected)/               ← Auth-guarded: header + footer + help widget
-│   │   ├── dashboard/             ← Recent policies + stats
+│   │   ├── dashboard/             ← Stats, book analytics, upcoming renewals
+│   │   ├── policies/              ← Bound policies list (type-ahead, CSV export)
+│   │   ├── customers/             ← Customers list + renewals
 │   │   ├── search/                ← Search quotes/policies
+│   │   ├── reviews/ · queue/      ← Underwriter review lists
+│   │   ├── admin/                 ← Admin overview + user management
 │   │   ├── new-quote/             ← Package picker
 │   │   │   ├── vacant-home/       ← Vacant Home quote flow
 │   │   │   ├── jeweller-block/    ← Jeweller's Block quote flow
@@ -214,7 +220,9 @@ src/
 │   │   ├── review/                ← Underwriter review queue (+ AI recommendation)
 │   │   ├── privacy / terms / support
 │   │   ├── icon / apple-icon / pwa-icon / manifest   ← PWA assets (dynamic)
-│   └── api/                       ← submissions, drafts, buy-policy, search,
+│   └── api/                       ← submissions, drafts, buy-policy, search, analytics,
+│                                     pay/[token] (public checkout), admin/users,
+│                                     policies/suggest, customers/suggest, reviews/suggest, queue/suggest,
 │                                     policy/[id]/document (PDF), chat-intent, help-chat,
 │                                     submissions/[id]/review, submissions/[id]/ai-review
 ├── data/
@@ -237,7 +245,8 @@ src/
 │   ├── submissionSections.ts     ← Detail/PDF section builder
 │   ├── email.ts                  ← Confirmation + underwriter emails
 │   ├── auth.ts / prisma.ts
-├── components/                    ← Chat UI, inputs, result screens, badges, map, buttons
+├── components/                    ← Chat UI, inputs, result screens, badges, map, buttons,
+│                                     AdminAnalytics + BookCharts, CustomerCard, ReviewActions
 └── utils/                         ← validation, interpolation, googleMaps loader
 
 prisma/schema.prisma               ← Submission + Broker models

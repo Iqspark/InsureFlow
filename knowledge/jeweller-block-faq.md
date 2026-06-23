@@ -30,8 +30,15 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - The type of burglar alarm protecting the premises
 - How much stock value is left in display windows after hours
 - Whether stock is regularly taken off the premises, and the maximum value carried off-site
-- The number of theft, burglary, or robbery losses in the last five years
+- The number of theft, burglary, or robbery losses in the last five years (with the type, repair status, and size for each)
 - The deductible you prefer
+- What the bulk of the stock consists of (watches, gold/precious metals, mixed jewellery, or diamonds/loose stones)
+- What portion of stock is held on consignment or memo (owned by others)
+- The value of the single most valuable item held
+- How entry to the premises is controlled during trading hours
+- What CCTV coverage protects the premises
+- The number of employees (including owners)
+- Whether jewellery repairs or manufacturing are carried out on the premises
 
 ## How is the premium calculated?
 The premium is driven by your **sum insured** — the maximum value of stock on the premises at any one time. The base annual premium is **1.0% of the sum insured**, then adjusted by risk multipliers and flat dollar loadings:
@@ -46,6 +53,12 @@ The premium is driven by your **sum insured** — the maximum value of stock on 
 - **Off-premises exposure** — applied only when stock is carried off-site
 - **Loss history** — prior theft/burglary/robbery losses increase the premium
 - **Deductible** — a higher deductible lowers the premium
+- **Principal stock** — diamonds/loose stones carry the highest factor; watches the lowest
+- **Consignment / memo stock** — more stock held on consignment raises the rate
+- **Entry control** — mantraps, buzzer entry, or an on-site guard earn a discount; an open door adds a surcharge
+- **CCTV coverage** — full recorded coverage earns the best rate
+- **Staff headcount** — more employees increase the internal-theft exposure
+- **On-premises repairs** — a workshop on site adds a loading
 
 Two flat loadings (CAD) may also apply: a **$500** loading when more than $50,000 is left in display windows after hours, and a **$250** transit loading when stock is regularly carried off-premises.
 
@@ -71,7 +84,10 @@ A quote is **referred** to an underwriter for individual review when:
 - The premises has only a local audible alarm without central-station monitoring
 - More than $50,000 of stock is left in display windows after hours
 - More than $100,000 of stock is carried off-premises at any one time
-- The business has had three or more theft, burglary, or robbery losses in the last five years
+- The business has had three or more theft, burglary, or robbery losses in the last five years, the security weaknesses behind a prior loss remain uncorrected, or a single prior loss exceeded $500,000 CAD
+- More than 50% of stock is held on consignment / memo
+- The single most valuable item is worth over $500,000 CAD (needs a per-item sub-limit)
+- The premises has no CCTV (recorded camera coverage is expected for this class)
 
 ## What is the policy term?
 All policies are issued for a 12-month term.

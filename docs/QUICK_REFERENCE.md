@@ -23,7 +23,7 @@ Run `npm run db:seed` to create these accounts if they don't exist.
 
 | Variable | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | Yes | `"file:./prisma/dev.db"` for local dev |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (Neon), e.g. `postgresql://USER:PASS@HOST/DB?sslmode=require` |
 | `NEXTAUTH_SECRET` | Yes | Any long random string (32+ chars) |
 | `NEXTAUTH_URL` | Yes | `"http://localhost:3000"` for local dev |
 | `OPENAI_API_KEY` | Yes | Powers Help Navigator + change-answer AI |
@@ -51,21 +51,29 @@ knowledge/
 
 ## Products
 
-Two products are registered in `src/data/products.ts`, each plugging its own questions + calculator into the shared engine and result UI:
+Ten products are registered in `src/data/products.ts`, each plugging its own questions + calculator (and matching `*RatingFactors.ts`) into the shared engine and result UI:
 
 | Product | Questions file | Calculator |
 |---|---|---|
-| Vacant Home (`vacant-home`) | `src/data/questions.ts` | `calculateQuote` |
-| Jeweller's Block (`jeweller-block`) | `src/data/jewellerQuestions.ts` | `calculateJewellerQuote` |
-| Farm (`farm`) | `src/data/farmQuestions.ts` | `calculateFarmQuote` |
-| Cyber / Contractor / AE / Retailers / Rental / Items / Batteries | `src/data/<product>Questions.ts` | `calculate<Product>Quote` |
+| Vacant Home (`vacant-home`) | `src/data/questions.ts` | `src/engine/quoteCalculator.ts` |
+| Rental Home (`rental-home`) | `src/data/rentalHomeQuestions.ts` | `src/engine/rentalHomeQuoteCalculator.ts` |
+| Farm (`farm`) | `src/data/farmQuestions.ts` | `src/engine/farmQuoteCalculator.ts` |
+| Jeweller's Block (`jeweller-block`) | `src/data/jewellerQuestions.ts` | `src/engine/jewellerQuoteCalculator.ts` |
+| Cyber Liability (`cyber-liability`) | `src/data/cyberQuestions.ts` | `src/engine/cyberQuoteCalculator.ts` |
+| Contractor (`contractor`) | `src/data/contractorQuestions.ts` | `src/engine/contractorQuoteCalculator.ts` |
+| Architects & Engineers (`architects-engineers`) | `src/data/architectsEngineersQuestions.ts` | `src/engine/architectsEngineersQuoteCalculator.ts` |
+| Retailers (`retailers`) | `src/data/retailersQuestions.ts` | `src/engine/retailersQuoteCalculator.ts` |
+| Personal Items (`personal-items`) | `src/data/personalItemsQuestions.ts` | `src/engine/personalItemsQuoteCalculator.ts` |
+| Lithium Batteries (`lithium-batteries`) | `src/data/lithiumBatteriesQuestions.ts` | `src/engine/lithiumBatteriesQuoteCalculator.ts` |
+
+Each product's routing (every branch reaches `"__SUBMIT__"`) is exercised by `src/data/_allProductsRouting.test.ts`.
 
 ---
 
 ## Adding a New Question
 
-1. Open the relevant product's questions file (`src/data/questions.ts` or `src/data/jewellerQuestions.ts`)
-2. Add a new object to the `QUESTIONS` / `JEWELLER_QUESTIONS` array
+1. Open the relevant product's questions file (e.g. `src/data/questions.ts`, `src/data/jewellerQuestions.ts`, `src/data/farmQuestions.ts`, …)
+2. Add a new object to that file's questions array
 3. Set the previous question's `defaultNextQuestionId` to your new question's `id`
 4. Set your new question's `defaultNextQuestionId` to the next question's `id`
 
@@ -248,7 +256,7 @@ Decline always beats Refer if both are triggered.
 2. Create `src/engine/<product>QuoteCalculator.ts` exporting a `calculate(answers): QuoteDetails` function. Call `runUnderwritingEngine(answers, <product>Questions)` first, then apply your factors. Reuse a `<product>RatingFactors.ts` file for the multipliers.
 3. Register it in `src/data/products.ts` under `PRODUCTS` with `id`, `policyType`, `questions`, `firstQuestionId`, `calculate`, and `intro`.
 
-The conversational engine, persistence, summary/PDF, and result screens are shared — no other code changes needed.
+The conversational engine, persistence, summary/PDF, and result screens are shared — no other code changes needed. `src/data/_allProductsRouting.test.ts` automatically covers the new product (verifying every branch routes to `"__SUBMIT__"`).
 
 ---
 
@@ -304,7 +312,15 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 | Jeweller quote calculation | `src/engine/jewellerQuoteCalculator.ts` |
 | Farm quote calculation | `src/engine/farmQuoteCalculator.ts` |
 | Underwriting evaluation logic (shared) | `src/engine/underwritingEngine.ts` |
-| AI underwriter recommendation (advisory) | `src/lib/aiUnderwriter.ts` → `/api/submissions/[id]/ai-review` |
+| AI underwriter recommendation (advisory) | `src/lib/aiUnderwriter.ts` → `/api/submissions/[id]/ai-review`, `src/components/ReviewActions.tsx` |
+| Analytics / charts (book + review stats) | `src/components/BookCharts.tsx`, `ReviewStats.tsx`, `AdminAnalytics.tsx` |
+| Search typeaheads | `src/components/SubmissionSearchBox.tsx`, `CustomerSearchBox.tsx`, `PolicySearchBox.tsx` |
+| Search suggestion APIs | `/api/policies/suggest`, `/api/customers/suggest`, `/api/reviews/suggest`, `/api/queue/suggest` |
+| Empty-state placeholder | `src/components/EmptyState.tsx` |
+| CSV export | `src/components/ExportCsvButton.tsx` → `/api/submissions/export` |
+| Renewal term (effectiveAt / expiresAt, set on buy) | `src/app/api/buy-policy/route.ts` |
+| Absolute URL helper (emails / links) | `src/lib/baseUrl.ts` |
+| List pages | `src/app/(protected)/{policies,customers,reviews,queue,review,admin,admin/users}/page.tsx` |
 | Chat bubble style | `src/components/ChatBubble.tsx` |
 | Typing delay (ms) | `src/components/ConversationView.tsx` → `TYPING_DELAY_MS` |
 | Progress bar | `src/components/ProgressBar.tsx` |

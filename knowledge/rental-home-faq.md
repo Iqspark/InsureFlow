@@ -26,9 +26,16 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - Estimated rebuild cost (replacement/reconstruction cost of the building — this becomes your sum insured)
 - Tenant profile (long-term family, professionals, students, short-term/Airbnb, or subsidized/DSS)
 - Current occupancy (fully occupied, partially occupied, or vacant)
-- Number of property claims in the last 5 years
+- Number of property claims in the last 5 years (with cause, repair status, and size for each)
 - Whether working smoke and carbon-monoxide alarms are present throughout the property
 - Preferred deductible
+- Typical lease term (month-to-month, 6 months, 1 year, or 2+ years)
+- Whether the property is let furnished or unfurnished
+- Whether pets are permitted
+- How the property is managed (professionally managed or self-managed)
+- Primary heating source
+- Type of electrical wiring
+- Roof age
 
 ## How is the premium calculated?
 The annual premium is driven by the sum insured. It starts from a base rate of 0.4% of the rebuild value, then is adjusted by a series of risk multipliers and flat loadings:
@@ -40,6 +47,12 @@ The annual premium is driven by the sum insured. It starts from a base rate of 0
 - Prior claims history (last 5 years)
 - Working smoke/CO alarms
 - Deductible selected
+- Lease term (longer leases earn a lower rate)
+- Pets policy
+- Property management (professionally managed earns a discount)
+- Heating type
+- Electrical wiring
+- Roof age
 
 Two flat dollar loadings may also apply: a $200 CAD partial-vacancy loading if the property is only partially occupied, and a $150 CAD student-let loading for student tenancies. The premium is also shown as a monthly figure (annual premium divided by 12).
 
@@ -56,15 +69,20 @@ You can choose from four deductibles (CAD):
 A higher deductible lowers your premium but increases your out-of-pocket cost per claim.
 
 ## What can cause a quote to be declined or referred?
-The following are referred to an underwriter for individual review:
-- A property in the Northwest Territories, Nunavut, or Yukon (remoteness and limited response infrastructure)
-- An apartment block of 5 or more units (commercial habitational risk)
-- A property built before 1950 (review of wiring and plumbing updates)
-- A rebuild value exceeding $2,000,000 CAD (senior approval; possible survey)
-- Short-term / Airbnb lettings (commercial occupancy exposure)
-- A currently vacant property — not eligible for landlord cover; use the Vacant Home product instead
-- Three or more property claims within the last 5 years
-- Missing or non-working smoke/CO alarms (working alarms are required throughout the property)
+A quote is **declined** (not eligible) when:
+- The property has active knob-and-tube wiring (it must be fully replaced and certified first)
+
+A quote is **referred** to an underwriter for individual review when:
+- The property is in the Northwest Territories, Nunavut, or Yukon (remoteness and limited response infrastructure)
+- It is an apartment block of 5 or more units (commercial habitational risk)
+- The property was built before 1950 (review of wiring and plumbing updates)
+- The rebuild value exceeds $2,000,000 CAD (senior approval; possible survey)
+- The tenancy is short-term / Airbnb (commercial occupancy exposure)
+- The property is currently vacant — not eligible for landlord cover; use the Vacant Home product instead
+- There have been three or more property claims within the last 5 years, a prior fire loss, unrepaired claim damage, or a single claim over $50,000 CAD
+- Smoke/CO alarms are missing or non-working (working alarms are required throughout the property)
+- The primary heating is wood / solid fuel (review of installation, clearances, and WETT certification)
+- The roof is over 25 years old (review of condition and any planned replacement)
 
 ## What is the policy term?
 All policies are issued for a 12-month term.

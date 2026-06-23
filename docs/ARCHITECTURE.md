@@ -57,30 +57,39 @@ src/
       login/page.tsx
     (protected)/            ← Auth-guarded; Header + Footer + HelpChatWidget
       layout.tsx            ← Server component; getServerSession → redirect("/login")
-      dashboard/page.tsx    ← Broker landing: stats + Action Required + quote list
+      dashboard/page.tsx    ← Broker landing: KPI cards + BookCharts analytics +
+                              Action Required + Upcoming Renewals + Recent + Export CSV
                               (UNDERWRITER → /review, ADMIN → /admin)
-      review/page.tsx       ← Underwriter/Admin: referred-quote review queue + stats
-      admin/page.tsx        ← Admin: portfolio overview across all brokers
-      admin/users/page.tsx  ← Admin: user management (create / role / activate)
+      review/page.tsx       ← Underwriter/Admin: ReviewStats + aging pending queue
+      queue/page.tsx        ← All pending referrals, oldest-first with aging
+      reviews/page.tsx      ← All decisions, paginated (SubmissionSearchBox)
+      policies/page.tsx     ← Bound policies only, paginated (PolicySearchBox)
+      customers/page.tsx    ← Client-360 grouped by email/name, paginated (CustomerSearchBox)
+      admin/page.tsx        ← Admin: portfolio analytics (AdminAnalytics) across all brokers
+      admin/users/page.tsx  ← Admin: user management (search / reset password / role / activate)
       new-quote/
         page.tsx            ← Category picker
         <slug>/page.tsx     ← <QuoteExperience productId="<slug>" /> per product
-      search/page.tsx       ← Role-scoped search + delete (bound policies protected)
+      search/page.tsx       ← Role-scoped search + delete (Stage filter; underwriter = policies-only)
       policy/[id]/page.tsx  ← Detail view: banner, review actions, premium, map, PDF, buy/pay
       privacy/ terms/ support/  ← Static info pages
     pay/[token]/page.tsx    ← PUBLIC (no auth) customer checkout via emailed link
     api/
       auth/[...nextauth]/   ← NextAuth handler
       submissions/          ← POST (save complete quote) + GET (role-scoped list)
+      submissions/export/   ← GET → role-scoped CSV (underwriter forced to bound policies)
       submissions/[id]/     ← DELETE (owner/admin; bound policies rejected 409)
       submissions/[id]/review/ ← POST (underwriter/admin approve|decline + note)
+      submissions/[id]/ai-review/ ← POST (underwriter/admin; AI advisory verdict, refer-only)
       drafts/               ← POST (upsert draft)
       drafts/[id]/          ← GET (load a draft for resume)
-      buy-policy/           ← Bind policy + email customer pay link + underwriter notice
+      buy-policy/           ← Bind policy (stamp 12-mo term) + email pay link + underwriter notice
       pay/[token]/          ← PUBLIC POST → mark paid + confirmation/receipt emails
       admin/users/          ← GET list / POST create (Admin only)
-      admin/users/[id]/     ← PATCH role/active (Admin only)
+      admin/users/[id]/     ← PATCH role/active / reset password (Admin only)
       search/               ← Role-scoped search
+      policies/suggest/  customers/suggest/  reviews/suggest/  queue/suggest/
+                            ← Typeahead suggest APIs (case-insensitive)
       policy/[id]/document/ ← GET → generated PDF download
       chat-intent/          ← AI: which answer does the user want to edit?
       help-chat/            ← AI: Help Navigator (knowledge-base Q&A)
@@ -101,10 +110,16 @@ src/
     inputs/                 ← Choice, Toggle, Dropdown, Number, Currency,
                               Date, Text, Address (Google Places autocomplete)
     BuyPolicyButton.tsx     ← Bind + email pay link (also "Resend payment link")
-    ReviewActions.tsx       ← Underwriter approve/decline + note
+    ReviewActions.tsx       ← Underwriter approve/decline + note + "Get AI Recommendation"
     PaymentForm.tsx         ← Card form (validated, not charged) → pay endpoint
     PaymentBadge.tsx        ← Paid / Unpaid pill
-    admin/UserManager.tsx   ← Admin user table (create / role / activate)
+    BookCharts.tsx          ← Dashboard analytics (premium volume, outcomes/close-rate, mix, value)
+    ReviewStats.tsx         ← Underwriter review KPIs
+    AdminAnalytics.tsx      ← Portfolio analytics incl. top brokers by premium
+    ActionRequiredList.tsx  ← Dashboard "Action Required" (top 5)
+    ExportCsvButton.tsx · EmptyState.tsx
+    SubmissionSearchBox / CustomerSearchBox / PolicySearchBox ← typeahead inputs
+    admin/UserManager.tsx   ← Admin user table (create / role / activate / reset password)
     Header / Footer / HelpChatWidget / PropertyMap / StageBadge / ...
   context/
     QuoteContext.tsx        ← All quote state + the conversational state machine
@@ -123,6 +138,7 @@ src/
     auth.ts                 ← NextAuth options (Credentials, JWT, role + active check)
     access.ts               ← Role helpers (scope/can*/requireRole) — RBAC source of truth
     aiUnderwriter.ts        ← Pluggable AI underwriter engine (inline OpenAI; Skill-ready)
+    baseUrl.ts              ← publicBaseUrl(req): public link base (prefers NEXTAUTH_URL)
     prisma.ts               ← Prisma client singleton
     email.ts                ← Nodemailer + Ethereal fallback; templated senders
     policyPdf.tsx           ← React-PDF document (renderPolicyPdf)
@@ -136,7 +152,8 @@ src/
 
 knowledge/                  ← FAQ + policy-wording docs for Help Navigator (.md/.txt/.pdf)
 prisma/
-  schema.prisma             ← Broker (role/active) + Submission (review + payment) models
+  schema.prisma             ← Broker (role/active) + Submission (review + payment + effectiveAt/expiresAt term) models
+.eslintrc.json              ← ESLint (next/core-web-vitals)
   seed.js                   ← Creates demo admin / underwriter / broker accounts
 ```
 
@@ -168,7 +185,7 @@ Helpers:
 - `getProduct(productId)` — returns the config, falling back to `DEFAULT_PRODUCT_ID` (`vacant-home`) for unknown ids.
 - `productSlugForPolicyType(policyType)` — reverse lookup used by the detail page's "Resume Quote" link to route a draft back to its product flow.
 
-Each product page (`/new-quote/<slug>`) is a thin wrapper that renders `<QuoteExperience productId="…" />`. The category picker at `/new-quote` groups products into categories (incl. an **Agriculture** category for `farm`); each live product has an `href` and unbuilt ones render a "Coming Soon" badge.
+Each product page (`/new-quote/<slug>`) is a thin wrapper that renders `<QuoteExperience productId="…" />`. The category picker at `/new-quote` groups products into categories (incl. an **Agriculture** category for `farm`); each live product has an `href` and unbuilt ones render a "Coming Soon" badge. All ten products ship with comprehensive question sets, rating factors, and underwriting rules. `src/data/_allProductsRouting.test.ts` validates every product's flow end-to-end (routing integrity).
 
 **Farm Insurance** is the most extensive flow: ~55 questions structured to mirror the paper application's modules (General Information, Locations, Habitational, Farm Buildings, Machinery & Equipment, Livestock, Earnings & Profits, Tank Data, Liability, Loss History, Property & Coverage, Broker Information), with conditional branches (oil-tank detail, bush cords, livestock skip, tank detail, loss detail) and decline/refer rules. Repeating tables (multiple locations/buildings/machinery/livestock/tanks) are captured as counts + aggregate values + the primary item in detail, since the chat engine is linear.
 
@@ -197,6 +214,21 @@ The `Broker` model carries a `role` (`"ADMIN" | "BROKER" | "UNDERWRITER"`) and a
 | `requireRole(session, roles[])` | server-page guard; redirects to `/login` (no session) or `/dashboard` (wrong role) |
 
 **Role landings:** BROKER → `/dashboard`, UNDERWRITER → `/review`, ADMIN → `/admin` (the dashboard page redirects the latter two). The `Header` renders role-specific nav and an Action Required badge for brokers. `access.ts`'s pure helpers are covered by `src/lib/access.test.ts`.
+
+**Role-scoped list pages.** Beyond the dashboard, several paginated list pages share the same scoping and typeahead pattern:
+
+| Page | Scope | Shows |
+|---|---|---|
+| `/policies` | role-scoped | bound policies only (`PolicySearchBox`) |
+| `/customers` | role-scoped | Client-360 grouped by email/name (`CustomerSearchBox`) |
+| `/search` | role-scoped (underwriter = policies-only) | all submissions, filters incl. Stage (quote/policy) |
+| `/reviews` | ADMIN/UNDERWRITER | all decisions (`SubmissionSearchBox`) |
+| `/queue` | ADMIN/UNDERWRITER | all pending referrals, oldest-first with aging |
+| `/review` | ADMIN/UNDERWRITER | overview (`ReviewStats`) + aging pending queue |
+| `/admin` | ADMIN | portfolio analytics (`AdminAnalytics`, top brokers by premium) |
+| `/admin/users` | ADMIN | search, reset-password, role/active toggle |
+
+Each list-search input is backed by a case-insensitive (`mode: "insensitive"`) suggest API: `/api/policies/suggest`, `/api/customers/suggest`, `/api/reviews/suggest`, `/api/queue/suggest`. The broker dashboard and these pages can export the current role-scoped view as CSV via `GET /api/submissions/export` (underwriter exports are forced to bound policies).
 
 ### Demo accounts
 
@@ -352,7 +384,8 @@ ANSWER SUBMITTED (InputRenderer → ConversationView.handleSubmit)
 "Buy This Policy" (AcceptResult / BuyPolicyButton)
    └─ POST /api/buy-policy { submissionId }
         → canBindOrPay ownership check; decision must be "accept"; not already paid
-        → set purchased = true; generate paymentToken (idempotent)
+        → set purchased = true; stamp effectiveAt/expiresAt (12-month term);
+          generate paymentToken (idempotent)
         → sendPaymentRequestEmail() to the APPLICANT with a /pay/<token> link
         → optional sendUnderwriterNotificationEmail() on first bind
         → { success, sentTo, previewUrl }   (broker sees "payment link sent")
@@ -451,6 +484,8 @@ A single `Submission` row models both drafts and completed quotes/policies, dist
   swapped into `/api/pay/[token]` later). On success `paymentStatus` becomes `"paid"` and the
   applicant receives a confirmation + receipt. A bound-but-unpaid policy can have its link
   resent from the policy page or dashboard.
+- **Policy term & renewals** — binding stamps `effectiveAt`/`expiresAt` (12-month term) on the
+  `Submission`; the dashboard's **Upcoming Renewals** derives from `expiresAt`.
 
 ---
 
@@ -501,7 +536,9 @@ Both use `gpt-4o-mini` and short-circuit with a "not configured" message when
 `.md`/`.txt`/`.pdf` in `knowledge/` (skipping `README`, capped at `KB_CHAR_LIMIT`), parses
 PDFs via `pdf-parse`, and injects them as system context alongside a portal description. It is
 tuned to answer insurance policy-wording questions and only declines truly unrelated topics.
-No restart is needed when knowledge files change.
+No restart is needed when knowledge files change. The `knowledge/` folder includes per-product
+FAQs (incl. `farm-faq.md`) and portal guides — `getting-started`, `broker-guide`,
+`underwriter-guide`, `admin-guide`, `ai-underwriter`, `payments-binding-renewals`, `portal-faq`.
 
 ### Change-an-Answer — `POST /api/chat-intent`
 

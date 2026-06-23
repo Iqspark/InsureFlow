@@ -2,15 +2,30 @@
 
 This document explains exactly how the application decides **Accept / Decline / Refer** and how it computes the **final premium** for each product, so you can confidently extend the engine with your own rules and pricing logic. All dollar amounts are in Canadian dollars (CAD).
 
-InsureFlow ships **several products** — including **Vacant Home Insurance**, **Jeweller's Block Insurance**, and **Farm Insurance** (plus Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries). All share a single underwriting engine and a common result UI; each plugs in its own question flow and its own quote calculator via the product registry in `src/data/products.ts`. The worked examples below focus on Vacant Home and Jeweller's Block, but the same mechanics apply to every product.
+InsureFlow ships **ten products** — all sharing a single underwriting engine and a common result UI; each plugs in its own question flow and its own quote calculator via the product registry in `src/data/products.ts`:
 
-> **AI underwriter recommendation (advisory):** for *referred* quotes, an underwriter can request an AI verdict (approve/decline + confidence + reasons) via `POST /api/submissions/[id]/ai-review`. This is advisory only — it pre-fills the review note and the human still decides. The engine is pluggable (`src/lib/aiUnderwriter.ts`), currently an inline OpenAI call. It does **not** change the deterministic rule-based engine documented here.
+| Product (slug) | Questions | Calculator | File |
+|---|---|---|---|
+| Vacant Home (`vacant-home`) | `src/data/questions.ts` | `calculateQuote` | `src/engine/quoteCalculator.ts` |
+| Rental Home (`rental-home`) | `src/data/rentalHomeQuestions.ts` | `calculateRentalHomeQuote` | `src/engine/rentalHomeQuoteCalculator.ts` |
+| Farm (`farm`) | `src/data/farmQuestions.ts` | `calculateFarmQuote` | `src/engine/farmQuoteCalculator.ts` |
+| Jeweller's Block (`jeweller-block`) | `src/data/jewellerQuestions.ts` | `calculateJewellerQuote` | `src/engine/jewellerQuoteCalculator.ts` |
+| Cyber Liability (`cyber-liability`) | `src/data/cyberQuestions.ts` | `calculateCyberQuote` | `src/engine/cyberQuoteCalculator.ts` |
+| Contractor (`contractor`) | `src/data/contractorQuestions.ts` | `calculateContractorQuote` | `src/engine/contractorQuoteCalculator.ts` |
+| Architects & Engineers (`architects-engineers`) | `src/data/architectsEngineersQuestions.ts` | `calculateArchitectsEngineersQuote` | `src/engine/architectsEngineersQuoteCalculator.ts` |
+| Retailers (`retailers`) | `src/data/retailersQuestions.ts` | `calculateRetailersQuote` | `src/engine/retailersQuoteCalculator.ts` |
+| Personal Items (`personal-items`) | `src/data/personalItemsQuestions.ts` | `calculatePersonalItemsQuote` | `src/engine/personalItemsQuoteCalculator.ts` |
+| Lithium Batteries (`lithium-batteries`) | `src/data/lithiumBatteriesQuestions.ts` | `calculateLithiumBatteriesQuote` | `src/engine/lithiumBatteriesQuoteCalculator.ts` |
+
+The worked examples below focus on Vacant Home and Jeweller's Block (with newer-product examples added), but the same mechanics apply to every product.
+
+> **AI underwriter recommendation (advisory):** for *referred* quotes, an underwriter can request an AI verdict via `POST /api/submissions/[id]/ai-review`. This is advisory only — it pre-fills the review note and the human still decides. It does **not** change the deterministic rule-based engine documented here. See [The AI Underwriter Recommendation](#the-ai-underwriter-recommendation-advisory) below.
 
 ---
 
 ## Table of Contents
 
-1. [Overview — One Engine, Two Products](#overview--one-engine-two-products)
+1. [Overview — One Engine, Ten Products](#overview--one-engine-ten-products)
 2. [The Underwriting Engine](#the-underwriting-engine)
    - [How It Works](#how-it-works)
    - [Comparison Operators](#comparison-operators)
@@ -26,20 +41,17 @@ InsureFlow ships **several products** — including **Vacant Home Insurance**, *
    - [The Pricing Formula](#the-pricing-formula-1)
    - [Rating Factor Reference](#rating-factor-reference-1)
 6. [Jeweller's Block — Underwriting Rules](#jewellers-block--underwriting-rules)
-7. [The Outcome Screens](#the-outcome-screens)
-8. [Adding a New Rating Factor](#adding-a-new-rating-factor)
-9. [Worked Examples](#worked-examples)
+7. [The AI Underwriter Recommendation (advisory)](#the-ai-underwriter-recommendation-advisory)
+8. [The Underwriter Workflow Pages](#the-underwriter-workflow-pages)
+9. [The Outcome Screens](#the-outcome-screens)
+10. [Adding a New Rating Factor](#adding-a-new-rating-factor)
+11. [Worked Examples](#worked-examples)
 
 ---
 
-## Overview — One Engine, Two Products
+## Overview — One Engine, Ten Products
 
-Each product is registered in `src/data/products.ts` as a `ProductConfig` that bundles its `questions` array, its `firstQuestionId`, and a `calculate` function:
-
-| Product | Questions | Calculator |
-|---|---|---|
-| Vacant Home (`vacant-home`) | `src/data/questions.ts` | `calculateQuote` |
-| Jeweller's Block (`jeweller-block`) | `src/data/jewellerQuestions.ts` | `calculateJewellerQuote` |
+Each product is registered in `src/data/products.ts` as a `ProductConfig` that bundles its `questions` array, its `firstQuestionId`, and a `calculate` function (see the product table at the top of this document).
 
 When the user clicks **"Calculate My Quote"** on the Summary screen, the selected product's `calculate(answers)` runs. Inside it, two things happen in sequence:
 
@@ -53,7 +65,20 @@ calculate(answers)
            └─ Returns finalAnnualPremium, finalMonthlyPremium, factors[]
 ```
 
-The underwriting decision and the calculated premium are bundled together into a `QuoteDetails` object, which `QuoteResult.tsx` uses to render the correct outcome screen. The engine is identical for both products — only the `questions` array (and therefore its `underwritingRules`) differs.
+The underwriting decision and the calculated premium are bundled together into a `QuoteDetails` object, which `QuoteResult.tsx` uses to render the correct outcome screen. The engine is identical for every product — only the `questions` array (and therefore its `underwritingRules`) differs.
+
+**Every calculator follows the same shape.** A base premium is derived from the product's headline exposure — the **sum insured** (Vacant/Rental Home replacement cost), the **aggregate limit** (Cyber, Contractor, A&E), or **annual revenue** (Retailers, Lithium Batteries) — then multiplied by a series of rating-factor lookups via a shared `applyFactor(label, multiplier, displayValue)` helper that pushes each step onto the `factors` breakdown, and finally adjusted by flat dollar loadings. Each `calculate(answers)` returns a `QuoteDetails`:
+
+```typescript
+interface QuoteDetails extends UnderwritingDecision {  // decision, declineReasons, referralReasons
+  basePremium: number;
+  finalAnnualPremium: number;
+  finalMonthlyPremium: number;   // round(annual / 12)
+  coverageAmount: number;        // the sum insured / aggregate limit
+  deductible: number;
+  factors: FactorBreakdown[];    // one row per applyFactor() call
+}
+```
 
 ---
 
@@ -408,6 +433,45 @@ The three "no overnight safe / no rated safe / no alarm" declines reflect the mi
 
 ---
 
+## The AI Underwriter Recommendation (advisory)
+
+**Files:** `src/lib/aiUnderwriter.ts` · `src/app/api/submissions/[id]/ai-review/route.ts` · `src/components/ReviewActions.tsx`
+
+The deterministic engine above can only ever return **refer** for a risk it can't auto-decide — a human then makes the call. To assist that human, InsureFlow offers an **advisory AI recommendation** for *referred* quotes. It is strictly human-in-the-loop: it pre-fills the review note but **never** decides on its own.
+
+**How it's invoked:** in `ReviewActions.tsx`, an underwriter or admin clicks **"Get AI Recommendation"** (refer-only; the button is hidden for already-decided quotes). That calls `POST /api/submissions/[id]/ai-review`, which is guarded to underwriter/admin and gated on `isAiUnderwriterConfigured()` — without `OPENAI_API_KEY` the route returns `503` "not configured".
+
+**What it returns:** a typed `UnderwriterVerdict`:
+
+```typescript
+interface UnderwriterVerdict {
+  recommendation: "approve" | "decline";
+  confidence: "low" | "medium" | "high";
+  summary: string;       // 1–2 sentence rationale
+  reasons: string[];     // 2–5 short specific reasons
+}
+```
+
+The verdict's summary/reasons pre-fill the review note, but the human still confirms the actual decision through the normal `POST /api/submissions/[id]/review` action (approve→accept / decline).
+
+**Pluggable engine:** the active engine is an inline OpenAI call (`gpt-4o-mini`, JSON output, funded by `OPENAI_API_KEY`) that is fed the product, premium/coverage, referral reasons, and the full application sections. It is selected via a single `activeEngine` binding behind the `UnderwriterEngine` interface, so a future Anthropic Agent-Skill engine (PDF + code execution) can be dropped in without touching the route or UI.
+
+---
+
+## The Underwriter Workflow Pages
+
+Referred quotes are worked through three role-guarded pages (underwriter/admin):
+
+| Page | Purpose |
+|---|---|
+| `/review` | Overview + analytics, with the oldest-first **aging queue** of pending referrals surfaced for action. |
+| `/queue` | The full list of all pending referrals awaiting a decision. |
+| `/reviews` | The history of all decisions already made (approved/declined, with reviewer and note). |
+
+Each decision is stamped (`reviewedBy` / `reviewedAt` / `reviewNote`) by the `review` route, which emails the broker on approval and surfaces the result in the broker dashboard's **Action Required**.
+
+---
+
 ## The Outcome Screens
 
 `QuoteResult.tsx` reads `quoteDetails.decision` and renders one of three sub-components for either product:
@@ -480,3 +544,15 @@ applyFactor(
 **Profile:** ON retail jeweller, 12 yrs trading, $500k max stock, all in a TL-15 rated safe, central-station alarm with safe contacts, windows emptied nightly, no off-site, no losses, $5,000 deductible.
 
 **UW Result:** Accept. Base premium = $500,000 × 0.01 = $5,000, then reduced by the established-trader, all-in-safe, rated-safe, central-station, and emptied-window discounts.
+
+### Example 6 — Cyber Liability, Decline
+
+**Profile:** Business with no data backups (`backups = none`).
+
+**UW Result:** Decline. *"A business with no data backups cannot recover from ransomware and falls outside our underwriting appetite."* No premium calculated, and the decline outranks any refer.
+
+### Example 7 — Farm, Decline
+
+**Profile:** Farm whose premises has been used to grow cannabis beyond the legal limit without a licence (`cannabis_unlicensed = yes`).
+
+**UW Result:** Decline. *"Premises used to grow cannabis beyond the legal limit without a licence fall outside our underwriting appetite."*

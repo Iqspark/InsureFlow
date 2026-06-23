@@ -32,8 +32,14 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - Total value of stock and contents (inventory, fixtures, fittings and equipment at replacement cost)
 - Fire protection in place
 - Burglar alarm in place
-- Number of insurance claims in the last five years
+- Number of insurance claims in the last five years (and, if any, the cause of each, whether the damage is fully resolved, and the size of the largest claim)
 - Preferred deductible
+- Approximate age of the building the store occupies
+- Share of sales made online / shipped to customers
+- Whether the store sells age-restricted goods (alcohol, tobacco, vape)
+- Whether there is any food preparation or cooking on the premises
+- How much cash is typically left on the premises after hours
+- Preferred public liability limit
 - Business phone number and email address
 
 ## How is the premium calculated?
@@ -46,6 +52,12 @@ The annual premium is driven by the **stock and contents value** (your sum insur
 - **Burglar alarm** — central station (0.90), local only (1.15)
 - **Prior claims (5 yrs)** — none (0.95), 1 claim (1.15), 2 claims (1.35)
 - **Deductible** — see options below
+- **Building age** — under 15 years (0.95), 15–40 years (1.00), 40–75 years (1.15), over 75 years (1.35)
+- **Online sales share** — none/all in-store (1.05), up to 25% (1.00), 25–60% (0.95), over 60% (0.90)
+- **Age-restricted goods** — none sold (1.00), a minor part of sales (1.20), a primary line (1.45)
+- **On-site cooking** — none (1.00), light/microwaves & kettles (1.15), deep fryer/open-flame (1.40)
+- **After-hours cash on premises** — under $1,000 (0.95), $1,000–$10,000 (1.05), over $10,000 (1.30)
+- **Public liability limit** — $1M (1.00), $2M (1.10), $5M (1.25)
 
 A flat **general liability loading** is then added based on annual turnover band:
 - Under $250,000 turnover: $350 CAD
@@ -75,6 +87,12 @@ You can choose from the following deductibles (the higher the deductible, the lo
 - A stock and contents **sum insured over $5,000,000 CAD** (senior approval and survey of protections)
 - A premises with **no burglar alarm** (theft controls reviewed)
 - **Three or more claims** within the last five years
+- A **prior fire/smoke claim** (any of the reported claim causes is a fire loss)
+- **Unresolved damage** from a prior claim still outstanding
+- A prior claim **over $500,000**
+- A store whose **primary line of business is alcohol, tobacco or vape** (licensing and theft controls reviewed)
+- On-site **deep-fat frying or open-flame cooking** (fire-suppression controls reviewed)
+- More than **$10,000 cash held on premises after hours** (safe and security controls reviewed)
 
 ## What is the policy term?
 All policies are issued for a 12-month term.

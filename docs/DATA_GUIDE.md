@@ -2,7 +2,22 @@
 
 This is the practical guide for converting your underwriting Excel spreadsheet into the JSON/TypeScript format the application reads. No deep programming experience is required for the day-to-day work — it is a structured data-entry task.
 
-InsureFlow is **multi-product**. It ships several packages — **Vacant Home**, **Jeweller's Block**, **Farm**, plus Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries — and each is a self-contained set of questions + a quote calculator that plug into a shared product registry. The examples below use Vacant Home and Jeweller's Block; the same pattern applies to every product (e.g. `farmQuestions.ts` / `farmRatingFactors.ts` / `farmQuoteCalculator.ts`). This guide teaches the question/pricing data model, then walks through adding a new question and adding a whole new product.
+InsureFlow is **multi-product** — it currently ships **ten** packages, each a self-contained set of questions + a rating-factors table + a quote calculator that plug into a shared product registry:
+
+| Slug | Product | Files |
+|---|---|---|
+| `vacant-home` | Vacant Home | `questions.ts` / `ratingFactors.ts` / `quoteCalculator.ts` |
+| `rental-home` | Rental Home | `rentalHomeQuestions.ts` / `rentalHomeRatingFactors.ts` / `rentalHomeQuoteCalculator.ts` |
+| `farm` | Farm (module-structured) | `farmQuestions.ts` / `farmRatingFactors.ts` / `farmQuoteCalculator.ts` |
+| `jeweller-block` | Jeweller's Block | `jewellerQuestions.ts` / `jewellerRatingFactors.ts` / `jewellerQuoteCalculator.ts` |
+| `cyber-liability` | Cyber Liability | `cyberQuestions.ts` / `cyberRatingFactors.ts` / `cyberQuoteCalculator.ts` |
+| `contractor` | Contractor | `contractorQuestions.ts` / `contractorRatingFactors.ts` / `contractorQuoteCalculator.ts` |
+| `architects-engineers` | Architects & Engineers | `architectsEngineersQuestions.ts` / `architectsEngineersRatingFactors.ts` / `architectsEngineersQuoteCalculator.ts` |
+| `retailers` | Retailers | `retailersQuestions.ts` / `retailersRatingFactors.ts` / `retailersQuoteCalculator.ts` |
+| `personal-items` | Personal Items | `personalItemsQuestions.ts` / `personalItemsRatingFactors.ts` / `personalItemsQuoteCalculator.ts` |
+| `lithium-batteries` | Lithium Batteries | `lithiumBatteriesQuestions.ts` / `lithiumBatteriesRatingFactors.ts` / `lithiumBatteriesQuoteCalculator.ts` |
+
+(Questions and rating-factor files live in `src/data/`; calculators live in `src/engine/`.) The examples below mostly use Vacant Home and Jeweller's Block, but the same pattern applies to every product. **Farm** is module-structured — its questions mirror the paper application's modules (General Information, Locations, Habitational, Farm Buildings, Machinery & Equipment, Livestock, etc.) as conversational sections. This guide teaches the question/pricing data model, then walks through adding a new question and adding a whole new product.
 
 ---
 
@@ -36,8 +51,12 @@ InsureFlow is **multi-product**. It ships several packages — **Vacant Home**, 
 | `src/data/ratingFactors.ts` | Vacant-home pricing multipliers + flat dollar loadings | Vacant-home actuals change |
 | `src/data/jewellerQuestions.ts` | Jeweller's Block questions (same schema) | Editing the jeweller flow |
 | `src/data/jewellerRatingFactors.ts` | Jeweller's Block pricing tables | Jeweller actuals change |
+| `src/data/<product>Questions.ts` | The other products' question flows (same schema) | Editing that product's flow |
+| `src/data/<product>RatingFactors.ts` | The other products' pricing tables | That product's actuals change |
+| `src/engine/<product>QuoteCalculator.ts` | The other products' quote calculators | That product's pricing logic changes |
 | `src/data/products.ts` | The product registry — wires each flow to its calculator + intro | Adding/removing a product |
 | `src/utils/sections.ts` | Maps each question to a summary/progress-rail section | Adding sections to the vacant flow |
+| `src/data/_allProductsRouting.test.ts` | Routing-integrity safety net (runs under `npm test`) | Automatic — no edits needed |
 
 Everything else — all UI components, animations, the conversational engine, persistence, and result screens — reads from these files automatically. The shape of every question is defined by the `Question` interface in `src/types/index.ts`; that interface is the source of truth.
 
@@ -58,18 +77,22 @@ export interface ProductConfig {
 }
 ```
 
-The registry maps a slug to its config:
+The registry maps a slug to its config — one entry per product (ten today):
 
 ```typescript
 export const PRODUCTS: Record<string, ProductConfig> = {
   "vacant-home":   { id: "vacant-home",   policyType: "Vacant Home Insurance",   questions: QUESTIONS,           firstQuestionId: FIRST_QUESTION_ID,          calculate: calculateQuote,         intro: { … } },
   "jeweller-block":{ id: "jeweller-block",policyType: "Jeweller Block Insurance",questions: JEWELLER_QUESTIONS,  firstQuestionId: JEWELLER_FIRST_QUESTION_ID, calculate: calculateJewellerQuote, intro: { … } },
+  // …rental-home, farm, cyber-liability, contractor, architects-engineers,
+  //   retailers, personal-items, lithium-batteries…
 };
 
 export const DEFAULT_PRODUCT_ID = "vacant-home";
 ```
 
 The shared engine starts at `firstQuestionId`, walks the question array via routing rules until it hits `"__SUBMIT__"`, then calls `calculate(answers)` to produce the quote. `policyType` is written to the database and shown on the result screen and PDF.
+
+> **Routing safety net.** `src/data/_allProductsRouting.test.ts` runs under `npm test` and validates **every** registered product: every `defaultNextQuestionId` / branch target resolves to a real id or `"__SUBMIT__"`, every question is reachable from the first question, `"__SUBMIT__"` is reachable, and ids are unique. If you mistype a `nextQuestionId` or orphan a question, this test fails — so run `npm test` after editing any flow.
 
 ---
 
@@ -314,7 +337,44 @@ If a run produces both decline and refer triggers, **decline wins**. Decline rea
 
 ## Rating Factors — Linking Questions to Pricing
 
-The `ratingFactor` field is a string key. The product's calculator (`quoteCalculator.ts` for vacant-home, `jewellerQuoteCalculator.ts` for jeweller) reads the answer, looks it up in a factor table, and applies the multiplier.
+The `ratingFactor` field is a string key. The product's calculator (`quoteCalculator.ts` for vacant-home, `jewellerQuoteCalculator.ts` for jeweller, `<product>QuoteCalculator.ts` for the rest) reads the answer, looks it up in a factor table, and applies the multiplier.
+
+### The calculator pattern (shared by every product)
+
+Every `calculate(answers)` follows the same shape:
+
+```typescript
+export function calculateExampleQuote(answers: Record<string, Answer>): QuoteDetails {
+  const uwDecision = runUnderwritingEngine(answers, EXAMPLE_QUESTIONS); // decline/refer arrays
+  const factors: FactorBreakdown[] = [];
+  let flatTotal = 0;
+
+  // Base premium is product-specific — sum insured / coverage limit / revenue driven.
+  const basePremium = …;
+  let premium = basePremium;
+
+  // Each multiplier is applied and pushed onto the factors breakdown:
+  const applyFactor = (name: string, multiplier: number, description: string) => {
+    premium *= multiplier;
+    factors.push({ name, multiplier, adjustment: 0, description });
+  };
+
+  // Optional flat dollar loadings:
+  const applyFlat = (name: string, amount: number, description: string) => {
+    flatTotal += amount;
+    factors.push({ name, multiplier: 1, adjustment: amount, description });
+  };
+
+  // …applyFactor(...) per rated question, applyFlat(...) per loading…
+
+  const finalAnnualPremium = Math.round(premium + flatTotal);
+  return { ...uwDecision, basePremium, finalAnnualPremium,
+           finalMonthlyPremium: Math.round(finalAnnualPremium / 12),
+           coverageAmount: …, deductible: …, factors };
+}
+```
+
+So the underwriting decision and the pricing run in the same call: `runUnderwritingEngine(answers, QUESTIONS)` produces the decision arrays, then `applyFactor` walks the rated questions.
 
 ### Step 1 — name the factor on the question
 
@@ -360,7 +420,7 @@ applyFactor("Property Type", PROPERTY_TYPE_FACTORS[t] ?? 1.0, answers.property_t
 
 ### Base premium and flat loadings
 
-Each product has a base figure: vacant-home uses a flat `BASE_PREMIUM = 500` (CAD); jeweller uses `JEWELLER_BASE_RATE = 0.01` applied to the **sum insured** (max stock value). After multipliers, **flat dollar loadings** are added, e.g.:
+Each product has its own base figure, set in its `*RatingFactors.ts`. The driver varies by product: vacant-home uses a flat `BASE_PREMIUM = 500` (CAD); jeweller uses `JEWELLER_BASE_RATE = 0.01` applied to the **sum insured** (max stock value); other products are driven by a coverage **limit**, **revenue/turnover**, or scheduled item value. After multipliers, **flat dollar loadings** are added, e.g.:
 
 ```typescript
 export const FLAT_ADJUSTMENTS = {
@@ -508,8 +568,9 @@ export const PRODUCTS: Record<string, ProductConfig> = {
 ```
 
 5. Reuse the `applicant_name` / `contact_email` ids if you want the persistence layer to map them to the shared Submission columns without special-casing (the jeweller flow does this).
+6. Run `npm test`. The new product is automatically picked up by `_allProductsRouting.test.ts`, which checks that all targets resolve, every question is reachable, and `"__SUBMIT__"` is reachable — a fast way to catch a mistyped `nextQuestionId` or an orphaned question.
 
-The shared engine, persistence, and result UI need no other changes — they read everything from the `ProductConfig`.
+The shared engine, persistence, and result UI need no other changes — they read everything from the `ProductConfig`. Non-vacant-home products store their answers in the `allAnswers` JSON column, so there are no per-product DB columns to add.
 
 ---
 

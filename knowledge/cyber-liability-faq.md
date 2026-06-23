@@ -19,8 +19,14 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - Whether multi-factor authentication (MFA) is enforced
 - Data backup strategy
 - Endpoint protection deployed across company devices
-- Number of cyber incidents or breaches in the last 5 years
+- Number of cyber incidents or breaches in the last 5 years (and, if any: the type of each incident, whether the vulnerabilities were fully remediated, and the cost of the largest incident)
 - Preferred deductible
+- How often employees receive security-awareness training (e.g. phishing simulations)
+- How quickly critical security patches are applied
+- Whether sensitive data and backups are encrypted at rest
+- How staff connect remotely (VPN/ZTNA, RDP, etc.)
+- Reliance on critical third-party IT or SaaS vendors
+- Whether the business has a documented incident response plan
 - Business phone number and contact email
 
 ## How is the premium calculated?
@@ -33,8 +39,14 @@ The base annual premium is 1.2% of the chosen aggregate limit (for example, $12,
 - Endpoint security in place
 - Prior cyber incidents in the last 5 years
 - Deductible selected
+- Security-awareness training frequency (ongoing phishing tests earn the best rate; no formal training carries a surcharge)
+- Patch cadence (automated/within days earns the best rate; ad-hoc carries a surcharge)
+- Data-at-rest encryption (fully encrypted earns the best rate; not encrypted carries a surcharge)
+- Remote access method (VPN/ZTNA with MFA earns the best rate; RDP exposed to the internet carries the highest factor)
+- Reliance on critical third-party vendors (low reliance earns the best rate; high reliance carries a surcharge)
+- Incident response plan (documented and tested earns the best rate; no plan carries a surcharge)
 
-Two flat dollar loadings may also apply after the multipliers: $1,000 CAD if MFA is not enforced, and $750 CAD if no endpoint protection is deployed. Strong security controls (enforced MFA, tested offline/immutable backups, EDR) reduce the premium, while weaker controls and a heavier loss history increase it.
+Three flat dollar loadings may also apply after the multipliers: $1,000 CAD if MFA is not enforced, $750 CAD if no endpoint protection is deployed, and $500 CAD if there is no documented incident response plan. Strong security controls (enforced MFA, tested offline/immutable backups, EDR, ongoing training, fast patching, encryption, secure remote access, a tested IR plan) reduce the premium, while weaker controls and a heavier loss history increase it.
 
 ## What aggregate limits are available?
 The aggregate limit is the most we will pay across all claims in the policy year. Available limits are:
@@ -67,6 +79,10 @@ A quote is **referred** to an underwriter for individual review when any of the 
 - MFA is not enforced (a baseline control)
 - No endpoint protection is deployed
 - The business has had 3 or more cyber incidents in the last 5 years
+- A prior incident was ransomware (requires review of current controls)
+- The vulnerabilities behind prior incidents have not been fully remediated
+- The largest prior incident cost more than $500,000
+- Remote Desktop (RDP) is exposed directly to the internet (a primary ransomware vector)
 
 A referral is not a decline — it means an underwriter reviews the risk before a final decision.
 

@@ -28,8 +28,14 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - Whether you have a professional appraisal dated within the last 3 years
 - How the items are normally secured at home
 - Whether the items are regularly carried or worn outside the home
-- Number of loss, theft, or damage claims in the last 5 years
+- Number of loss, theft, or damage claims in the last 5 years (and, if any, the nature of each, whether the item was recovered/replaced, and the size of the largest loss)
 - Preferred deductible
+- Number of individual items to be listed on the schedule
+- How often the items are typically worn or used
+- Whether the home has a monitored burglar alarm
+- How often any items are taken on international trips
+- Whether you have ever had valuables stolen (insured or not)
+- Whether you have photos, serial numbers, or engravings on file for the items
 - Contact phone and email
 
 ## How is the premium calculated?
@@ -41,6 +47,12 @@ The base annual premium is **1.5% of the total insured value** (your sum insured
 - **Carried outside the home** — a 1.25 multiplier applied only when items are regularly carried or worn off-premises
 - **Loss history (5 yrs)** — none 0.95, one loss 1.15, two losses 1.35, three or more 1.60
 - **Deductible** — $0 1.15, $500 1.00, $1,000 0.92, $2,500 0.82
+- **Number of scheduled items** — 1–3 0.95, 4–10 1.00, 11–25 1.10, 26 or more 1.20
+- **Worn / used frequency** — kept in a vault 0.85, special occasions only 1.00, weekly 1.15, every day 1.30
+- **Monitored alarm** — central station monitored 0.90, self/app monitored 1.05, no alarm 1.25
+- **International travel** — never 1.00, occasionally 1.15, frequently 1.35
+- **Prior theft of valuables** — a 1.30 multiplier applied only when a prior theft is reported
+- **Documentation on file** — photos/serials/engravings on file 0.92, otherwise 1.10
 
 Two flat dollar loadings are added after the multipliers: **$150 CAD** when any single item is valued over $50,000, and **$100 CAD** when items are regularly carried off-premises. The annual premium is also shown as a monthly figure (one twelfth of the annual amount).
 
@@ -65,6 +77,9 @@ The following all trigger an underwriter referral (refer) rather than an instant
 - **No professional appraisal within the last 3 years** — values must be confirmed
 - Items kept with **no special security** (no safe or monitored alarm)
 - **Three or more** loss, theft, or damage claims in the last 5 years
+- A prior loss **over $100,000 CAD**
+- Items taken on international trips **frequently** (worldwide territory coverage reviewed)
+- Any **prior theft of valuables** (whether insured or not)
 
 A referral is not a decline — it means a broker or underwriter reviews the submission before offering terms.
 

@@ -30,8 +30,15 @@ Our online quoting tool produces an instant quote in just a few minutes. A broke
 - Number of years the business has been operating
 - How often the business hires subcontractors
 - Whether the business performs work at height (above two storeys or more than 6 metres), and if so the maximum working height
-- GL aggregate limit and deductible you would like
-- Number of liability claims in the last 5 years
+- GL aggregate limit you would like
+- Number of liability claims in the last 5 years, and for each claim its cause; whether the claims are settled and closed; and the size of the largest claim
+- Deductible you would like
+- Type of clients the business mainly works for (residential, mixed, commercial, or industrial/institutional)
+- Estimated annual payroll (all employees and working owners)
+- Whether the subcontractors you hire carry their own GL insurance (and whether certificates are collected)
+- The value of the largest single job you typically take on
+- Whether the business performs any hot works (welding, cutting, soldering, or torch work)
+- Whether the business carries WSIB / WCB workers' compensation coverage
 - Business phone number and email address
 
 ## How is the premium calculated?
@@ -45,8 +52,14 @@ Contractor GL is turnover-rated: the base premium is your estimated annual reven
 - **Claims history (5 yrs)** — none (0.95), 1 claim (1.15), 2 claims (1.35), 3 or more (1.60).
 - **GL aggregate limit** — see below.
 - **Deductible** — see below.
+- **Client type** — mostly residential (1.00), mix of both (1.05), mostly commercial (1.15), industrial/institutional (1.30).
+- **Payroll band** — under $100,000 (0.95), $100,000–$500,000 (1.00), $500,000–$2M (1.10), $2M+ (1.20).
+- **Subcontractor insurance** — COIs collected from all subs (0.95), some do/some don't (1.20), none or not verified (1.45), no subs used (1.00).
+- **Largest single job** — under $50,000 (0.95), $50,000–$250,000 (1.00), $250,000–$1M (1.15), over $1M (1.35).
+- **Hot works** — performs hot works (1.25), no hot works (1.00).
+- **WSIB / WCB coverage** — coverage in good standing (1.00), no coverage (1.20).
 
-Two flat loadings are added after the multipliers where applicable: a $350 CAD loading for regular work at height, and a $250 CAD loading for frequent subcontracting (COI administration).
+Three flat loadings are added after the multipliers where applicable: a $350 CAD loading for regular work at height, a $250 CAD loading for frequent subcontracting (COI administration), and a $300 CAD hot-works fire-safety loading.
 
 The result is an annual premium; the monthly figure is the annual premium divided by 12.
 
@@ -66,7 +79,7 @@ General liability aggregate limits are offered at:
 A higher deductible lowers your premium but increases your out-of-pocket cost per claim.
 
 ## What can cause a quote to be declined or referred?
-There are no automatic declines, but the following trigger a referral for individual underwriter review:
+There are no automatic declines. The following trigger a referral for individual underwriter review:
 - Operations in the Northwest Territories, Nunavut, or Yukon (remoteness and limited claims/response infrastructure)
 - Roofing or excavation/foundation work (high-hazard classes — height, collapse, and underground exposures)
 - Annual revenue exceeding $10,000,000 CAD (senior underwriter approval and review of contracts and subcontracting controls)
@@ -74,6 +87,11 @@ There are no automatic declines, but the following trigger a referral for indivi
 - Frequent subcontracting (underwriter verification that certificates of insurance are collected and maintained for all subs)
 - Work above six storeys (elevated fall and falling-object exposure)
 - Three or more liability claims within the last 5 years
+- An open or unresolved liability claim (not settled and closed)
+- A prior liability claim exceeding $500,000
+- Subcontractors hired who do not carry (or whose insurance is not verified with certificates) their own GL coverage
+- A single contract exceeding $1,000,000 (concentrated exposure — review of contract terms and indemnity provisions)
+- Operating without valid WSIB / WCB workers' compensation coverage
 
 ## What is the policy term?
 All policies are issued for a 12-month term.

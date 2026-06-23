@@ -25,8 +25,14 @@ Our online quoting tool produces an instant quote in under five minutes. A broke
 - Annual turnover (in CAD) attributable to the lithium-battery products
 - Safety certification held by the cells and packs
 - Whether any product has been recalled in the last 5 years
-- Number of product liability claims in the last 5 years
+- Number of product liability claims in the last 5 years (and, if any, the cause of each, whether the underlying defect has been corrected, and the size of the largest claim)
 - Desired aggregate limit and deductible
+- Country where the cells and packs are primarily manufactured
+- Roughly how many battery units are sold or distributed per year
+- Whether any products are sold or distributed in the USA
+- Whether the cells are UN38.3 tested for safe transport
+- How the product is independently safety-tested
+- Level of batch / serial traceability maintained
 - Business phone and email
 
 ## How is the premium calculated?
@@ -40,6 +46,12 @@ The premium is turnover-rated. The base annual premium is 0.8% of the annual tur
 - Recall history (last 5 years)
 - Prior product liability claims (last 5 years)
 - Deductible chosen
+- Country of manufacture
+- Annual units sold band
+- US-market distribution
+- UN38.3 transport compliance
+- Independent third-party testing
+- Batch / serial traceability
 
 A flat loading of $1,500 CAD is added if there has been a product recall in the last 5 years.
 
@@ -66,6 +78,12 @@ A quote is **referred** to an underwriter for individual review when:
 - Products are self-certified or CE-only without independent UL/IEC certification
 - There has been a product recall in the last 5 years (review of root cause and corrective actions)
 - The business has had 3 or more product liability claims in the last 5 years
+- A prior product liability claim was caused by **fire / thermal runaway**
+- The underlying product defect from a prior claim has **not yet been corrected**
+- A prior product liability claim **exceeded $1,000,000**
+- The **USA is the primary market** for the products (elevated litigation severity)
+- The cells are **not UN38.3 compliant** for transport (supply chain and shipping practices reviewed)
+- The product has **no independent safety testing**
 
 ## What is the policy term?
 All policies are issued for a 12-month term.

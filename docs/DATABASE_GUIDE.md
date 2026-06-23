@@ -152,6 +152,9 @@ Each row is one quote. It holds the broker who created it, contact + property + 
 | `paidAt` | DateTime? | When payment completed |
 | `paidAmount` | Float? | Amount paid (CAD) |
 | `paymentToken` | String? (unique) | Tokenised id emailed to the applicant as the `/pay/<token>` link |
+| **Policy term** (set on bind) | | |
+| `effectiveAt` | DateTime? | Start of the 12-month policy term, stamped on bind by `POST /api/buy-policy` |
+| `expiresAt` | DateTime? | End of the 12-month term (`effectiveAt` + 1 year); renewals derive from this |
 | **Underwriter review audit** | | |
 | `reviewedById` | String? | FK → `Broker.id` of the reviewer |
 | `reviewedAt` | DateTime? | When the referral was decided |
@@ -168,7 +171,7 @@ Each row is one quote. It holds the broker who created it, contact + property + 
 
 ### Typed Columns vs `allAnswers` (Multiple Products)
 
-The portal supports many insurance products (e.g. Vacant Home Insurance, Jeweller's Block, Farm Insurance, and more). The named/typed columns above (`province`, `vacancyDuration`, `hasPool`, etc.) are tailored to the **Vacant Home** questionnaire.
+The portal supports **ten** insurance products (Vacant Home, Jeweller's Block, Farm, Cyber Liability, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries). The named/typed columns above (`province`, `vacancyDuration`, `hasPool`, etc.) are tailored to the **Vacant Home** questionnaire.
 
 - **Vacant Home** answers are mapped one-by-one into the typed columns by `src/app/api/submissions/route.ts` (and `src/app/api/drafts/route.ts`), so they can be filtered and aggregated in SQL.
 - **Non-vacant products (e.g. Jeweller's Block, Farm Insurance)** do not have their own typed columns. Their answers are stored only in the `allAnswers` JSON blob. The product is identified by `policyType`. To read product-specific fields for these products, parse `allAnswers`.
@@ -194,7 +197,7 @@ Referred quotes are decided by an admin/underwriter via `POST /api/submissions/[
 
 ### Indexes
 
-`createdAt`, `status`, `decision`, `province`, `contactEmail`, `vacancyDuration`, `propertyType`, `brokerId`, `reviewedById`. `paymentToken` is unique.
+`createdAt`, `status`, `decision`, `province`, `contactEmail`, `vacancyDuration`, `propertyType`, `brokerId`, `reviewedById`, `expiresAt` (added to drive the Upcoming Renewals view). `paymentToken` is unique.
 
 ---
 
