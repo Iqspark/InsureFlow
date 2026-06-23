@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
+import { sendCancellationEmail } from "@/lib/email";
 
 // POST /api/submissions/[id]/cancel
 // Owning broker (or admin) cancels a bound policy mid-term.
@@ -35,10 +36,34 @@ export async function POST(
     return NextResponse.json({ error: "This policy is already cancelled" }, { status: 409 });
   }
 
+  const cancelledAt = new Date();
+  const cleanReason = reason.trim();
+
   await prisma.submission.update({
     where: { id: sub.id },
-    data: { cancelledAt: new Date(), cancelReason: reason.trim() || null },
+    data: { cancelledAt, cancelReason: cleanReason || null },
   });
 
-  return NextResponse.json({ success: true });
+  // Email the applicant a cancellation confirmation (best-effort).
+  let sentTo: string | null = null;
+  let previewUrl: string | null = null;
+  if (sub.contactEmail) {
+    try {
+      const sent = await sendCancellationEmail({
+        to:            sub.contactEmail,
+        applicantName: sub.applicantName ?? "Valued Customer",
+        appId:         sub.id.slice(0, 10).toUpperCase(),
+        policyType:    sub.policyType,
+        cancelledAt,
+        reason:        cleanReason,
+        brokerName:    user.role === "ADMIN" ? "your broker" : (session.user.name ?? "your broker"),
+      });
+      sentTo = sent.sentTo;
+      previewUrl = sent.previewUrl ?? null;
+    } catch (err) {
+      console.error("[cancel] confirmation email failed:", err);
+    }
+  }
+
+  return NextResponse.json({ success: true, sentTo, previewUrl });
 }

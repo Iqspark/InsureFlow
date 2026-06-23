@@ -4,13 +4,22 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 // Cancels a bound policy mid-term (owning broker or admin). Asks for an
-// optional reason inline, then records the cancellation.
-export default function CancelPolicyButton({ submissionId }: { submissionId: string }) {
+// optional reason, records the cancellation, emails the customer, and shows
+// a link to the sent confirmation (Ethereal preview in demo mode).
+export default function CancelPolicyButton({
+  submissionId,
+  alreadyCancelled = false,
+}: {
+  submissionId: string;
+  alreadyCancelled?: boolean;
+}) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
-  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "saving" | "done" | "error">("idle");
   const [error, setError] = useState("");
+  const [sentTo, setSentTo] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
 
   async function cancel() {
     setStatus("saving");
@@ -23,12 +32,51 @@ export default function CancelPolicyButton({ submissionId }: { submissionId: str
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Cancellation failed");
+      setSentTo(data.sentTo ?? "");
+      setPreviewUrl(data.previewUrl ?? undefined);
+      setStatus("done");
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Cancellation failed");
       setStatus("error");
     }
   }
+
+  // ── Success — cancellation recorded + email sent ──────────────
+  if (status === "done") {
+    return (
+      <div className="flex items-start gap-3 px-4 py-3 bg-red-50 border border-red-200 rounded-xl w-full">
+        <div className="w-7 h-7 rounded-full bg-red-500 flex items-center justify-center shrink-0">
+          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-red-800">Policy cancelled</p>
+          <p className="text-xs text-red-700 mt-0.5">
+            A cancellation confirmation was emailed to{" "}
+            <span className="font-medium">{sentTo || "the customer"}</span>.
+          </p>
+          {previewUrl && (
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 mt-2 text-xs font-semibold text-red-700 hover:text-red-800 underline"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              Open cancellation email
+            </a>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Already cancelled (page shows the notice) — nothing to render here.
+  if (alreadyCancelled) return null;
 
   if (!open) {
     return (
@@ -49,7 +97,7 @@ export default function CancelPolicyButton({ submissionId }: { submissionId: str
     <div className="w-full bg-white rounded-xl border border-red-200 shadow-sm p-4">
       <p className="text-sm font-semibold text-slate-900 mb-1">Cancel this policy?</p>
       <p className="text-xs text-slate-500 mb-3">
-        This records a mid-term cancellation. A short-rate refund may apply, calculated by your broker.
+        This records a mid-term cancellation and emails the customer a confirmation. A short-rate refund may apply, calculated by your broker.
       </p>
       <textarea
         value={reason}

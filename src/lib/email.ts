@@ -450,6 +450,77 @@ export async function sendPaymentRequestEmail(
   return { sentTo: d.to, previewUrl };
 }
 
+// ── Applicant: policy cancellation confirmation ───────────────
+export interface CancellationData {
+  to:            string; // applicant email
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  cancelledAt:   Date;
+  reason:        string;
+  brokerName:    string;
+}
+
+export async function sendCancellationEmail(
+  d: CancellationData
+): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+  const on = d.cancelledAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#b91c1c;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#fecaca">Policy Cancellation Confirmation</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
+        Dear ${d.applicantName}, this confirms that your <strong>${d.policyType}</strong> policy has been cancelled.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">Policy Type</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${d.policyType}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Application ID</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;font-family:monospace">${d.appId}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Cancelled On</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${on}</td></tr>
+        ${d.reason ? `<tr><td style="padding:10px 16px;color:#64748b;font-size:13px">Reason</td><td style="padding:10px 16px;color:#0f172a;font-size:13px;font-weight:600">${d.reason}</td></tr>` : ""}
+      </table>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;background:#fff7ed;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:14px 18px">
+        <tr><td style="font-size:13px;color:#92400e">
+          A short-rate refund may apply for the unused portion of the term. Your broker
+          <strong>${d.brokerName}</strong> will be in touch with the details. If you have
+          questions, contact your broker directly.
+        </td></tr>
+      </table>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated cancellation confirmation · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      d.to,
+    subject: `Policy Cancelled — ${d.policyType} (${d.appId})`,
+    html,
+    text: [
+      `Policy Cancellation Confirmation — InsureFlow`,
+      ``,
+      `Dear ${d.applicantName}, your ${d.policyType} policy has been cancelled.`,
+      `Application ID: ${d.appId}`,
+      `Cancelled On  : ${on}`,
+      d.reason ? `Reason        : ${d.reason}` : ``,
+      ``,
+      `A short-rate refund may apply. Your broker ${d.brokerName} will be in touch.`,
+    ].filter(Boolean).join("\n"),
+  });
+
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] Cancellation confirmation at: ${previewUrl}\n`);
+  return { sentTo: d.to, previewUrl };
+}
+
 // ── Applicant: payment receipt ────────────────────────────────
 export interface PaymentReceiptData {
   to:            string; // applicant email

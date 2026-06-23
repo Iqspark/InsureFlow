@@ -247,8 +247,8 @@ export default async function PolicyDetailPage({
             sub.paymentStatus !== "paid" && !sub.cancelledAt && (
             <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
           )}
-          {isOwnerOrAdmin && sub.purchased && !sub.cancelledAt && (
-            <CancelPolicyButton submissionId={sub.id} />
+          {isOwnerOrAdmin && sub.purchased && (
+            <CancelPolicyButton submissionId={sub.id} alreadyCancelled={!!sub.cancelledAt} />
           )}
           {isOwnerOrAdmin && sub.status !== "draft" && !sub.purchased && (
             <DeletePolicyButton submissionId={sub.id} />
