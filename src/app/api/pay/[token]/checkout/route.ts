@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { publicBaseUrl } from "@/lib/baseUrl";
 
 // POST /api/pay/[token]/checkout
 // Public — creates a Stripe Checkout Session for the bound policy and returns
@@ -34,7 +35,7 @@ export async function POST(
     return NextResponse.json({ error: "No amount due" }, { status: 400 });
   }
 
-  const origin = process.env.NEXTAUTH_URL ?? req.nextUrl.origin;
+  const origin = publicBaseUrl(req);
   const stripe = getStripe();
 
   const session = await stripe.checkout.sessions.create({
