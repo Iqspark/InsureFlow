@@ -1,7 +1,8 @@
 import nodemailer from "nodemailer";
 
-// ── Transporter ───────────────────────────────────────────────
-// Uses real SMTP when SMTP_USER + SMTP_PASS are set.
+// ── Delivery ──────────────────────────────────────────────────
+// Order of preference: Resend (RESEND_API_KEY) → SMTP (SMTP_USER/PASS) →
+// Ethereal test inbox (no config; returns a browser preview URL).
 // Falls back to a free Ethereal test account otherwise —
 // no configuration needed; you get a browser preview URL back.
 
@@ -60,6 +61,45 @@ export interface PolicyEmailData {
 export interface SendResult {
   sentTo:      string;
   previewUrl?: string; // set when using Ethereal test mode
+}
+
+// Single delivery path used by every sender below.
+async function deliver(opts: {
+  to:      string;
+  subject: string;
+  html:    string;
+  text:    string;
+  label?:  string; // for the Ethereal console log
+}): Promise<SendResult> {
+  const from = process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`;
+
+  // Preferred: Resend transactional API
+  if (process.env.RESEND_API_KEY) {
+    const { Resend } = await import("resend");
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+      from,
+      to:      opts.to,
+      subject: opts.subject,
+      html:    opts.html,
+      text:    opts.text,
+    });
+    if (error) throw new Error(`Resend: ${error.message}`);
+    return { sentTo: opts.to };
+  }
+
+  // Fallback: SMTP (real) or Ethereal (test, with preview URL)
+  const { transport, isTest } = await buildTransporter();
+  const info = await transport.sendMail({
+    from,
+    to:      opts.to,
+    subject: opts.subject,
+    html:    opts.html,
+    text:    opts.text,
+  });
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] ${opts.label ?? "Email"} at: ${previewUrl}\n`);
+  return { sentTo: opts.to, previewUrl };
 }
 
 // ── HTML template ─────────────────────────────────────────────
@@ -181,13 +221,11 @@ function buildHtml(d: PolicyEmailData): string {
 export async function sendPolicyConfirmationEmail(
   data: PolicyEmailData
 ): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
-
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      data.to,
     subject: `Policy Confirmed — ${data.policyType} (${data.appId})`,
     html:    buildHtml(data),
+    label:   "Policy confirmation",
     text: [
       `Policy Confirmed — InsureFlow`,
       ``,
@@ -205,17 +243,6 @@ export async function sendPolicyConfirmationEmail(
       `— InsureFlow`,
     ].join("\n"),
   });
-
-  const previewUrl = isTest
-    ? (nodemailer.getTestMessageUrl(info) || undefined)
-    : undefined;
-
-  if (previewUrl) {
-    // Log to server console so developer can open it during demos
-    console.log(`\n📧 [Ethereal] Preview email at: ${previewUrl}\n`);
-  }
-
-  return { sentTo: data.to, previewUrl };
 }
 
 // ── Underwriter / back-office notification ────────────────────
@@ -287,13 +314,11 @@ function buildUnderwriterHtml(d: UnderwriterNotificationData): string {
 export async function sendUnderwriterNotificationEmail(
   data: UnderwriterNotificationData
 ): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
-
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      data.to,
     subject: `Policy Bound — ${data.policyType} (${data.appId})`,
     html:    buildUnderwriterHtml(data),
+    label:   "Underwriter notice",
     text: [
       `Policy Bound — InsureFlow Underwriting`,
       ``,
@@ -309,11 +334,6 @@ export async function sendUnderwriterNotificationEmail(
       `Broker         : ${data.brokerName} (${data.brokerEmail})`,
     ].join("\n"),
   });
-
-  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
-  if (previewUrl) console.log(`\n📧 [Ethereal] Underwriter notice at: ${previewUrl}\n`);
-
-  return { sentTo: data.to, previewUrl };
 }
 
 // ── Broker: referred quote approved by underwriter ────────────
@@ -331,7 +351,6 @@ export interface QuoteApprovedData {
 export async function sendQuoteApprovedEmail(
   d: QuoteApprovedData
 ): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
 
@@ -359,11 +378,11 @@ export async function sendQuoteApprovedEmail(
   </table>
 </body></html>`;
 
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      d.to,
     subject: `Quote Approved — ${d.policyType} (${d.appId})`,
     html,
+    label:   "Quote-approved notice",
     text: [
       `Quote Approved — InsureFlow`,
       ``,
@@ -374,10 +393,6 @@ export async function sendQuoteApprovedEmail(
       `Bind it here: ${d.policyUrl}`,
     ].filter(Boolean).join("\n"),
   });
-
-  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
-  if (previewUrl) console.log(`\n📧 [Ethereal] Quote-approved notice at: ${previewUrl}\n`);
-  return { sentTo: d.to, previewUrl };
 }
 
 // ── Applicant: payment request (link to pay on our site) ──────
@@ -394,7 +409,6 @@ export interface PaymentRequestData {
 export async function sendPaymentRequestEmail(
   d: PaymentRequestData
 ): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
 
@@ -430,11 +444,11 @@ export async function sendPaymentRequestEmail(
   </table>
 </body></html>`;
 
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      d.to,
     subject: `Complete your payment — ${d.policyType} (${d.appId})`,
     html,
+    label:   "Payment request",
     text: [
       `Complete Your Payment — InsureFlow`,
       ``,
@@ -444,10 +458,6 @@ export async function sendPaymentRequestEmail(
       `Pay securely here: ${d.payUrl}`,
     ].join("\n"),
   });
-
-  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
-  if (previewUrl) console.log(`\n📧 [Ethereal] Payment request at: ${previewUrl}\n`);
-  return { sentTo: d.to, previewUrl };
 }
 
 // ── Applicant: policy cancellation confirmation ───────────────
@@ -464,7 +474,6 @@ export interface CancellationData {
 export async function sendCancellationEmail(
   d: CancellationData
 ): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
   const on = d.cancelledAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
 
   const html = `<!DOCTYPE html>
@@ -499,11 +508,11 @@ export async function sendCancellationEmail(
   </table>
 </body></html>`;
 
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      d.to,
     subject: `Policy Cancelled — ${d.policyType} (${d.appId})`,
     html,
+    label:   "Cancellation confirmation",
     text: [
       `Policy Cancellation Confirmation — InsureFlow`,
       ``,
@@ -515,10 +524,6 @@ export async function sendCancellationEmail(
       `A short-rate refund may apply. Your broker ${d.brokerName} will be in touch.`,
     ].filter(Boolean).join("\n"),
   });
-
-  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
-  if (previewUrl) console.log(`\n📧 [Ethereal] Cancellation confirmation at: ${previewUrl}\n`);
-  return { sentTo: d.to, previewUrl };
 }
 
 // ── Applicant: mid-term adjustment confirmation ───────────────
@@ -537,7 +542,6 @@ export interface AdjustmentData {
 }
 
 export async function sendAdjustmentEmail(d: AdjustmentData): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
   const isAP = d.proRata >= 0;
@@ -583,11 +587,11 @@ export async function sendAdjustmentEmail(d: AdjustmentData): Promise<SendResult
   </table>
 </body></html>`;
 
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      d.to,
     subject: `Policy Adjusted — ${d.policyType} (${d.appId})`,
     html,
+    label:   "Adjustment confirmation",
     text: [
       `Mid-Term Policy Adjustment — InsureFlow`,
       ``,
@@ -601,10 +605,6 @@ export async function sendAdjustmentEmail(d: AdjustmentData): Promise<SendResult
       `Your broker ${d.brokerName} will be in touch.`,
     ].filter(Boolean).join("\n"),
   });
-
-  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
-  if (previewUrl) console.log(`\n📧 [Ethereal] Adjustment confirmation at: ${previewUrl}\n`);
-  return { sentTo: d.to, previewUrl };
 }
 
 // ── Applicant: payment receipt ────────────────────────────────
@@ -620,7 +620,6 @@ export interface PaymentReceiptData {
 export async function sendPaymentReceiptEmail(
   d: PaymentReceiptData
 ): Promise<SendResult> {
-  const { transport, isTest } = await buildTransporter();
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 2 }).format(n);
   const paidOn = d.paidAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
@@ -648,11 +647,11 @@ export async function sendPaymentReceiptEmail(
   </table>
 </body></html>`;
 
-  const info = await transport.sendMail({
-    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+  return deliver({
     to:      d.to,
     subject: `Payment Receipt — ${d.policyType} (${d.appId})`,
     html,
+    label:   "Payment receipt",
     text: [
       `Payment Receipt — InsureFlow`,
       ``,
@@ -663,8 +662,4 @@ export async function sendPaymentReceiptEmail(
       `Amount Paid   : ${fmt(d.amount)}`,
     ].join("\n"),
   });
-
-  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
-  if (previewUrl) console.log(`\n📧 [Ethereal] Payment receipt at: ${previewUrl}\n`);
-  return { sentTo: d.to, previewUrl };
 }
