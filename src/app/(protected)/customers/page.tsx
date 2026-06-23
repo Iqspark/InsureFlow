@@ -31,6 +31,7 @@ type Sub = {
   effectiveAt: Date | null;
   expiresAt: Date | null;
   paidAt: Date | null;
+  cancelledAt: Date | null;
 };
 
 type Customer = {
@@ -84,7 +85,7 @@ export default async function CustomersPage({
     select: {
       id: true, createdAt: true, applicantName: true, contactEmail: true, contactPhone: true,
       policyType: true, decision: true, status: true, purchased: true, paymentStatus: true,
-      annualPremium: true, effectiveAt: true, expiresAt: true, paidAt: true,
+      annualPremium: true, effectiveAt: true, expiresAt: true, paidAt: true, cancelledAt: true,
     },
   })) as Sub[];
 
@@ -102,12 +103,13 @@ export default async function CustomersPage({
       map.set(key, c);
     }
     c.subs.push(s);
-    if (s.purchased) {
+    if (s.purchased && !s.cancelledAt) {
+      // Active policy — counts toward premium and renewal.
       c.policies += 1;
       c.totalPremium += s.annualPremium ?? 0;
       const exp = derivedExpiry(s);
       if (!c.nextRenewal || exp < c.nextRenewal) c.nextRenewal = exp;
-    } else {
+    } else if (!s.purchased) {
       c.quotes += 1;
     }
     if (!c.phone && s.contactPhone) c.phone = s.contactPhone;
@@ -158,7 +160,7 @@ export default async function CustomersPage({
                   premiumLabel={cad(c.totalPremium)}
                   nextRenewalLabel={c.nextRenewal ? fmtDate(c.nextRenewal) : "—"}
                   rows={c.subs.map((s: Sub) => {
-                    const renewal = s.purchased ? derivedExpiry(s) : null;
+                    const renewal = s.purchased && !s.cancelledAt ? derivedExpiry(s) : null;
                     return {
                       id: s.id,
                       policyType: s.policyType,
@@ -171,6 +173,7 @@ export default async function CustomersPage({
                       purchased: s.purchased,
                       paymentStatus: s.paymentStatus,
                       isDraft: s.status === "draft",
+                      cancelled: !!s.cancelledAt,
                     };
                   })}
                 />

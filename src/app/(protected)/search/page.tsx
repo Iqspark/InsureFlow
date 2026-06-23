@@ -6,6 +6,7 @@ import Link from "next/link";
 import { PRODUCTS, productSlugForPolicyType } from "@/data/products";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
+import CancelledBadge from "@/components/CancelledBadge";
 import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import EmptyState from "@/components/EmptyState";
@@ -19,6 +20,7 @@ type SearchResult = {
   status: string;
   purchased: boolean;
   paymentStatus: string;
+  cancelledAt: string | null;
   province: string | null;
   annualPremium: number | null;
   broker?: { name: string | null } | null;
@@ -322,7 +324,7 @@ export default function SearchPage() {
                       <div className="flex items-center gap-2 shrink-0">
                         <DecisionBadge decision={r.decision} status={r.status} />
                         {r.status !== "draft" && <StageBadge purchased={r.purchased} />}
-                        {r.purchased && <PaymentBadge paymentStatus={r.paymentStatus} />}
+                        {r.purchased && (r.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={r.paymentStatus} />)}
                         {sessionData?.user?.role !== "UNDERWRITER" && (
                           <DeleteQuoteButton
                             submissionId={r.id}

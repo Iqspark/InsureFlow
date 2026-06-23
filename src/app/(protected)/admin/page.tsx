@@ -7,6 +7,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/access";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
+import CancelledBadge from "@/components/CancelledBadge";
 import AdminAnalytics from "@/components/AdminAnalytics";
 import ExportCsvButton from "@/components/ExportCsvButton";
 
@@ -59,7 +60,7 @@ export default async function AdminPage() {
       take: 5,
       select: {
         id: true, createdAt: true, applicantName: true, policyType: true,
-        decision: true, status: true, purchased: true, paymentStatus: true,
+        decision: true, status: true, purchased: true, paymentStatus: true, cancelledAt: true,
         broker: { select: { name: true } },
       },
     }),
@@ -208,7 +209,7 @@ export default async function AdminPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <DecisionBadge decision={s.decision} status={s.status} />
                 {s.status !== "draft" && <StageBadge purchased={s.purchased} />}
-                {s.purchased && <PaymentBadge paymentStatus={s.paymentStatus} />}
+                {s.purchased && (s.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={s.paymentStatus} />)}
               </div>
             </div>
           ))}

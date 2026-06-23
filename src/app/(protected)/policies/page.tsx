@@ -9,6 +9,7 @@ import { submissionScopeWhere, type SessionUser } from "@/lib/access";
 import { productSlugForPolicyType } from "@/data/products";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
+import CancelledBadge from "@/components/CancelledBadge";
 import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import EmptyState from "@/components/EmptyState";
@@ -78,6 +79,7 @@ export default async function PoliciesPage({
         status: true,
         purchased: true,
         paymentStatus: true,
+        cancelledAt: true,
       },
     }),
   ]);
@@ -158,7 +160,7 @@ export default async function PoliciesPage({
                     <div className="flex items-center gap-2 shrink-0">
                       <DecisionBadge decision={sub.decision} status={sub.status} />
                       {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
-                      {sub.purchased && <PaymentBadge paymentStatus={sub.paymentStatus} />}
+                      {sub.purchased && (sub.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={sub.paymentStatus} />)}
                       {user.role !== "UNDERWRITER" && (
                         <DeleteQuoteButton submissionId={sub.id} purchased={sub.purchased} />
                       )}

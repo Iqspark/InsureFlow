@@ -66,6 +66,7 @@ export async function GET(req: NextRequest) {
           status: true,
           purchased: true,
           paymentStatus: true,
+          cancelledAt: true,
           province: true,
           annualPremium: true,
           broker: { select: { name: true } },

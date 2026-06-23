@@ -8,6 +8,7 @@ import Link from "next/link";
 import { productSlugForPolicyType } from "@/data/products";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
+import CancelledBadge from "@/components/CancelledBadge";
 import BookCharts from "@/components/BookCharts";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import ActionRequiredList from "@/components/ActionRequiredList";
@@ -140,8 +141,10 @@ export default async function DashboardPage() {
 
   // Latest 5 submissions (quotes or policies).
   const recent = all.slice(0, 5);
-  // Latest 5 bound policies.
-  const recentPolicies = bound.slice(0, 5);
+  // Latest 5 active (non-cancelled) bound policies.
+  const recentPolicies = bound.filter((s) => !s.cancelledAt).slice(0, 5);
+  // Latest 5 cancelled policies.
+  const cancelledPolicies = bound.filter((s) => s.cancelledAt).slice(0, 5);
 
   const statCards = [
     {
@@ -333,7 +336,7 @@ export default async function DashboardPage() {
                   <div className="flex items-center gap-2 shrink-0">
                     <DecisionBadge decision={s.decision} status={s.status} />
                     {s.status !== "draft" && <StageBadge purchased={s.purchased} />}
-                    {s.purchased && <PaymentBadge paymentStatus={s.paymentStatus} />}
+                    {s.purchased && (s.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={s.paymentStatus} />)}
                   </div>
                 </div>
               );
@@ -342,12 +345,12 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Recent policies — latest 5 bound; full book on the Policies page */}
+      {/* Recent policies — latest 5 active bound; full book on the Policies page */}
       {recentPolicies.length > 0 && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-semibold text-slate-900 text-sm">Recent Policies</h2>
-            {bound.length > 5 && (
+            {bound.filter((s) => !s.cancelledAt).length > 5 && (
               <Link href="/policies" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
                 View all →
               </Link>
@@ -378,6 +381,42 @@ export default async function DashboardPage() {
                 <div className="flex items-center gap-2 shrink-0">
                   <StageBadge purchased={s.purchased} />
                   <PaymentBadge paymentStatus={s.paymentStatus} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Cancelled policies — latest 5 */}
+      {cancelledPolicies.length > 0 && (
+        <div className="mt-6">
+          <h2 className="font-semibold text-slate-900 text-sm mb-3">Cancelled Policies</h2>
+          <div className="space-y-2">
+            {cancelledPolicies.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-red-300 hover:shadow-md transition-all"
+              >
+                <Link href={`/policy/${s.id}`} className="min-w-0 flex-1 group">
+                  <p className="text-sm font-semibold text-slate-900 group-hover:text-red-700 transition-colors truncate">
+                    {s.applicantName ?? "—"}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5 truncate">
+                    {s.policyType}
+                    <span className="mx-1.5 text-slate-300">·</span>
+                    <span className="font-mono">{s.id.slice(0, 10).toUpperCase()}</span>
+                    {s.cancelledAt && (
+                      <>
+                        <span className="mx-1.5 text-slate-300">·</span>
+                        Cancelled {new Date(s.cancelledAt).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" })}
+                      </>
+                    )}
+                  </p>
+                </Link>
+                <div className="flex items-center gap-2 shrink-0">
+                  <StageBadge purchased={s.purchased} />
+                  <CancelledBadge />
                 </div>
               </div>
             ))}

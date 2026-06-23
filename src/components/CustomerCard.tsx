@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
+import CancelledBadge from "@/components/CancelledBadge";
 
 export type CustomerRow = {
   id: string;
@@ -15,6 +16,7 @@ export type CustomerRow = {
   purchased: boolean;
   paymentStatus: string;
   isDraft: boolean;
+  cancelled: boolean;
 };
 
 export type CustomerCardProps = {
@@ -54,7 +56,7 @@ function Row({ r }: { r: CustomerRow }) {
       </div>
       <div className="flex items-center gap-2 shrink-0">
         {!r.isDraft && <StageBadge purchased={r.purchased} />}
-        {r.purchased && <PaymentBadge paymentStatus={r.paymentStatus} />}
+        {r.purchased && (r.cancelled ? <CancelledBadge /> : <PaymentBadge paymentStatus={r.paymentStatus} />)}
       </div>
     </Link>
   );
