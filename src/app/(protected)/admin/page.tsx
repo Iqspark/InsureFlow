@@ -208,7 +208,7 @@ export default async function AdminPage() {
               </Link>
               <div className="flex items-center gap-2 shrink-0">
                 <DecisionBadge decision={s.decision} status={s.status} />
-                {s.status !== "draft" && <StageBadge purchased={s.purchased} />}
+                {s.status !== "draft" && <StageBadge purchased={s.purchased} decision={s.decision} />}
                 {s.purchased && (s.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={s.paymentStatus} />)}
               </div>
             </div>

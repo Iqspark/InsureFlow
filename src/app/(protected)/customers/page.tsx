@@ -42,6 +42,7 @@ type Customer = {
   subs: Sub[];
   policies: number;
   quotes: number;
+  underReview: number;
   totalPremium: number;
   nextRenewal: Date | null;
 };
@@ -98,7 +99,7 @@ export default async function CustomersPage({
       c = {
         key, name: s.applicantName ?? s.contactEmail ?? "Unknown",
         email: s.contactEmail, phone: s.contactPhone,
-        subs: [], policies: 0, quotes: 0, totalPremium: 0, nextRenewal: null,
+        subs: [], policies: 0, quotes: 0, underReview: 0, totalPremium: 0, nextRenewal: null,
       };
       map.set(key, c);
     }
@@ -110,7 +111,9 @@ export default async function CustomersPage({
       const exp = derivedExpiry(s);
       if (!c.nextRenewal || exp < c.nextRenewal) c.nextRenewal = exp;
     } else if (!s.purchased) {
-      c.quotes += 1;
+      // Referred submissions are under review, not quotes.
+      if (s.decision === "refer") c.underReview += 1;
+      else c.quotes += 1;
     }
     if (!c.phone && s.contactPhone) c.phone = s.contactPhone;
   }
@@ -157,6 +160,7 @@ export default async function CustomersPage({
                   phone={c.phone}
                   policies={c.policies}
                   quotes={c.quotes}
+                  underReview={c.underReview}
                   premiumLabel={cad(c.totalPremium)}
                   nextRenewalLabel={c.nextRenewal ? fmtDate(c.nextRenewal) : "—"}
                   rows={c.subs.map((s: Sub) => {
@@ -174,6 +178,7 @@ export default async function CustomersPage({
                       paymentStatus: s.paymentStatus,
                       isDraft: s.status === "draft",
                       cancelled: !!s.cancelledAt,
+                      decision: s.decision,
                     };
                   })}
                 />

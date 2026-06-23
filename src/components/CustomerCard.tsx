@@ -17,6 +17,7 @@ export type CustomerRow = {
   paymentStatus: string;
   isDraft: boolean;
   cancelled: boolean;
+  decision: string | null;
 };
 
 export type CustomerCardProps = {
@@ -25,6 +26,7 @@ export type CustomerCardProps = {
   phone: string | null;
   policies: number;
   quotes: number;
+  underReview: number;
   premiumLabel: string;
   nextRenewalLabel: string;
   rows: CustomerRow[];
@@ -55,7 +57,7 @@ function Row({ r }: { r: CustomerRow }) {
         </p>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        {!r.isDraft && <StageBadge purchased={r.purchased} />}
+        {!r.isDraft && <StageBadge purchased={r.purchased} decision={r.decision} />}
         {r.purchased && (r.cancelled ? <CancelledBadge /> : <PaymentBadge paymentStatus={r.paymentStatus} />)}
       </div>
     </Link>
@@ -106,6 +108,10 @@ export default function CustomerCard(c: CustomerCardProps) {
             <div>
               <p className="text-[10px] uppercase tracking-wide text-slate-400">Quotes</p>
               <p className="text-sm font-bold text-slate-900">{c.quotes}</p>
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-slate-400">Under Review</p>
+              <p className={`text-sm font-bold ${c.underReview > 0 ? "text-amber-600" : "text-slate-900"}`}>{c.underReview}</p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wide text-slate-400">Next Renewal</p>

@@ -63,6 +63,7 @@ export default function SearchPage() {
   const [date, setDate]       = useState("");
   const [type, setType]       = useState("");
   const [stage, setStage]     = useState("");
+  const [decision, setDecision] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -80,6 +81,7 @@ export default function SearchPage() {
     if (type)  params.set("policyType", type);
     const effectiveStage = isUnderwriter ? "policy" : stage;
     if (effectiveStage) params.set("stage", effectiveStage);
+    if (decision) params.set("decision", decision);
     params.set("limit", String(PAGE_SIZE));
     params.set("page", String(targetPage));
 
@@ -118,6 +120,7 @@ export default function SearchPage() {
     setDate("");
     setType("");
     setStage("");
+    setDecision("");
     setResults(null);
     setSearched(false);
     setPage(1);
@@ -226,6 +229,23 @@ export default function SearchPage() {
                 </select>
               )}
             </div>
+            <div>
+              <label htmlFor="search-decision" className="block text-xs font-medium text-slate-500 uppercase tracking-wide mb-1.5">
+                Decision
+              </label>
+              <select
+                id="search-decision"
+                value={decision}
+                onChange={(e) => setDecision(e.target.value)}
+                title="Decision"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+              >
+                <option value="">All decisions</option>
+                <option value="accept">Accepted</option>
+                <option value="decline">Declined</option>
+                <option value="refer">Referred</option>
+              </select>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -275,7 +295,7 @@ export default function SearchPage() {
                 {results.length > 0 && (
                   <ExportCsvButton
                     label="Export CSV"
-                    params={{ name: name.trim(), appId: appId.trim(), date, policyType: type, stage: isUnderwriter ? "policy" : stage }}
+                    params={{ name: name.trim(), appId: appId.trim(), date, policyType: type, stage: isUnderwriter ? "policy" : stage, decision }}
                   />
                 )}
               </div>
@@ -323,7 +343,7 @@ export default function SearchPage() {
                       </Link>
                       <div className="flex items-center gap-2 shrink-0">
                         <DecisionBadge decision={r.decision} status={r.status} />
-                        {r.status !== "draft" && <StageBadge purchased={r.purchased} />}
+                        {r.status !== "draft" && <StageBadge purchased={r.purchased} decision={r.decision} />}
                         {r.purchased && (r.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={r.paymentStatus} />)}
                         {sessionData?.user?.role !== "UNDERWRITER" && (
                           <DeleteQuoteButton

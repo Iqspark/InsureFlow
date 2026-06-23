@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
   const date = searchParams.get("date") ?? "";
   const policyType = searchParams.get("policyType")?.trim() ?? "";
   const stage = searchParams.get("stage")?.trim() ?? "";
+  const decision = searchParams.get("decision")?.trim() ?? "";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
@@ -29,6 +30,7 @@ export async function GET(req: NextRequest) {
     ...(policyType ? { policyType: { contains: policyType } } : {}),
     ...(stage === "policy" ? { purchased: true } : {}),
     ...(stage === "quote" ? { purchased: false } : {}),
+    ...(["accept", "decline", "refer"].includes(decision) ? { decision } : {}),
   };
 
   // Underwriters export bound policies only — never quotes.

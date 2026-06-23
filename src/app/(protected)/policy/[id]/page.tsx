@@ -148,7 +148,7 @@ export default async function PolicyDetailPage({
           </div>
           <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
             <div className="flex items-center gap-2">
-              {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
+              {sub.status !== "draft" && <StageBadge purchased={sub.purchased} decision={sub.decision} />}
               {sub.purchased && !sub.cancelledAt && <PaymentBadge paymentStatus={sub.paymentStatus} />}
               {sub.cancelledAt && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">

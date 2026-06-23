@@ -335,7 +335,7 @@ export default async function DashboardPage() {
                   </Link>
                   <div className="flex items-center gap-2 shrink-0">
                     <DecisionBadge decision={s.decision} status={s.status} />
-                    {s.status !== "draft" && <StageBadge purchased={s.purchased} />}
+                    {s.status !== "draft" && <StageBadge purchased={s.purchased} decision={s.decision} />}
                     {s.purchased && (s.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={s.paymentStatus} />)}
                   </div>
                 </div>
@@ -379,7 +379,8 @@ export default async function DashboardPage() {
                   </p>
                 </Link>
                 <div className="flex items-center gap-2 shrink-0">
-                  <StageBadge purchased={s.purchased} />
+                  <DecisionBadge decision={s.decision} status={s.status} />
+                  <StageBadge purchased={s.purchased} decision={s.decision} />
                   <PaymentBadge paymentStatus={s.paymentStatus} />
                 </div>
               </div>
@@ -415,7 +416,8 @@ export default async function DashboardPage() {
                   </p>
                 </Link>
                 <div className="flex items-center gap-2 shrink-0">
-                  <StageBadge purchased={s.purchased} />
+                  <DecisionBadge decision={s.decision} status={s.status} />
+                  <StageBadge purchased={s.purchased} decision={s.decision} />
                   <CancelledBadge />
                 </div>
               </div>
