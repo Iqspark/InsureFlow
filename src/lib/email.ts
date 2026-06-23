@@ -521,6 +521,92 @@ export async function sendCancellationEmail(
   return { sentTo: d.to, previewUrl };
 }
 
+// ── Applicant: mid-term adjustment confirmation ───────────────
+export interface AdjustmentData {
+  to:            string; // applicant email
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  oldCoverage:   number;
+  newCoverage:   number;
+  oldAnnual:     number;
+  newAnnual:     number;
+  proRata:       number; // positive = additional premium, negative = return premium
+  reason:        string;
+  brokerName:    string;
+}
+
+export async function sendAdjustmentEmail(d: AdjustmentData): Promise<SendResult> {
+  const { transport, isTest } = await buildTransporter();
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+  const isAP = d.proRata >= 0;
+  const adjLabel = isAP ? "Additional premium due" : "Return premium";
+  const adjColor = isAP ? "#b45309" : "#059669";
+
+  const row = (label: string, value: string) => `
+    <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:50%">${label}</td>
+    <td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${value}</td></tr>`;
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#c7d2fe">Mid-Term Policy Adjustment</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
+        Dear ${d.applicantName}, your <strong>${d.policyType}</strong> policy has been adjusted mid-term.
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+        ${row("Application ID", `<span style="font-family:monospace">${d.appId}</span>`)}
+        ${row("Coverage Amount", `${fmt(d.oldCoverage)} &rarr; <strong>${fmt(d.newCoverage)}</strong>`)}
+        ${row("Annual Premium", `${fmt(d.oldAnnual)} &rarr; <strong>${fmt(d.newAnnual)}</strong>`)}
+        ${d.reason ? row("Reason", d.reason) : ""}
+      </table>
+      <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
+        <tr><td style="padding:16px;text-align:center">
+          <p style="margin:0 0 4px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">${adjLabel} (pro-rata)</p>
+          <p style="margin:0;font-size:28px;font-weight:700;color:${adjColor}">${fmt(Math.abs(d.proRata))}</p>
+          <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">for the remaining policy term</p>
+        </td></tr>
+      </table>
+      <p style="margin:16px 0 0;font-size:13px;color:#64748b">
+        Your broker <strong>${d.brokerName}</strong> will be in touch about ${isAP ? "the additional premium" : "your refund"}.
+      </p>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated adjustment confirmation · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  const info = await transport.sendMail({
+    from:    process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`,
+    to:      d.to,
+    subject: `Policy Adjusted — ${d.policyType} (${d.appId})`,
+    html,
+    text: [
+      `Mid-Term Policy Adjustment — InsureFlow`,
+      ``,
+      `Dear ${d.applicantName}, your ${d.policyType} policy has been adjusted.`,
+      `Application ID  : ${d.appId}`,
+      `Coverage Amount : ${fmt(d.oldCoverage)} -> ${fmt(d.newCoverage)}`,
+      `Annual Premium  : ${fmt(d.oldAnnual)} -> ${fmt(d.newAnnual)}`,
+      d.reason ? `Reason          : ${d.reason}` : ``,
+      `${adjLabel} (pro-rata): ${fmt(Math.abs(d.proRata))}`,
+      ``,
+      `Your broker ${d.brokerName} will be in touch.`,
+    ].filter(Boolean).join("\n"),
+  });
+
+  const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
+  if (previewUrl) console.log(`\n📧 [Ethereal] Adjustment confirmation at: ${previewUrl}\n`);
+  return { sentTo: d.to, previewUrl };
+}
+
 // ── Applicant: payment receipt ────────────────────────────────
 export interface PaymentReceiptData {
   to:            string; // applicant email

@@ -13,6 +13,7 @@ import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
 import BuyPolicyButton from "@/components/BuyPolicyButton";
 import CancelPolicyButton from "@/components/CancelPolicyButton";
+import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
 import { canViewSubmission, canReview, canBindOrPay, type SessionUser } from "@/lib/access";
 
@@ -113,6 +114,13 @@ export default async function PolicyDetailPage({
   const appId = sub.id.slice(0, 10).toUpperCase();
   const sections = buildSubmissionSections(sub);
   const isOwnerOrAdmin = canBindOrPay(user, sub);
+
+  type Adjustment = {
+    at: string; oldCoverage: number; newCoverage: number;
+    oldAnnual: number; newAnnual: number; proRata: number; reason: string | null;
+  };
+  let adjustments: Adjustment[] = [];
+  try { adjustments = JSON.parse(sub.adjustments ?? "[]"); } catch { adjustments = []; }
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
@@ -223,6 +231,40 @@ export default async function PolicyDetailPage({
           </Section>
         ))}
 
+        {/* Mid-term adjustment history */}
+        {adjustments.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Mid-Term Adjustments ({adjustments.length})
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {adjustments.slice().reverse().map((a, i) => {
+                const ap = a.proRata >= 0;
+                return (
+                  <div key={i} className="px-5 py-3 flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm text-slate-800">
+                        Coverage {fmtCurrency(a.oldCoverage)} → <span className="font-semibold">{fmtCurrency(a.newCoverage)}</span>
+                      </p>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Premium {fmtCurrency(a.oldAnnual)} → {fmtCurrency(a.newAnnual)}
+                        <span className="mx-1.5 text-slate-300">·</span>
+                        {fmtDate(new Date(a.at))}
+                        {a.reason && <><span className="mx-1.5 text-slate-300">·</span>{a.reason}</>}
+                      </p>
+                    </div>
+                    <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${ap ? "text-amber-700 bg-amber-50 border-amber-200" : "text-emerald-700 bg-emerald-50 border-emerald-200"}`}>
+                      {ap ? "+" : "−"}{fmtCurrency(Math.abs(a.proRata))}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         <Section title="Record Information">
           <Field label="Application ID"         value={appId} />
           <Field label="Policy Type"            value={sub.policyType} />
@@ -246,6 +288,15 @@ export default async function PolicyDetailPage({
           {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
             sub.paymentStatus !== "paid" && !sub.cancelledAt && (
             <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
+          )}
+          {isOwnerOrAdmin && sub.purchased && !sub.cancelledAt && sub.coverageAmount != null && sub.annualPremium != null && (
+            <AdjustPolicyButton
+              submissionId={sub.id}
+              currentCoverage={sub.coverageAmount}
+              currentAnnual={sub.annualPremium}
+              effectiveAt={sub.effectiveAt ? sub.effectiveAt.toISOString() : null}
+              expiresAt={sub.expiresAt ? sub.expiresAt.toISOString() : null}
+            />
           )}
           {isOwnerOrAdmin && sub.purchased && (
             <CancelPolicyButton submissionId={sub.id} alreadyCancelled={!!sub.cancelledAt} />

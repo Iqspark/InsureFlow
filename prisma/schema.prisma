@@ -106,6 +106,9 @@ model Submission {
   cancelledAt   DateTime?
   cancelReason  String?
 
+  // ── Mid-term adjustments (JSON log of MTA records) ──────────
+  adjustments   String?  @default("[]")
+
   // ── Underwriter review audit ─────────────────────────────
   reviewedById String?
   reviewedBy   Broker?  @relation("ReviewedBy", fields: [reviewedById], references: [id])
