@@ -168,6 +168,26 @@ export default async function PolicyDetailPage({
         {/* Decision banner */}
         <DecisionBanner decision={sub.decision} reasons={reasons} />
 
+        {/* Payment call-to-action — bind / resend payment link (top of page) */}
+        {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
+          sub.paymentStatus !== "paid" && !sub.cancelledAt && (
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-emerald-800">
+                {sub.purchased ? "Awaiting customer payment" : "Ready to bind"}
+              </p>
+              <p className="text-xs text-emerald-700/80 mt-0.5">
+                {sub.purchased
+                  ? "This policy is bound — resend the secure payment link to the customer."
+                  : "Bind this policy and email the customer a secure payment link."}
+              </p>
+            </div>
+            <div className="shrink-0">
+              <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
+            </div>
+          </div>
+        )}
+
         {/* Underwriter review controls (referred quotes) */}
         {sub.decision === "refer" && canReview(user) && (
           <ReviewActions submissionId={sub.id} />
@@ -285,11 +305,7 @@ export default async function PolicyDetailPage({
             Back to Dashboard
           </Link>
           <DownloadPolicyButton submissionId={sub.id} />
-          {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
-            sub.paymentStatus !== "paid" && !sub.cancelledAt && (
-            <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
-          )}
-          {isOwnerOrAdmin && sub.purchased && !sub.cancelledAt && sub.coverageAmount != null && sub.annualPremium != null && (
+          {isOwnerOrAdmin && sub.purchased && sub.paymentStatus === "paid" && !sub.cancelledAt && sub.coverageAmount != null && sub.annualPremium != null && (
             <AdjustPolicyButton
               submissionId={sub.id}
               currentCoverage={sub.coverageAmount}
@@ -298,7 +314,7 @@ export default async function PolicyDetailPage({
               expiresAt={sub.expiresAt ? sub.expiresAt.toISOString() : null}
             />
           )}
-          {isOwnerOrAdmin && sub.purchased && (
+          {isOwnerOrAdmin && sub.purchased && (sub.paymentStatus === "paid" || sub.cancelledAt) && (
             <CancelPolicyButton submissionId={sub.id} alreadyCancelled={!!sub.cancelledAt} />
           )}
           {isOwnerOrAdmin && sub.status !== "draft" && !sub.purchased && (

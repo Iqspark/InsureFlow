@@ -29,8 +29,8 @@ export async function POST(
   if (!sub || !canBindOrPay(user, sub)) {
     return NextResponse.json({ error: "Submission not found or not yours" }, { status: 404 });
   }
-  if (!sub.purchased) {
-    return NextResponse.json({ error: "Only bound policies can be cancelled" }, { status: 400 });
+  if (!sub.purchased || sub.paymentStatus !== "paid") {
+    return NextResponse.json({ error: "Only paid policies can be cancelled" }, { status: 400 });
   }
   if (sub.cancelledAt) {
     return NextResponse.json({ error: "This policy is already cancelled" }, { status: 409 });
