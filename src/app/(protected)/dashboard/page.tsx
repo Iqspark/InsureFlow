@@ -62,6 +62,7 @@ export default async function DashboardPage() {
       effectiveAt: true,
       expiresAt: true,
       paidAt: true,
+      cancelledAt: true,
     },
   });
 
@@ -129,6 +130,7 @@ export default async function DashboardPage() {
   };
   const MS_DAY = 86_400_000;
   const renewals = bound
+    .filter((s) => !s.cancelledAt)
     .map((s) => {
       const expiry = derivedExpiry(s);
       return { ...s, expiry, days: Math.round((expiry.getTime() - now.getTime()) / MS_DAY) };

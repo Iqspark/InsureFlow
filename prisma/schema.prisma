@@ -102,6 +102,10 @@ model Submission {
   effectiveAt   DateTime?
   expiresAt     DateTime?
 
+  // ── Cancellation (mid-term) ─────────────────────────────────
+  cancelledAt   DateTime?
+  cancelReason  String?
+
   // ── Underwriter review audit ─────────────────────────────
   reviewedById String?
   reviewedBy   Broker?  @relation("ReviewedBy", fields: [reviewedById], references: [id])

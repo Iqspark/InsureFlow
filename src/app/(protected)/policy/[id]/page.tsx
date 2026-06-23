@@ -12,6 +12,7 @@ import PropertyMap from "@/components/PropertyMap";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
 import BuyPolicyButton from "@/components/BuyPolicyButton";
+import CancelPolicyButton from "@/components/CancelPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
 import { canViewSubmission, canReview, canBindOrPay, type SessionUser } from "@/lib/access";
 
@@ -140,7 +141,12 @@ export default async function PolicyDetailPage({
           <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
             <div className="flex items-center gap-2">
               {sub.status !== "draft" && <StageBadge purchased={sub.purchased} />}
-              {sub.purchased && <PaymentBadge paymentStatus={sub.paymentStatus} />}
+              {sub.purchased && !sub.cancelledAt && <PaymentBadge paymentStatus={sub.paymentStatus} />}
+              {sub.cancelledAt && (
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700 border border-red-200">
+                  Cancelled
+                </span>
+              )}
             </div>
             {user.role !== "BROKER" && sub.broker?.name && (
               <p className="text-xs text-slate-400">Broker: {sub.broker.name}</p>
@@ -169,6 +175,21 @@ export default async function PolicyDetailPage({
             {sub.reviewNote && (
               <p className="text-slate-500 mt-1 italic">&ldquo;{sub.reviewNote}&rdquo;</p>
             )}
+          </div>
+        )}
+
+        {/* Cancellation notice */}
+        {sub.cancelledAt && (
+          <div className="rounded-xl border border-red-200 bg-red-50 px-5 py-4 text-sm">
+            <p className="text-red-800 font-semibold">
+              Policy cancelled on {fmtDate(sub.cancelledAt)}
+            </p>
+            {sub.cancelReason && (
+              <p className="text-red-700/80 mt-1 italic">&ldquo;{sub.cancelReason}&rdquo;</p>
+            )}
+            <p className="text-red-700/70 mt-1 text-xs">
+              A short-rate refund may apply — your broker calculates the amount.
+            </p>
           </div>
         )}
 
@@ -223,8 +244,11 @@ export default async function PolicyDetailPage({
           </Link>
           <DownloadPolicyButton submissionId={sub.id} />
           {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
-            sub.paymentStatus !== "paid" && (
+            sub.paymentStatus !== "paid" && !sub.cancelledAt && (
             <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
+          )}
+          {isOwnerOrAdmin && sub.purchased && !sub.cancelledAt && (
+            <CancelPolicyButton submissionId={sub.id} />
           )}
           {isOwnerOrAdmin && sub.status !== "draft" && !sub.purchased && (
             <DeletePolicyButton submissionId={sub.id} />
