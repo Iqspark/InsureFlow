@@ -71,7 +71,9 @@ src/
         page.tsx            ← Category picker
         <slug>/page.tsx     ← <QuoteExperience productId="<slug>" /> per product
       search/page.tsx       ← Role-scoped search + delete (Stage filter; underwriter = policies-only)
-      policy/[id]/page.tsx  ← Detail view: banner, review actions, premium, map, PDF, buy/pay
+      policy/[id]/page.tsx  ← Detail view: top payment CTA banner (Ready to bind / Awaiting
+                              customer payment), review actions, premium, map, PDF;
+                              Adjust/Cancel actions only when paymentStatus = "paid"
       privacy/ terms/ support/  ← Static info pages
     pay/[token]/page.tsx    ← PUBLIC (no auth) customer checkout via emailed link
     api/
@@ -114,6 +116,7 @@ src/
     BuyPolicyButton.tsx     ← Bind + email pay link (also "Resend payment link")
     CancelPolicyButton.tsx  ← Cancel a bound policy mid-term (reason + cancellation email)
     AdjustPolicyButton.tsx  ← Mid-term adjustment (new sum insured, live pro-rata estimate)
+    CancelledBadge.tsx      ← Red "Cancelled" pill (replaces Paid/Unpaid for cancelled policies)
     ReviewActions.tsx       ← Underwriter approve/decline + note + "Get AI Recommendation"
     PaymentForm.tsx         ← Card form (validated, not charged) → pay endpoint
     PaymentBadge.tsx        ← Paid / Unpaid pill
@@ -408,17 +411,17 @@ Underwriter review (referred quotes)  /review → /policy/[id]
         → set decision (accept|decline) + reviewedById/reviewedAt/reviewNote
         → on approve → sendQuoteApprovedEmail() to the broker
 
-Mid-term adjustment (bound, non-cancelled)  /policy/[id] (AdjustPolicyButton)
+Mid-term adjustment (paid, non-cancelled)  /policy/[id] (AdjustPolicyButton)
    └─ POST /api/submissions/[id]/adjust { coverageAmount, reason }
-        → canBindOrPay ownership check; must be purchased and not cancelled
+        → canBindOrPay ownership check; must be purchased AND paymentStatus = "paid" and not cancelled
         → newAnnual = oldAnnual × newCoverage / oldCoverage (premium scales with sum insured)
         → proRata = (newAnnual − oldAnnual) × remainingDays / termDays (effectiveAt→expiresAt)
         → update coverageAmount/annualPremium/monthlyPremium; append an MTA record to adjustments[]
         → sendAdjustmentEmail() to the applicant → { success, newAnnual, oldAnnual, proRata, remainingDays, sentTo, previewUrl }
 
-Cancellation (bound policy)  /policy/[id] (CancelPolicyButton)
+Cancellation (paid policy)  /policy/[id] (CancelPolicyButton)
    └─ POST /api/submissions/[id]/cancel { reason }
-        → canBindOrPay ownership check; must be purchased and not already cancelled
+        → canBindOrPay ownership check; must be purchased AND paymentStatus = "paid" and not already cancelled
         → stamp cancelledAt + cancelReason
         → sendCancellationEmail() to the applicant → { success, sentTo, previewUrl }
 ```
@@ -503,9 +506,20 @@ A single `Submission` row models both drafts and completed quotes/policies, dist
   with a card form that is **format-validated only — no real charge** (a real gateway can be
   swapped into `/api/pay/[token]` later). On success `paymentStatus` becomes `"paid"` and the
   applicant receives a confirmation + receipt. A bound-but-unpaid policy can have its link
-  resent from the policy page or dashboard.
+  resent from the policy page or dashboard. The Buy / Resend action is a prominent **call-to-action
+  banner near the top** of the policy detail page ("Ready to bind" for an accepted-unbound quote;
+  "Awaiting customer payment" for a bound-but-unpaid policy), not in the bottom actions row.
+- **Mid-term adjustment & cancellation (paid only)** — both `/api/submissions/[id]/adjust` and
+  `/cancel` require the policy to be bound **and** paid (`purchased && paymentStatus === "paid"`)
+  and not already cancelled; the policy page only renders the Adjust / Cancel buttons for a paid,
+  non-cancelled policy.
+- **Cancelled policies** — a cancelled policy shows a red **"Cancelled"** badge (`CancelledBadge`)
+  in place of the Paid/Unpaid pill across the broker dashboard, Policies, Customers, Search, and the
+  admin Recent Activity. The dashboard has a dedicated **Cancelled Policies** section (after Recent
+  Policies); Recent Policies lists only active (non-cancelled) policies, and cancelled policies are
+  excluded from **Upcoming Renewals** and from a customer's active-premium / next-renewal totals.
 - **Policy term & renewals** — binding stamps `effectiveAt`/`expiresAt` (12-month term) on the
-  `Submission`; the dashboard's **Upcoming Renewals** derives from `expiresAt`.
+  `Submission`; the dashboard's **Upcoming Renewals** derives from `expiresAt` (cancelled policies excluded).
 
 ---
 

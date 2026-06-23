@@ -4,7 +4,7 @@
 A mid-term adjustment (MTA) is a change to an active policy partway through its term — most commonly revising the **sum insured / coverage amount** (for example after a renovation increases a property's value). The premium is recalculated and the difference is settled for the remaining term.
 
 ## How do I make an adjustment?
-A broker (or admin) opens the bound policy and clicks **Adjust Policy**. Enter the new coverage amount and an optional reason. A live estimate shows the new premium and the pro-rata amount before you confirm. Click **Confirm adjustment** to apply it.
+A broker (or admin) opens the paid policy and clicks **Adjust Policy** (the option appears once the policy is paid). Enter the new coverage amount and an optional reason. A live estimate shows the new premium and the pro-rata amount before you confirm. Click **Confirm adjustment** to apply it.
 
 ## How is the new premium calculated?
 The premium scales with the sum insured — increase the coverage and the annual premium increases proportionally; decrease it and the premium drops. (For example, raising coverage by 50% raises the annual premium by roughly 50%.)
@@ -23,7 +23,7 @@ Yes. When an adjustment is confirmed, the customer is emailed a confirmation sho
 The policy detail page shows a **Mid-Term Adjustments** history section listing each change — the coverage and premium before and after, the date, the reason, and the pro-rata amount.
 
 ## Who can make an adjustment?
-Only the owning broker or an admin, and only on a **bound** policy that hasn't been cancelled.
+Only the owning broker or an admin, and only on a **paid, active** policy — the policy must have been bound **and** paid, and not cancelled. (An unpaid policy must be paid first before it can be adjusted.)
 
 ## Can I adjust other things, like the deductible or liability limit?
 The current adjustment flow revises the **coverage amount / sum insured**. Other changes (deductible, limits, adding/removing items) are handled by your broker directly — contact them for anything beyond a coverage change.

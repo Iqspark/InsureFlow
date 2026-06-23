@@ -202,8 +202,8 @@ Referred quotes are decided by an admin/underwriter via `POST /api/submissions/[
 
 ### Mid-Term Adjustment & Cancellation (after binding)
 
-- **Adjustment (MTA)** — a bound, non-cancelled policy's sum insured can be revised via `POST /api/submissions/[id]/adjust`. The annual premium scales proportionally (`newAnnual = oldAnnual × newCoverage / oldCoverage`) and the difference is charged/returned **pro-rata** over the remaining term (`(newAnnual − oldAnnual) × remainingDays / termDays`, from `effectiveAt`→`expiresAt`). It updates `coverageAmount`/`annualPremium`/`monthlyPremium`, appends a record to the `adjustments` JSON log, and emails the applicant.
-- **Cancellation** — a bound policy can be cancelled mid-term via `POST /api/submissions/[id]/cancel`, which stamps `cancelledAt`/`cancelReason` and emails the applicant a confirmation. Both routes are restricted to the owning broker or an admin (`canBindOrPay`).
+- **Adjustment (MTA)** — a bound, **paid**, non-cancelled policy's sum insured can be revised via `POST /api/submissions/[id]/adjust`. The annual premium scales proportionally (`newAnnual = oldAnnual × newCoverage / oldCoverage`) and the difference is charged/returned **pro-rata** over the remaining term (`(newAnnual − oldAnnual) × remainingDays / termDays`, from `effectiveAt`→`expiresAt`). It updates `coverageAmount`/`annualPremium`/`monthlyPremium`, appends a record to the `adjustments` JSON log, and emails the applicant.
+- **Cancellation** — a bound, **paid** policy can be cancelled mid-term via `POST /api/submissions/[id]/cancel`, which stamps `cancelledAt`/`cancelReason` and emails the applicant a confirmation. Both routes are restricted to the owning broker or an admin (`canBindOrPay`) and require a bound + **paid**, non-cancelled policy (`purchased && paymentStatus === "paid"`).
 
 ### Indexes
 
@@ -254,8 +254,8 @@ All endpoints except the public payment routes require an authenticated session;
 | `/api/submissions` | GET | Paginated, role-scoped list. Query: `page`, `limit` (max 100), `decision`, `province`, `email`. Returns `{ data, meta }`. |
 | `/api/submissions/[id]` | DELETE | Delete a quote owned by the broker (or any non-bound quote for an admin). Bound policies are protected (see below). |
 | `/api/submissions/[id]/review` | POST | Underwriter/admin approve or decline a referred quote. Body: `{ action: "approve"\|"decline", note }`. Emails the broker on approval. |
-| `/api/submissions/[id]/adjust` | POST | Owning broker/admin mid-term adjustment of a bound, non-cancelled policy. Body: `{ coverageAmount, reason? }`. Recalculates premium proportionally + pro-rata difference, appends to `adjustments`, emails the applicant. Returns `{ success, newAnnual, oldAnnual, proRata, remainingDays, sentTo, previewUrl }`. |
-| `/api/submissions/[id]/cancel` | POST | Owning broker/admin cancel a bound policy mid-term. Body: `{ reason? }`. Stamps `cancelledAt`/`cancelReason`, emails the applicant. Returns `{ success, sentTo, previewUrl }`. |
+| `/api/submissions/[id]/adjust` | POST | Owning broker/admin mid-term adjustment of a bound + **paid**, non-cancelled policy. Body: `{ coverageAmount, reason? }`. Recalculates premium proportionally + pro-rata difference, appends to `adjustments`, emails the applicant. Returns `{ success, newAnnual, oldAnnual, proRata, remainingDays, sentTo, previewUrl }`. |
+| `/api/submissions/[id]/cancel` | POST | Owning broker/admin cancel a bound + **paid**, non-cancelled policy mid-term. Body: `{ reason? }`. Stamps `cancelledAt`/`cancelReason`, emails the applicant. Returns `{ success, sentTo, previewUrl }`. |
 | `/api/drafts` | POST | Upsert a draft (`status: "draft"`). Pass `draftId` to update, omit to create. Returns `{ id }`. |
 | `/api/drafts/[id]` | GET | Load a draft's `allAnswers` (broker-owned, `status: "draft"` only). Returns `{ answers }`. |
 | `/api/drafts/[id]` | DELETE | Delete a broker-owned draft. |

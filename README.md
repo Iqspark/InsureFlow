@@ -30,8 +30,8 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 - **Underwriting decision** — every quote resolves to **Accept**, **Decline**, or **Refer to underwriter**, with the reasons recorded.
 - **AI underwriter recommendation** — on a referred quote, an underwriter can get an advisory **approve/decline** verdict (with confidence + reasons) that pre-fills the review note; the human confirms. Pluggable engine, currently an inline OpenAI call.
 - **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** and emails the applicant a payment link to a **simulated checkout** (no real charge). Binding stamps a **12-month policy term**.
-- **Mid-term adjustments (MTA)** — a bound policy's sum insured can be revised mid-term; the premium scales proportionally and the difference is charged/returned **pro-rata** over the remaining term. Each change is logged and the applicant is emailed.
-- **Policy cancellation** — a bound policy can be cancelled mid-term by the owning broker or an admin; the applicant gets a cancellation confirmation email and the policy is excluded from Upcoming Renewals.
+- **Mid-term adjustments (MTA)** — a **paid** policy's sum insured can be revised mid-term; the premium scales proportionally and the difference is charged/returned **pro-rata** over the remaining term. Each change is logged and the applicant is emailed.
+- **Policy cancellation** — a **paid** policy can be cancelled mid-term by the owning broker or an admin; the applicant gets a cancellation confirmation email, the policy shows a **Cancelled** badge, and it is excluded from Upcoming Renewals.
 - **Role-based portal** — three roles (Broker / Underwriter / Admin). Brokers see their own book; underwriters review referred quotes; admins manage users and see everything.
 - **Dashboards & analytics** — broker/underwriter/admin dashboards with book analytics, plus **Policies**, **Customers**, and **Search** views with type-ahead suggestions and an **Upcoming Renewals** list (from the 12-month term).
 - **Property address + map** — Vacant Home quotes capture the address with Google Places autocomplete and show the location on a map (portal + PDF).
@@ -148,7 +148,7 @@ Two independent dimensions are tracked per submission:
 
 On the result screen an accepted quote offers **Save as Quote** or **Buy This Policy**. Binding a policy emails the applicant a **payment link** to a simulated checkout, starts a **12-month term** (`effectiveAt`/`expiresAt`), notifies the underwriter, and flips the badge to **Policy** across the dashboard, search, detail page, and PDF.
 
-After binding, the policy detail page also supports **mid-term adjustments** (revise the sum insured → premium scales proportionally, difference charged/returned pro-rata over the remaining term) and **cancellation** (stamps `cancelledAt`/`cancelReason`, hides Buy/Resend, excludes it from Upcoming Renewals) — each emailing the applicant. The full lifecycle is:
+The Buy / Resend payment action is a prominent **call-to-action banner near the top** of the policy detail page ("Ready to bind" for an accepted-unbound quote; "Awaiting customer payment" for a bound-but-unpaid policy). Once a policy is **paid**, the detail page also supports **mid-term adjustments** (revise the sum insured → premium scales proportionally, difference charged/returned pro-rata over the remaining term) and **cancellation** (stamps `cancelledAt`/`cancelReason`, shows a red **Cancelled** badge, excludes it from Upcoming Renewals) — each emailing the applicant. Adjust and cancel are restricted to paid, non-cancelled policies. The full lifecycle is:
 
 ```
 quote → (refer → AI review/approve) → bind → pay → adjust (MTA) → cancel

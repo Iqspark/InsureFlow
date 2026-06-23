@@ -6,7 +6,7 @@ Your dashboard is a glance view of your book:
 - **Analytics** — premium volume over the last 6 months, quote outcomes (close rate + accept/refer/decline split), product mix, and your total bound premium.
 - **Action Required** — items needing your attention: approved quotes ready to bind, and bound policies awaiting customer payment.
 - **Upcoming Renewals** — policies expiring soon, with days-to-renewal badges.
-- **Recent Submissions** and **Recent Policies** — your latest activity, with links to the full lists.
+- **Recent Submissions**, **Recent Policies** (active policies), and **Cancelled Policies** — your latest activity, with links to the full lists.
 - **Export CSV** — download your book for your own systems.
 
 ## How do I create a quote?
@@ -26,10 +26,10 @@ On an accepted quote, press **Buy This Policy**. This binds the quote as a polic
 - **Customers** — every client grouped together with their policies, total premium, and next renewal; search by name or email.
 
 ## How do I adjust a policy mid-term?
-Open the bound policy and click **Adjust Policy**. Enter the new coverage amount and an optional reason — a live estimate shows the new premium and the pro-rata additional or return premium for the remaining term. Confirm to apply it; the customer is emailed a confirmation and the change is logged in the policy's **Mid-Term Adjustments** history. See "Mid-Term Adjustments."
+Open the **paid** policy and click **Adjust Policy** (this option appears once the policy is paid). Enter the new coverage amount and an optional reason — a live estimate shows the new premium and the pro-rata additional or return premium for the remaining term. Confirm to apply it; the customer is emailed a confirmation and the change is logged in the policy's **Mid-Term Adjustments** history. See "Mid-Term Adjustments."
 
 ## How do I cancel a policy?
-Open the bound policy and click **Cancel Policy**, add an optional reason, and confirm. The policy is flagged **Cancelled**, the customer is emailed a cancellation confirmation, and a short-rate refund may apply (you calculate it). Cancelled policies drop out of Upcoming Renewals. See "Cancellations & Refunds."
+Open the **paid** policy and click **Cancel Policy** (this option appears once the policy is paid), add an optional reason, and confirm. The policy is flagged **Cancelled** (shown with a red Cancelled badge), the customer is emailed a cancellation confirmation, and a short-rate refund may apply (you calculate it). Cancelled policies drop out of Upcoming Renewals and move to the **Cancelled Policies** section on your dashboard. See "Cancellations & Refunds."
 
 ## How do renewals work?
 Each policy is a 12-month term. Policies approaching their renewal date appear in **Upcoming Renewals** on your dashboard, with an amber badge when they're within 60 days.

@@ -17,11 +17,11 @@ A bound-but-unpaid policy appears in the broker's **Action Required** with a **R
 - **Broker** — notified when a referred quote is approved (it then appears in Action Required).
 - **Underwriting team** — optionally notified when a policy is bound.
 
-## Can a policy be changed after it's bound?
-Yes — a broker or admin can make a **mid-term adjustment (MTA)** to revise the sum insured. The premium is recalculated and the difference is charged or returned pro-rata for the remaining term, and the customer is emailed a confirmation. See "Mid-Term Adjustments."
+## Can a policy be changed after it's paid?
+Yes — once a policy is paid, a broker or admin can make a **mid-term adjustment (MTA)** to revise the sum insured. The premium is recalculated and the difference is charged or returned pro-rata for the remaining term, and the customer is emailed a confirmation. (Adjustments are only available on paid policies.) See "Mid-Term Adjustments."
 
 ## Can a policy be cancelled mid-term?
-Yes — a broker or admin can cancel a bound policy from the policy page. The customer is emailed a cancellation confirmation and a short-rate refund may apply. See "Cancellations & Refunds."
+Yes — once a policy is paid, a broker or admin can cancel it from the policy page. The customer is emailed a cancellation confirmation and a short-rate refund may apply. (Cancellation is only available on paid policies.) See "Cancellations & Refunds."
 
 ## What is the policy term?
 Every policy is issued for a 12-month term. The effective and expiry dates are recorded when the policy is bound. The full lifecycle is: quote → (refer → underwriter review) → bind → pay → adjust (if needed) → renew or cancel.

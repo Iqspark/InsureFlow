@@ -1,7 +1,7 @@
 # Cancellations & Refunds
 
 ## How do I cancel a policy?
-A broker (or admin) can cancel a bound policy directly in the portal: open the policy and click **Cancel Policy**, add an optional reason, and confirm. The policy is then marked **Cancelled** (with the date and reason recorded). A short-rate refund may apply, which the broker calculates. Customers should contact their broker to request a cancellation.
+A broker (or admin) can cancel a **paid, active** policy directly in the portal: open the policy and click **Cancel Policy**, add an optional reason, and confirm. (The Cancel option appears once the policy is paid.) The policy is then marked **Cancelled** (with the date and reason recorded). A short-rate refund may apply, which the broker calculates. Customers should contact their broker to request a cancellation.
 
 ## Will I get a refund if I cancel mid-term?
 Possibly. A mid-term cancellation is usually calculated on a **short-rate** basis, meaning the refund is the unused portion of the premium minus a cancellation penalty — so it's a bit less than a simple pro-rata refund. The exact amount depends on how much of the 12-month term has elapsed.
