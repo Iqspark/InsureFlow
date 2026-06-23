@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
+import { finalizePaidPolicy } from "@/lib/finalizePayment";
 
 // POST /api/pay/[token]
-// Public (no auth) — the applicant pays via the link emailed to them. Validates
-// the card payload (format only — no real charge), marks the policy paid, and
-// emails a confirmation + receipt.
+// Public (no auth) — simulated fallback checkout, used when Stripe is NOT
+// configured. Validates the card payload (format only — no real charge), marks
+// the policy paid, and emails a confirmation + receipt. When STRIPE_SECRET_KEY
+// is set, the client uses /api/pay/[token]/checkout + the Stripe webhook instead.
 export async function POST(
   req: NextRequest,
   { params }: { params: { token: string } }
@@ -30,7 +31,7 @@ export async function POST(
 
   const sub = await prisma.submission.findUnique({
     where: { paymentToken: params.token },
-    include: { broker: { select: { name: true, email: true } } },
+    select: { id: true, purchased: true, paymentStatus: true },
   });
 
   if (!sub || !sub.purchased) {
@@ -40,45 +41,10 @@ export async function POST(
     return NextResponse.json({ error: "This policy is already paid" }, { status: 409 });
   }
 
-  const paidAt = new Date();
-  const amount = sub.annualPremium ?? 0;
-
-  await prisma.submission.update({
-    where: { id: sub.id },
-    data: { paymentStatus: "paid", paidAt, paidAmount: amount },
-  });
-
-  // Send the applicant confirmation + receipt (best-effort — payment recorded already)
-  let previewUrl: string | null = null;
-  const to = sub.contactEmail;
-  if (to) {
-    try {
-      const confirm = await sendPolicyConfirmationEmail({
-        to,
-        applicantName:  sub.applicantName  ?? "Valued Customer",
-        appId:          sub.id.slice(0, 10).toUpperCase(),
-        policyType:     sub.policyType,
-        province:       sub.province       ?? "Canada",
-        annualPremium:  sub.annualPremium  ?? 0,
-        monthlyPremium: sub.monthlyPremium ?? 0,
-        coverageAmount: sub.coverageAmount ?? 0,
-        deductible:     sub.deductible     ?? 0,
-        brokerName:     sub.broker?.name   ?? "your broker",
-        brokerEmail:    sub.broker?.email  ?? "",
-      });
-      const receipt = await sendPaymentReceiptEmail({
-        to,
-        applicantName: sub.applicantName ?? "Valued Customer",
-        appId:         sub.id.slice(0, 10).toUpperCase(),
-        policyType:    sub.policyType,
-        amount,
-        paidAt,
-      });
-      previewUrl = receipt.previewUrl ?? confirm.previewUrl ?? null;
-    } catch (err) {
-      console.error("[pay] confirmation/receipt email failed:", err);
-    }
+  const result = await finalizePaidPolicy(sub.id);
+  if (!result.ok) {
+    return NextResponse.json({ error: "Payment link is invalid" }, { status: 404 });
   }
 
-  return NextResponse.json({ success: true, paidAmount: amount, previewUrl });
+  return NextResponse.json({ success: true, paidAmount: result.amount, previewUrl: result.previewUrl });
 }

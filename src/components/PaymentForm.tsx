@@ -8,10 +8,14 @@ function fmtCAD(n: number) {
 
 export default function PaymentForm({
   endpoint,
+  checkoutEndpoint,
+  stripeEnabled = false,
   amount,
   appId,
 }: {
   endpoint: string;
+  checkoutEndpoint?: string;
+  stripeEnabled?: boolean;
   amount: number;
   appId: string;
 }) {
@@ -22,6 +26,20 @@ export default function PaymentForm({
   const [status, setStatus] = useState<"idle" | "paying" | "paid" | "error">("idle");
   const [error, setError] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  async function handleStripeCheckout() {
+    setStatus("paying");
+    setError("");
+    try {
+      const res = await fetch(checkoutEndpoint!, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok || !data.url) throw new Error(data.error ?? "Could not start checkout");
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not start checkout");
+      setStatus("error");
+    }
+  }
 
   function formatCardNumber(v: string) {
     return v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
@@ -67,6 +85,40 @@ export default function PaymentForm({
             Open receipt email
           </a>
         )}
+      </div>
+    );
+  }
+
+  if (stripeEnabled && checkoutEndpoint) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white">
+          <p className="text-sm text-indigo-100">Amount due for policy {appId}</p>
+          <p className="text-3xl font-bold">{fmtCAD(amount)}</p>
+        </div>
+        <div className="p-6 space-y-4">
+          <p className="text-sm text-slate-500">
+            You&apos;ll be taken to our secure payment page to complete your payment by card.
+          </p>
+          <button
+            type="button"
+            onClick={handleStripeCheckout}
+            disabled={status === "paying"}
+            className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-colors text-sm"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+            </svg>
+            {status === "paying" ? "Redirecting…" : `Pay ${fmtCAD(amount)} securely`}
+          </button>
+          {error && <p className="text-xs text-red-500 text-center">{error}</p>}
+          <p className="text-[11px] text-slate-400 text-center flex items-center justify-center gap-1">
+            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            Secure payment powered by Stripe.
+          </p>
+        </div>
       </div>
     );
   }

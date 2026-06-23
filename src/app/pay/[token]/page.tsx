@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PaymentForm from "@/components/PaymentForm";
+import { isStripeConfigured } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,13 @@ function fmtCAD(n: number) {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 2 }).format(n);
 }
 
-export default async function PublicPayPage({ params }: { params: { token: string } }) {
+export default async function PublicPayPage({
+  params,
+  searchParams,
+}: {
+  params: { token: string };
+  searchParams: { paid?: string };
+}) {
   const sub = await prisma.submission.findUnique({
     where: { paymentToken: params.token },
     select: {
@@ -30,6 +37,9 @@ export default async function PublicPayPage({ params }: { params: { token: strin
   if (!sub || !sub.purchased) notFound();
 
   const appId = sub.id.slice(0, 10).toUpperCase();
+  const isPaid = sub.paymentStatus === "paid";
+  // Returned from Stripe Checkout; the webhook finalizes shortly after.
+  const justReturnedFromStripe = searchParams?.paid === "1" && !isPaid;
 
   return (
     <div className="min-h-screen app-bg flex flex-col items-center px-4 py-10">
@@ -46,20 +56,30 @@ export default async function PublicPayPage({ params }: { params: { token: strin
           </p>
         </div>
 
-        {sub.paymentStatus === "paid" ? (
+        {isPaid || justReturnedFromStripe ? (
           <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-emerald-500 flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
               </svg>
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mb-1">Already paid</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-1">
+              {isPaid ? "Already paid" : "Payment received"}
+            </h2>
             <p className="text-sm text-slate-500">
-              Policy {appId} ({fmtCAD(sub.annualPremium ?? 0)}) has already been paid. Thank you!
+              {isPaid
+                ? `Policy ${appId} (${fmtCAD(sub.annualPremium ?? 0)}) has already been paid. Thank you!`
+                : `Thank you — your payment for policy ${appId} is being confirmed. A receipt will be emailed to you shortly.`}
             </p>
           </div>
         ) : (
-          <PaymentForm endpoint={`/api/pay/${params.token}`} amount={sub.annualPremium ?? 0} appId={appId} />
+          <PaymentForm
+            endpoint={`/api/pay/${params.token}`}
+            checkoutEndpoint={`/api/pay/${params.token}/checkout`}
+            stripeEnabled={isStripeConfigured()}
+            amount={sub.annualPremium ?? 0}
+            appId={appId}
+          />
         )}
 
         <p className="text-center text-xs text-slate-400">

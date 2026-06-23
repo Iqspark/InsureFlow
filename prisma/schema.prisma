@@ -98,6 +98,11 @@ model Submission {
   paidAmount    Float?
   paymentToken  String?  @unique // emailed to the applicant as a public pay link
 
+  // ── Stripe (real checkout — used when STRIPE_SECRET_KEY is set) ──
+  stripeSessionId       String?  @unique // Checkout Session id
+  stripePaymentIntentId String?         // PaymentIntent id (audit)
+  stripeStatus          String?         // last Stripe payment status
+
   // ── Policy term (set on bind; 12-month annual term) ─────────
   effectiveAt   DateTime?
   expiresAt     DateTime?
