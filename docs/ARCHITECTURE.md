@@ -81,6 +81,8 @@ src/
       submissions/[id]/     ← DELETE (owner/admin; bound policies rejected 409)
       submissions/[id]/review/ ← POST (underwriter/admin approve|decline + note)
       submissions/[id]/ai-review/ ← POST (underwriter/admin; AI advisory verdict, refer-only)
+      submissions/[id]/cancel/ ← POST (owning broker/admin; cancel a bound policy mid-term)
+      submissions/[id]/adjust/ ← POST (owning broker/admin; mid-term adjustment, pro-rata)
       drafts/               ← POST (upsert draft)
       drafts/[id]/          ← GET (load a draft for resume)
       buy-policy/           ← Bind policy (stamp 12-mo term) + email pay link + underwriter notice
@@ -110,6 +112,8 @@ src/
     inputs/                 ← Choice, Toggle, Dropdown, Number, Currency,
                               Date, Text, Address (Google Places autocomplete)
     BuyPolicyButton.tsx     ← Bind + email pay link (also "Resend payment link")
+    CancelPolicyButton.tsx  ← Cancel a bound policy mid-term (reason + cancellation email)
+    AdjustPolicyButton.tsx  ← Mid-term adjustment (new sum insured, live pro-rata estimate)
     ReviewActions.tsx       ← Underwriter approve/decline + note + "Get AI Recommendation"
     PaymentForm.tsx         ← Card form (validated, not charged) → pay endpoint
     PaymentBadge.tsx        ← Paid / Unpaid pill
@@ -152,7 +156,7 @@ src/
 
 knowledge/                  ← FAQ + policy-wording docs for Help Navigator (.md/.txt/.pdf)
 prisma/
-  schema.prisma             ← Broker (role/active) + Submission (review + payment + effectiveAt/expiresAt term) models
+  schema.prisma             ← Broker (role/active) + Submission (review + payment + effectiveAt/expiresAt term + cancelledAt/cancelReason + adjustments log) models
 .eslintrc.json              ← ESLint (next/core-web-vitals)
   seed.js                   ← Creates demo admin / underwriter / broker accounts
 ```
@@ -403,7 +407,23 @@ Underwriter review (referred quotes)  /review → /policy/[id]
         → canReview; submission must be decision = "refer"
         → set decision (accept|decline) + reviewedById/reviewedAt/reviewNote
         → on approve → sendQuoteApprovedEmail() to the broker
+
+Mid-term adjustment (bound, non-cancelled)  /policy/[id] (AdjustPolicyButton)
+   └─ POST /api/submissions/[id]/adjust { coverageAmount, reason }
+        → canBindOrPay ownership check; must be purchased and not cancelled
+        → newAnnual = oldAnnual × newCoverage / oldCoverage (premium scales with sum insured)
+        → proRata = (newAnnual − oldAnnual) × remainingDays / termDays (effectiveAt→expiresAt)
+        → update coverageAmount/annualPremium/monthlyPremium; append an MTA record to adjustments[]
+        → sendAdjustmentEmail() to the applicant → { success, newAnnual, oldAnnual, proRata, remainingDays, sentTo, previewUrl }
+
+Cancellation (bound policy)  /policy/[id] (CancelPolicyButton)
+   └─ POST /api/submissions/[id]/cancel { reason }
+        → canBindOrPay ownership check; must be purchased and not already cancelled
+        → stamp cancelledAt + cancelReason
+        → sendCancellationEmail() to the applicant → { success, sentTo, previewUrl }
 ```
+
+The full policy lifecycle is: **quote → (refer → AI review/approve) → bind → pay → adjust (MTA) → cancel.**
 
 `brokerText` shown in the chat is run through `interpolate()` to substitute `{{answer_id}}`
 placeholders with prior `displayValue`s.
@@ -519,8 +539,13 @@ are set, otherwise an auto-created **Ethereal** test account that returns a brow
   ready to bind. Sent by the review endpoint.
 - `sendUnderwriterNotificationEmail` — best-effort back-office notice on first bind, only when
   `UNDERWRITER_EMAIL` is set; failures never block the bind.
+- `sendAdjustmentEmail` — applicant-facing notice of a mid-term adjustment (old/new coverage,
+  old/new premium, pro-rata charge/return). Sent by `/api/submissions/[id]/adjust`.
+- `sendCancellationEmail` — applicant-facing cancellation confirmation (effective date, reason).
+  Sent by `/api/submissions/[id]/cancel`.
 
-The buy/review/pay UIs surface the recipient and, in Ethereal mode, an "Open … email" button
+All senders use the same Ethereal/SMTP transport and return `{ sentTo, previewUrl }`.
+The buy/review/pay/adjust/cancel UIs surface the recipient and, in Ethereal mode, an "Open … email" button
 (`previewUrl`).
 
 ---

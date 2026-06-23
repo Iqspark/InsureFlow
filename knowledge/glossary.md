@@ -48,6 +48,15 @@ Past claims or losses, usually over the last 5 years. A heavier loss history rai
 ## Short-rate cancellation
 A mid-term cancellation where the refund is reduced by a penalty (less than a simple pro-rata refund). See "Cancellations & Refunds."
 
+## Mid-term adjustment (MTA)
+A change to an active policy partway through its term — typically revising the sum insured. The premium is recalculated and the difference settled pro-rata for the remaining term. See "Mid-Term Adjustments."
+
+## Additional premium (AP)
+The extra premium owed when a mid-term adjustment increases the cover — charged pro-rata for the days remaining in the term.
+
+## Return premium (RP)
+The amount refunded when a mid-term adjustment decreases the cover — credited pro-rata for the days remaining in the term.
+
 ## Named perils vs comprehensive
 **Named perils** covers only the specific events listed in the policy. **Comprehensive** (all-risk) covers everything except what's excluded — broader, and usually pricier.
 

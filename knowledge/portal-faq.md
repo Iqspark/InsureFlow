@@ -12,6 +12,9 @@ A **quote** is a saved, calculated application. It becomes a **policy** when the
 ## Why was my quote referred instead of accepted?
 A referral means the risk needs an underwriter's judgement before a decision — for example a high-value risk, a heavier loss history, or a risk factor outside the automatic-accept range. The specific reasons are shown on the result screen. A referral is not a decline.
 
+## Can I change a policy after it's bound?
+Yes. A broker or admin can make a **mid-term adjustment** to revise the coverage amount (the premium changes pro-rata for the remaining term) or **cancel** the policy — both from the policy page, and both email the customer a confirmation. See "Mid-Term Adjustments" and "Cancellations & Refunds."
+
 ## Can I change an answer after I've moved on?
 Yes. Go back to any earlier question and change it; the questionnaire re-walks the path and keeps your still-relevant answers, so you don't lose later ones like phone and email.
 

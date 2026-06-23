@@ -78,6 +78,23 @@ Switch back to **Broker**.
 
 ---
 
+## 5b. Servicing the policy — adjust & cancel (1–2 min) ⭐
+
+Open the bound policy (Policies tab or the link). This shows the **full lifecycle**, not just new business.
+
+**Mid-term adjustment (MTA):**
+- Click **Adjust Policy** → raise the **coverage amount** (e.g. +50%) and add a reason.
+- *"Watch the live estimate — the premium recalculates and the system charges the **pro-rata additional premium** for just the remaining days of the term."*
+- Click **Confirm adjustment** → success box appears with **"Open adjustment email"** → open it to show the customer's confirmation. The policy now lists a **Mid-Term Adjustments** history row.
+
+**Cancellation:**
+- Click **Cancel Policy** → add a reason → **Confirm cancellation**.
+- *"The customer is emailed a cancellation confirmation — short-rate refund noted — and the policy is flagged Cancelled and drops out of renewals."* Click **"Open cancellation email"** to show it.
+
+> Tip: do the MTA on a normal policy and the cancellation on a throwaway one, so you can keep showing the adjusted policy. Reset afterward with the seed scripts.
+
+---
+
 ## 6. Client 360 + find anything (1 min)
 
 Still as broker:

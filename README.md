@@ -30,12 +30,14 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 - **Underwriting decision** — every quote resolves to **Accept**, **Decline**, or **Refer to underwriter**, with the reasons recorded.
 - **AI underwriter recommendation** — on a referred quote, an underwriter can get an advisory **approve/decline** verdict (with confidence + reasons) that pre-fills the review note; the human confirms. Pluggable engine, currently an inline OpenAI call.
 - **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** and emails the applicant a payment link to a **simulated checkout** (no real charge). Binding stamps a **12-month policy term**.
+- **Mid-term adjustments (MTA)** — a bound policy's sum insured can be revised mid-term; the premium scales proportionally and the difference is charged/returned **pro-rata** over the remaining term. Each change is logged and the applicant is emailed.
+- **Policy cancellation** — a bound policy can be cancelled mid-term by the owning broker or an admin; the applicant gets a cancellation confirmation email and the policy is excluded from Upcoming Renewals.
 - **Role-based portal** — three roles (Broker / Underwriter / Admin). Brokers see their own book; underwriters review referred quotes; admins manage users and see everything.
 - **Dashboards & analytics** — broker/underwriter/admin dashboards with book analytics, plus **Policies**, **Customers**, and **Search** views with type-ahead suggestions and an **Upcoming Renewals** list (from the 12-month term).
 - **Property address + map** — Vacant Home quotes capture the address with Google Places autocomplete and show the location on a map (portal + PDF).
 - **Downloadable PDF & CSV export** — a branded one-click PDF of any quote/policy (with location map and a Quote/Policy stamp), and CSV export of list views.
 - **Help Navigator** — an in-portal knowledge-base assistant that answers from the `knowledge/` docs.
-- **Email** — applicant payment link + confirmation/receipt, broker approval notice, and an underwriter/back-office notification.
+- **Email** — applicant payment link + confirmation/receipt, broker approval notice, an underwriter/back-office notification, plus mid-term adjustment and cancellation confirmations.
 - **Installable PWA** — add it to a phone home screen and run it full-screen.
 
 ---
@@ -146,6 +148,12 @@ Two independent dimensions are tracked per submission:
 
 On the result screen an accepted quote offers **Save as Quote** or **Buy This Policy**. Binding a policy emails the applicant a **payment link** to a simulated checkout, starts a **12-month term** (`effectiveAt`/`expiresAt`), notifies the underwriter, and flips the badge to **Policy** across the dashboard, search, detail page, and PDF.
 
+After binding, the policy detail page also supports **mid-term adjustments** (revise the sum insured → premium scales proportionally, difference charged/returned pro-rata over the remaining term) and **cancellation** (stamps `cancelledAt`/`cancelReason`, hides Buy/Resend, excludes it from Upcoming Renewals) — each emailing the applicant. The full lifecycle is:
+
+```
+quote → (refer → AI review/approve) → bind → pay → adjust (MTA) → cancel
+```
+
 ---
 
 ## Install as a Mobile App (PWA)
@@ -224,7 +232,8 @@ src/
 │                                     pay/[token] (public checkout), admin/users,
 │                                     policies/suggest, customers/suggest, reviews/suggest, queue/suggest,
 │                                     policy/[id]/document (PDF), chat-intent, help-chat,
-│                                     submissions/[id]/review, submissions/[id]/ai-review
+│                                     submissions/[id]/review, submissions/[id]/ai-review,
+│                                     submissions/[id]/adjust (MTA), submissions/[id]/cancel
 ├── data/
 │   ├── products.ts                ← Product registry
 │   ├── questions.ts               ← Vacant Home questions + UW rules
@@ -243,10 +252,11 @@ src/
 │   ├── policyPdf.tsx              ← PDF document (react-pdf)
 │   ├── aiUnderwriter.ts          ← Pluggable AI underwriter engine (inline OpenAI)
 │   ├── submissionSections.ts     ← Detail/PDF section builder
-│   ├── email.ts                  ← Confirmation + underwriter emails
+│   ├── email.ts                  ← Confirmation + underwriter + adjustment/cancellation emails
 │   ├── auth.ts / prisma.ts
 ├── components/                    ← Chat UI, inputs, result screens, badges, map, buttons,
-│                                     AdminAnalytics + BookCharts, CustomerCard, ReviewActions
+│                                     AdminAnalytics + BookCharts, CustomerCard, ReviewActions,
+│                                     CancelPolicyButton, AdjustPolicyButton
 └── utils/                         ← validation, interpolation, googleMaps loader
 
 prisma/schema.prisma               ← Submission + Broker models

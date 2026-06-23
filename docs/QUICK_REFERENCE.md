@@ -248,6 +248,8 @@ Decline always beats Refer if both are triggered.
 2. The **customer** opens the link (public, no login) and pays via a card form that is format-validated only — **no real charge** (swap a real gateway into `/api/pay/[token]` later).
 3. On success the policy is marked **Paid** and a confirmation + receipt are emailed. Bound-but-unpaid policies show in the broker's **Action Required** with a Resend Link option.
 
+After binding, a bound policy can be **adjusted** mid-term (revise the sum insured → premium scales proportionally, difference charged/returned pro-rata) or **cancelled** from the policy detail page; both email the applicant. Full lifecycle: **quote → (refer → AI review/approve) → bind → pay → adjust (MTA) → cancel.**
+
 ---
 
 ## Adding a New Product
@@ -329,6 +331,9 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 | Buy → bind + email pay link | `src/app/api/buy-policy/route.ts` |
 | Customer payment (public) | `src/app/pay/[token]/page.tsx`, `src/app/api/pay/[token]/route.ts` |
 | Underwriter review | `src/app/(protected)/review/page.tsx`, `src/app/api/submissions/[id]/review/route.ts` |
+| Cancel a bound policy (mid-term) | `src/components/CancelPolicyButton.tsx` → `src/app/api/submissions/[id]/cancel/route.ts` |
+| Mid-term adjustment (MTA, pro-rata) | `src/components/AdjustPolicyButton.tsx` → `src/app/api/submissions/[id]/adjust/route.ts` |
+| Cancellation / adjustment emails | `src/lib/email.ts` → `sendCancellationEmail`, `sendAdjustmentEmail` |
 | Admin overview / users | `src/app/(protected)/admin/page.tsx`, `admin/users/page.tsx`, `src/app/api/admin/users/` |
 | Role access rules (RBAC) | `src/lib/access.ts` |
 | Broker avatar / name ("Alex") | `src/components/ConversationView.tsx`, `ChatBubble.tsx` |
