@@ -63,13 +63,19 @@ export interface SendResult {
   previewUrl?: string; // set when using Ethereal test mode
 }
 
+export interface EmailAttachment {
+  filename: string;
+  content:  Buffer;
+}
+
 // Single delivery path used by every sender below.
 async function deliver(opts: {
-  to:      string;
-  subject: string;
-  html:    string;
-  text:    string;
-  label?:  string; // for the Ethereal console log
+  to:           string;
+  subject:      string;
+  html:         string;
+  text:         string;
+  label?:       string; // for the Ethereal console log
+  attachments?: EmailAttachment[];
 }): Promise<SendResult> {
   const from = process.env.SMTP_FROM ?? `"InsureFlow" <noreply@insureflow.com>`;
 
@@ -83,6 +89,9 @@ async function deliver(opts: {
       subject: opts.subject,
       html:    opts.html,
       text:    opts.text,
+      ...(opts.attachments?.length
+        ? { attachments: opts.attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+        : {}),
     });
     if (error) throw new Error(`Resend: ${error.message}`);
     return { sentTo: opts.to };
@@ -96,6 +105,9 @@ async function deliver(opts: {
     subject: opts.subject,
     html:    opts.html,
     text:    opts.text,
+    ...(opts.attachments?.length
+      ? { attachments: opts.attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+      : {}),
   });
   const previewUrl = isTest ? (nodemailer.getTestMessageUrl(info) || undefined) : undefined;
   if (previewUrl) console.log(`\n📧 [Ethereal] ${opts.label ?? "Email"} at: ${previewUrl}\n`);
@@ -615,6 +627,7 @@ export interface PaymentReceiptData {
   policyType:    string;
   amount:        number;
   paidAt:        Date;
+  pdf?:          EmailAttachment; // branded policy document, attached when available
 }
 
 export async function sendPaymentReceiptEmail(
@@ -652,6 +665,7 @@ export async function sendPaymentReceiptEmail(
     subject: `Payment Receipt — ${d.policyType} (${d.appId})`,
     html,
     label:   "Payment receipt",
+    attachments: d.pdf ? [d.pdf] : undefined,
     text: [
       `Payment Receipt — InsureFlow`,
       ``,

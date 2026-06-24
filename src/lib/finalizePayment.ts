@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
+import { buildPolicyPdf } from "@/lib/policyDocument";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
 
@@ -72,6 +73,14 @@ export async function finalizePaidPolicy(
         brokerName:     sub.broker?.name   ?? "your broker",
         brokerEmail:    sub.broker?.email  ?? "",
       });
+      // Best-effort branded policy PDF attached to the receipt.
+      let pdf;
+      try {
+        const buffer = await buildPolicyPdf(sub);
+        pdf = { filename: `InsureFlow-Policy-${policyNumber(sub)}.pdf`, content: buffer };
+      } catch (pdfErr) {
+        console.error("[finalizePaidPolicy] policy PDF render failed:", pdfErr);
+      }
       const receipt = await sendPaymentReceiptEmail({
         to,
         applicantName: sub.applicantName ?? "Valued Customer",
@@ -79,6 +88,7 @@ export async function finalizePaidPolicy(
         policyType:    sub.policyType,
         amount,
         paidAt,
+        pdf,
       });
       previewUrl = receipt.previewUrl ?? confirm.previewUrl ?? null;
     } catch (err) {

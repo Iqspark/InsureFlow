@@ -8,6 +8,9 @@ vi.mock("@/lib/email", () => ({
   sendPaymentReceiptEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com", previewUrl: "http://preview" }),
 }));
 vi.mock("@/lib/audit", () => ({ recordAudit: vi.fn().mockResolvedValue(undefined) }));
+vi.mock("@/lib/policyDocument", () => ({
+  buildPolicyPdf: vi.fn().mockResolvedValue(Buffer.from("pdf")),
+}));
 
 import { finalizePaidPolicy } from "./finalizePayment";
 import { prisma } from "@/lib/prisma";
@@ -73,6 +76,11 @@ describe("finalizePaidPolicy", () => {
     );
     expect(sendPolicyConfirmationEmail).toHaveBeenCalledOnce();
     expect(sendPaymentReceiptEmail).toHaveBeenCalledOnce();
+    expect(sendPaymentReceiptEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pdf: expect.objectContaining({ filename: expect.stringContaining(".pdf") }),
+      })
+    );
   });
 
   it("still marks paid when there is no contact email (skips sending)", async () => {
