@@ -85,7 +85,7 @@ export default function HelpChatWidget() {
             style={{ height: "480px" }}
           >
             {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-700 px-4 py-3 flex items-center justify-between flex-shrink-0">
+            <div className="bg-linear-to-r from-indigo-600 to-indigo-700 px-4 py-3 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
                   <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -117,7 +117,7 @@ export default function HelpChatWidget() {
                   className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   {msg.role === "assistant" && (
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mr-2 mt-0.5">
                       <svg className="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
@@ -127,7 +127,7 @@ export default function HelpChatWidget() {
                     className={`max-w-[80%] rounded-2xl px-3 py-2 text-sm leading-relaxed whitespace-pre-wrap ${
                       msg.role === "user"
                         ? "bg-indigo-600 text-white rounded-br-sm"
-                        : "bg-white text-slate-700 shadow-sm border border-slate-100 rounded-bl-sm"
+                        : "bg-white text-slate-700 shadow-xs border border-slate-100 rounded-bl-sm"
                     }`}
                   >
                     {msg.content.replace(/\*\*(.*?)\*\*/g, "$1")}
@@ -138,12 +138,12 @@ export default function HelpChatWidget() {
               {/* Typing indicator */}
               {loading && (
                 <div className="flex justify-start">
-                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center flex-shrink-0 mr-2 mt-0.5">
+                  <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0 mr-2 mt-0.5">
                     <svg className="w-3 h-3 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                     </svg>
                   </div>
-                  <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm flex gap-1 items-center">
+                  <div className="bg-white border border-slate-100 rounded-2xl rounded-bl-sm px-4 py-3 shadow-xs flex gap-1 items-center">
                     {[0, 1, 2].map((i) => (
                       <motion.span
                         key={i}
@@ -159,7 +159,7 @@ export default function HelpChatWidget() {
             </div>
 
             {/* Input */}
-            <div className="flex-shrink-0 bg-white border-t border-slate-100 px-3 py-3 flex gap-2">
+            <div className="shrink-0 bg-white border-t border-slate-100 px-3 py-3 flex gap-2">
               <input
                 ref={inputRef}
                 type="text"
@@ -168,14 +168,14 @@ export default function HelpChatWidget() {
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
                 placeholder="Ask a question…"
                 disabled={loading}
-                className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 placeholder-slate-400 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-50"
+                className="flex-1 text-sm bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 placeholder-slate-400 focus:outline-hidden focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={handleSend}
                 disabled={!input.trim() || loading}
                 aria-label="Send message"
-                className="w-9 h-9 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                className="w-9 h-9 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 12h14M12 5l7 7-7 7" />

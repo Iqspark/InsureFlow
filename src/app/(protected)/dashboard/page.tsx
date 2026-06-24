@@ -197,7 +197,7 @@ export default async function DashboardPage() {
             key={c.label}
             className="bg-white rounded-xl p-4 border border-slate-200 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200"
           >
-            <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${c.grad} flex items-center justify-center mb-3 shadow-sm`}>
+            <div className={`w-9 h-9 rounded-lg bg-linear-to-br ${c.grad} flex items-center justify-center mb-3 shadow-xs`}>
               <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={c.icon} />
               </svg>
@@ -212,7 +212,7 @@ export default async function DashboardPage() {
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <Link
           href="/new-quote"
-          className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-indigo-100 text-sm"
+          className="flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-indigo-100 text-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -221,7 +221,7 @@ export default async function DashboardPage() {
         </Link>
         <Link
           href="/search"
-          className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition-colors border border-slate-200 shadow-sm text-sm"
+          className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition-colors border border-slate-200 shadow-xs text-sm"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
@@ -258,7 +258,7 @@ export default async function DashboardPage() {
 
       {/* Upcoming renewals */}
       {renewals.length > 0 && (
-        <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+        <div className="mb-6 rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
           <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-2">
             <svg className="w-4 h-4 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -316,7 +316,7 @@ export default async function DashboardPage() {
               return (
                 <div
                   key={s.id}
-                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
                 >
                   <Link href={href} className="min-w-0 flex-1 group">
                     <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
@@ -361,7 +361,7 @@ export default async function DashboardPage() {
             {recentPolicies.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+                className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
               >
                 <Link href={`/policy/${s.id}`} className="min-w-0 flex-1 group">
                   <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
@@ -398,7 +398,7 @@ export default async function DashboardPage() {
             {cancelledPolicies.map((s) => (
               <div
                 key={s.id}
-                className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-red-300 hover:shadow-md transition-all"
+                className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-red-300 hover:shadow-md transition-all"
               >
                 <Link href={`/policy/${s.id}`} className="min-w-0 flex-1 group">
                   <p className="text-sm font-semibold text-slate-900 group-hover:text-red-700 transition-colors truncate">

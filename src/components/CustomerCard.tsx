@@ -69,7 +69,7 @@ export default function CustomerCard(c: CustomerCardProps) {
   const extra = c.rows.length - 1;
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       {/* Header — click to expand all policies */}
       <button
         type="button"

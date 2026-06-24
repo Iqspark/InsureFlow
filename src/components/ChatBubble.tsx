@@ -17,11 +17,11 @@ export default function ChatBubble({ type, text }: ChatBubbleProps) {
         className="flex items-start gap-2 max-w-[85%]"
       >
         {/* Avatar */}
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shadow-sm">
+        <div className="shrink-0 w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center shadow-xs">
           <span className="text-white text-xs font-bold">A</span>
         </div>
 
-        <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-sm text-slate-800 text-sm leading-relaxed">
+        <div className="bg-white rounded-2xl rounded-tl-sm px-4 py-3 shadow-xs text-slate-800 text-sm leading-relaxed">
           {text}
         </div>
       </motion.div>
@@ -35,7 +35,7 @@ export default function ChatBubble({ type, text }: ChatBubbleProps) {
       transition={{ duration: 0.25, ease: "easeOut" }}
       className="flex justify-end"
     >
-      <div className="bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-[80%] shadow-sm leading-relaxed">
+      <div className="bg-indigo-600 text-white rounded-2xl rounded-tr-sm px-4 py-3 text-sm max-w-[80%] shadow-xs leading-relaxed">
         {text}
       </div>
     </motion.div>

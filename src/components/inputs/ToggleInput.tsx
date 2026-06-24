@@ -21,7 +21,7 @@ export default function ToggleInput({ options, selected, onSelect }: Props) {
         <button
           key={String(opt.value)}
           onClick={() => onSelect(opt.value, opt.label)}
-          className={`flex-1 py-4 rounded-2xl border-2 font-semibold text-sm transition-all duration-150 active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-indigo-300
+          className={`flex-1 py-4 rounded-2xl border-2 font-semibold text-sm transition-all duration-150 active:scale-[0.97] focus:outline-hidden focus:ring-2 focus:ring-indigo-300
             ${
               opt.value === selected
                 ? "bg-indigo-50 border-indigo-500 text-indigo-700 ring-2 ring-indigo-200"

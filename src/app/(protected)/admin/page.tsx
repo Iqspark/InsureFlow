@@ -145,7 +145,7 @@ export default async function AdminPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           {statCards.map((c) => (
             <div key={c.label} className="bg-white rounded-xl p-4 border border-slate-200 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
-              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${c.grad} flex items-center justify-center mb-3 shadow-sm`}>
+              <div className={`w-9 h-9 rounded-lg bg-linear-to-br ${c.grad} flex items-center justify-center mb-3 shadow-xs`}>
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={c.icon} />
                 </svg>
@@ -163,7 +163,7 @@ export default async function AdminPage() {
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <Link
             href="/queue"
-            className="flex items-center justify-center gap-2 px-5 py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-indigo-100 text-sm"
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-indigo-100 text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -172,7 +172,7 @@ export default async function AdminPage() {
           </Link>
           <Link
             href="/admin/users"
-            className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition-colors border border-slate-200 shadow-sm text-sm"
+            className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition-colors border border-slate-200 shadow-xs text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8z" />
@@ -192,7 +192,7 @@ export default async function AdminPage() {
           {recent.map((s) => (
             <div
               key={s.id}
-              className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+              className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
             >
               <Link href={`/policy/${s.id}`} className="min-w-0 flex-1 group">
                 <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">

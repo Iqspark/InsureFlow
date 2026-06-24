@@ -11,8 +11,9 @@ import { tooMany, clientIp } from "@/lib/rateLimit";
 // policy paid once Stripe confirms. Only used when STRIPE_SECRET_KEY is set.
 export async function POST(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   const limited = tooMany(`checkout:${clientIp(req)}`, 15, 60_000);
   if (limited) return limited;
 
@@ -21,7 +22,7 @@ export async function POST(
   }
 
   const sub = await prisma.submission.findUnique({
-    where: { paymentToken: params.token },
+    where: { paymentToken: token },
     select: {
       id: true, purchased: true, paymentStatus: true, annualPremium: true,
       policyType: true, applicantName: true, contactEmail: true, createdAt: true,
@@ -62,8 +63,8 @@ export async function POST(
         },
       },
     ],
-    success_url: `${origin}/pay/${params.token}?paid=1`,
-    cancel_url: `${origin}/pay/${params.token}`,
+    success_url: `${origin}/pay/${token}?paid=1`,
+    cancel_url: `${origin}/pay/${token}`,
   });
 
   await prisma.submission.update({

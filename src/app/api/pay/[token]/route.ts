@@ -12,8 +12,9 @@ import { tooMany, clientIp } from "@/lib/rateLimit";
 // webhook, so this route is disabled to prevent a no-charge payment bypass.
 export async function POST(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
+  const { token } = await params;
   const limited = tooMany(`pay:${clientIp(req)}`, 15, 60_000);
   if (limited) return limited;
 
@@ -44,7 +45,7 @@ export async function POST(
   }
 
   const sub = await prisma.submission.findUnique({
-    where: { paymentToken: params.token },
+    where: { paymentToken: token },
     select: { id: true, purchased: true, paymentStatus: true },
   });
 

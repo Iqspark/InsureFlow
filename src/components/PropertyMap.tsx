@@ -7,14 +7,14 @@ export default function PropertyMap({ address }: { address: string }) {
 
   if (!src) {
     return (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-4 text-sm text-slate-400">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs px-5 py-4 text-sm text-slate-400">
         Map unavailable — set <span className="font-mono">NEXT_PUBLIC_GOOGLE_MAPS_API_KEY</span> to display the property location.
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Property Location

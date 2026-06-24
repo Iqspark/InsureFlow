@@ -106,7 +106,7 @@ export default function AdjustPolicyButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 font-medium rounded-xl border border-indigo-200 shadow-sm transition-colors text-sm"
+        className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-indigo-50 text-indigo-600 font-medium rounded-xl border border-indigo-200 shadow-xs transition-colors text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -117,7 +117,7 @@ export default function AdjustPolicyButton({
   }
 
   return (
-    <div className="w-full bg-white rounded-xl border border-indigo-200 shadow-sm p-4">
+    <div className="w-full bg-white rounded-xl border border-indigo-200 shadow-xs p-4">
       <p className="text-sm font-semibold text-slate-900 mb-1">Mid-term adjustment</p>
       <p className="text-xs text-slate-500 mb-3">
         Revise the sum insured. The premium is recalculated and the difference is charged or returned pro-rata for the {remainingDays} days remaining.
@@ -133,7 +133,7 @@ export default function AdjustPolicyButton({
               value={coverage}
               onChange={(e) => setCoverage(e.target.value)}
               min={1}
-              className="w-full pl-7 pr-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+              className="w-full pl-7 pr-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
             />
           </div>
           <p className="text-[11px] text-slate-400 mt-1">Current: {cad(currentCoverage)}</p>
@@ -145,7 +145,7 @@ export default function AdjustPolicyButton({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="e.g. renovation increased value"
-            className="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+            className="w-full px-3 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
           />
         </div>
       </div>

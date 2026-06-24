@@ -82,7 +82,7 @@ export default function CustomerSearchBox({ initialValue = "" }: { initialValue?
           onKeyDown={onKeyDown}
           onFocus={() => value.trim() && items.length > 0 && setOpen(true)}
           placeholder="Search by customer name or email…"
-          className="w-full pl-10 pr-9 py-2.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition"
+          className="w-full pl-10 pr-9 py-2.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition"
         />
         {value && (
           <button
@@ -112,7 +112,7 @@ export default function CustomerSearchBox({ initialValue = "" }: { initialValue?
                   onClick={() => go(s.email ?? s.name)}
                   className={`w-full text-left flex items-center gap-3 px-4 py-2.5 transition-colors ${i === active ? "bg-indigo-50" : "hover:bg-slate-50"}`}
                 >
-                  <span className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-linear-to-br from-indigo-500 to-violet-500 flex items-center justify-center text-white text-xs font-bold shrink-0">
                     {s.name.charAt(0).toUpperCase()}
                   </span>
                   <span className="min-w-0">

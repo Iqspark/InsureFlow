@@ -68,7 +68,7 @@ function DecisionBanner({ decision, reasons }: { decision: string | null; reason
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">{title}</h2>
       </div>
@@ -102,13 +102,14 @@ const AUDIT_LABELS: Record<string, { label: string; dot: string }> = {
 export default async function PolicyDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   const user = session!.user as unknown as SessionUser;
 
   const sub = await prisma.submission.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: {
       broker: { select: { name: true, email: true } },
       reviewedBy: { select: { name: true } },
@@ -235,15 +236,15 @@ export default async function PolicyDetailPage({
         {/* Premium summary — only for accepted quotes */}
         {sub.decision === "accept" && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4">
               <p className="text-xs text-slate-400 mb-1">Annual Premium</p>
               <p className="text-2xl font-bold text-slate-900">{fmtCurrency(sub.annualPremium)}</p>
             </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4">
               <p className="text-xs text-slate-400 mb-1">Monthly Premium</p>
               <p className="text-2xl font-bold text-indigo-600">{fmtCurrency(sub.monthlyPremium)}</p>
             </div>
-            <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4 col-span-2 sm:col-span-1">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-4 col-span-2 sm:col-span-1">
               <p className="text-xs text-slate-400 mb-1">Coverage Amount</p>
               <p className="text-2xl font-bold text-slate-900">{fmtCurrency(sub.coverageAmount)}</p>
             </div>
@@ -264,7 +265,7 @@ export default async function PolicyDetailPage({
 
         {/* Mid-term adjustment history */}
         {adjustments.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Mid-Term Adjustments ({adjustments.length})
@@ -298,7 +299,7 @@ export default async function PolicyDetailPage({
 
         {/* Activity / audit trail */}
         {sub.auditEvents.length > 0 && (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
             <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
               <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
                 Activity
@@ -338,7 +339,7 @@ export default async function PolicyDetailPage({
         <div className="flex flex-wrap gap-3 pb-4">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-xl border border-slate-200 shadow-sm transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-xl border border-slate-200 shadow-xs transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -365,7 +366,7 @@ export default async function PolicyDetailPage({
             <>
               <Link
                 href={`/new-quote/${productSlugForPolicyType(sub.policyType)}?resume=${sub.id}`}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-sm transition-colors text-sm"
+                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-xl shadow-xs transition-colors text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />

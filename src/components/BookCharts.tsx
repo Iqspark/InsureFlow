@@ -21,7 +21,7 @@ const cad = (v: number) =>
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">
         {title}
       </h3>
@@ -55,7 +55,7 @@ export default function BookCharts({ stats }: { stats: BookStats }) {
                 {m.total > 0 ? `$${Math.round(m.total / 1000)}k` : ""}
               </span>
               <div
-                className="w-full rounded-t-md bg-gradient-to-t from-indigo-500 to-violet-400 min-h-[2px] transition-all"
+                className="w-full rounded-t-md bg-linear-to-t from-indigo-500 to-violet-400 min-h-[2px] transition-all"
                 style={{ height: `${(m.total / maxMonth) * 100}%` }}
                 title={cad(m.total)}
               />

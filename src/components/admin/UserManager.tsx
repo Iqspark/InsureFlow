@@ -138,7 +138,7 @@ export default function UserManager({ initialUsers }: { initialUsers: User[] }) 
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search name, email, or role…"
-              className="w-56 pl-9 pr-3 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition"
+              className="w-56 pl-9 pr-3 py-2 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition"
             />
           </div>
           <button
@@ -156,29 +156,29 @@ export default function UserManager({ initialUsers }: { initialUsers: User[] }) 
       {error && <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-2.5">{error}</p>}
 
       {showAdd && (
-        <form onSubmit={createUser} className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form onSubmit={createUser} className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
           <input
             value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             required placeholder="Full name"
-            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
           />
           <input
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required type="email" placeholder="email@company.com"
-            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
           />
           <input
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required type="password" placeholder="Temporary password (min 8 chars)"
-            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
           />
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value as Role })}
-            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+            className="px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-sm outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
           >
             {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
           </select>
@@ -200,7 +200,7 @@ export default function UserManager({ initialUsers }: { initialUsers: User[] }) 
           subtitle={q ? `No user matches “${query}”.` : "Add your first user to get started."}
         />
       ) : (
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -223,7 +223,7 @@ export default function UserManager({ initialUsers }: { initialUsers: User[] }) 
                       value={u.role}
                       onChange={(e) => patchUser(u.id, { role: e.target.value as Role })}
                       title="Role"
-                      className={`text-xs font-medium rounded-full border px-2.5 py-1 outline-none cursor-pointer ${ROLE_STYLES[u.role]}`}
+                      className={`text-xs font-medium rounded-full border px-2.5 py-1 outline-hidden cursor-pointer ${ROLE_STYLES[u.role]}`}
                     >
                       {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                     </select>
@@ -264,7 +264,7 @@ export default function UserManager({ initialUsers }: { initialUsers: User[] }) 
                           value={resetPw}
                           onChange={(e) => setResetPw(e.target.value)}
                           title="New password"
-                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-mono text-sm w-44 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
+                          className="px-3 py-1.5 rounded-lg bg-white border border-slate-200 font-mono text-sm w-44 outline-hidden focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20"
                         />
                         <button type="button" onClick={() => setResetPw(genPassword())} className="text-xs font-medium text-slate-500 hover:text-slate-700">
                           Regenerate

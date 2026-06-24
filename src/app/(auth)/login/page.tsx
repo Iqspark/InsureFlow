@@ -85,7 +85,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex flex-col lg:flex-row bg-white">
       {/* ── Desktop left panel (hidden on mobile) ─────────────── */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-12 bg-linear-to-br from-slate-900 via-indigo-950 to-slate-900 relative overflow-hidden">
         {/* Grid pattern */}
         <div className="absolute inset-0 opacity-10 login-left-pattern" />
         {/* Decorative glow orbs */}
@@ -120,7 +120,7 @@ export default function LoginPage() {
               "Email confirmations sent automatically",
             ].map((f) => (
               <li key={f} className="flex items-start gap-3">
-                <span className="mt-0.5 w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center flex-shrink-0">
+                <span className="mt-0.5 w-5 h-5 rounded-full bg-indigo-500/20 border border-indigo-400/40 flex items-center justify-center shrink-0">
                   <svg className="w-2.5 h-2.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 12 12">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2 6l3 3 5-5" />
                   </svg>
@@ -147,10 +147,10 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right side: mobile hero + form ─────────────────────── */}
-      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-16 lg:bg-gradient-to-br lg:from-slate-50 lg:via-white lg:to-indigo-50/40">
+      <div className="flex-1 flex flex-col lg:items-center lg:justify-center lg:p-16 lg:bg-linear-to-br lg:from-slate-50 lg:via-white lg:to-indigo-50/40">
 
         {/* Mobile hero banner — hidden on desktop */}
-        <div className="lg:hidden bg-gradient-to-br from-indigo-600 via-indigo-700 to-slate-900 px-8 pt-10 pb-16 text-center relative overflow-hidden">
+        <div className="lg:hidden bg-linear-to-br from-indigo-600 via-indigo-700 to-slate-900 px-8 pt-10 pb-16 text-center relative overflow-hidden">
           <div className="absolute inset-0 opacity-10 login-hero-pattern" />
           <div className="relative flex flex-col items-center gap-2">
             <ShieldLogo />
@@ -199,7 +199,7 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="broker@example.com"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden transition text-sm"
               />
             </div>
 
@@ -218,7 +218,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-none transition text-sm"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 text-slate-900 placeholder-slate-400 border border-slate-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 outline-hidden transition text-sm"
               />
             </div>
 
@@ -242,7 +242,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-indigo-100"
+              className="w-full py-3 px-4 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 disabled:opacity-60 text-white font-semibold rounded-xl transition-all text-sm flex items-center justify-center gap-2 shadow-md shadow-indigo-100"
             >
               {loading ? (
                 <>
@@ -287,9 +287,9 @@ export default function LoginPage() {
                   type="button"
                   disabled={loading}
                   onClick={() => demoLogin(d.email)}
-                  className="group flex flex-col items-center gap-1.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-sm disabled:opacity-60 transition-all"
+                  className="group flex flex-col items-center gap-1.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:border-indigo-300 hover:shadow-xs disabled:opacity-60 transition-all"
                 >
-                  <span className={`w-7 h-7 rounded-full bg-gradient-to-br ${d.cls} flex items-center justify-center text-white text-xs font-bold`}>
+                  <span className={`w-7 h-7 rounded-full bg-linear-to-br ${d.cls} flex items-center justify-center text-white text-xs font-bold`}>
                     {d.label.charAt(0)}
                   </span>
                   <span className="text-xs font-medium text-slate-600 group-hover:text-indigo-700">{d.label}</span>

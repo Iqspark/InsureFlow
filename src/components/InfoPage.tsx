@@ -25,7 +25,7 @@ export function InfoPage({
           <p className="text-sm text-slate-500 mt-1">{intro}</p>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-6 py-6 space-y-6">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs px-6 py-6 space-y-6">
           {children}
         </div>
       </div>

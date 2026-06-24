@@ -10,8 +10,9 @@ const ROLES: Role[] = ["ADMIN", "BROKER", "UNDERWRITER"];
 // PATCH /api/admin/users/[id] — change role and/or active state (Admin only)
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const me = session.user as unknown as SessionUser;
@@ -26,7 +27,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const target = await prisma.broker.findUnique({ where: { id: params.id } });
+  const target = await prisma.broker.findUnique({ where: { id } });
   if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   if (role !== undefined && !ROLES.includes(role as Role)) {

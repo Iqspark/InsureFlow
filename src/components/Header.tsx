@@ -85,7 +85,7 @@ export async function Header() {
   }
 
   return (
-    <header className="h-16 bg-gradient-to-r from-slate-900 via-slate-900 to-indigo-950 flex items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/10 shadow-lg shadow-indigo-950/20 supports-[backdrop-filter]:bg-slate-900/85 backdrop-blur-xl">
+    <header className="h-16 bg-linear-to-r from-slate-900 via-slate-900 to-indigo-950 flex items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/10 shadow-lg shadow-indigo-950/20 supports-backdrop-filter:bg-slate-900/85 backdrop-blur-xl">
       {/* Logo */}
       <Link
         href={links[0].href}
@@ -125,7 +125,7 @@ export async function Header() {
             {brokerName}
           </p>
         </div>
-        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-500 ring-2 ring-white/15 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-sm">
+        <div className="w-8 h-8 rounded-full bg-linear-to-br from-indigo-500 to-violet-500 ring-2 ring-white/15 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-xs">
           {brokerName.charAt(0).toUpperCase()}
         </div>
         <SignOutButton />

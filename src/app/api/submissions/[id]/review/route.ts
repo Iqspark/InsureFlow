@@ -12,8 +12,9 @@ import { recordAudit } from "@/lib/audit";
 // Underwriter/Admin approves or declines a referred submission.
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -35,7 +36,7 @@ export async function POST(
   }
 
   const sub = await prisma.submission.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { broker: { select: { name: true, email: true } } },
   });
 

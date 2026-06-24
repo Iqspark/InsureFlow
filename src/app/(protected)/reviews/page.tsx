@@ -17,13 +17,14 @@ function fmtDate(d: Date): string {
 export default async function ReviewsPage({
   searchParams,
 }: {
-  searchParams: { page?: string; q?: string };
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
+  const sp = await searchParams;
   const session = await getServerSession(authOptions);
   requireRole(session, ["UNDERWRITER", "ADMIN"]);
 
-  const q = (searchParams.q ?? "").trim();
-  const page = Math.max(1, Number(searchParams.page ?? 1));
+  const q = (sp.q ?? "").trim();
+  const page = Math.max(1, Number(sp.page ?? 1));
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
@@ -92,7 +93,7 @@ export default async function ReviewsPage({
                 <Link
                   key={s.id}
                   href={`/policy/${s.id}`}
-                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-semibold text-slate-900 truncate">{s.applicantName ?? "—"}</p>

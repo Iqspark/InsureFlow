@@ -86,7 +86,7 @@ function AcceptResult({
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="flex flex-col h-full bg-white"
       >
-        <div className="h-2 bg-gradient-to-r from-emerald-400 to-indigo-500 rounded-t-2xl" />
+        <div className="h-2 bg-linear-to-r from-emerald-400 to-indigo-500 rounded-t-2xl" />
         <div className="flex-1 flex flex-col items-center justify-center px-8 py-10 text-center">
           <div className="w-24 h-24 rounded-full bg-emerald-100 flex items-center justify-center mb-7">
             <svg className="w-12 h-12 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -138,7 +138,7 @@ function AcceptResult({
     >
       {/* ── Quote content ──────────────────────────────────── */}
       {/* Hero */}
-      <div className="bg-gradient-to-br from-indigo-600 to-indigo-800 text-white px-6 pt-10 pb-8">
+      <div className="bg-linear-to-br from-indigo-600 to-indigo-800 text-white px-6 pt-10 pb-8">
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -171,7 +171,7 @@ function AcceptResult({
           Quote summary
         </h2>
 
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-xs divide-y divide-slate-100 overflow-hidden">
           <SummaryRow label="Policy" value={policyType} />
           <SummaryRow label="Coverage amount" value={`$${coverageAmount.toLocaleString()} CAD`} />
           <SummaryRow label="Deductible" value={`$${deductible.toLocaleString()} CAD`} />

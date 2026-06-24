@@ -25,11 +25,13 @@ export default async function PublicPayPage({
   params,
   searchParams,
 }: {
-  params: { token: string };
-  searchParams: { paid?: string };
+  params: Promise<{ token: string }>;
+  searchParams: Promise<{ paid?: string }>;
 }) {
+  const { token } = await params;
+  const sp = await searchParams;
   const sub = await prisma.submission.findUnique({
-    where: { paymentToken: params.token },
+    where: { paymentToken: token },
     select: {
       id: true, purchased: true, paymentStatus: true, stripeSessionId: true,
       annualPremium: true, policyType: true, applicantName: true, createdAt: true,
@@ -44,7 +46,7 @@ export default async function PublicPayPage({
   // Safety net: on return from Stripe (?paid=1), if the webhook hasn't marked the
   // policy paid yet, confirm directly with Stripe and finalize. Idempotent, so a
   // later webhook is a no-op. Guards against a dropped/delayed webhook.
-  if (!isPaid && searchParams?.paid === "1" && isStripeConfigured() && sub.stripeSessionId) {
+  if (!isPaid && sp?.paid === "1" && isStripeConfigured() && sub.stripeSessionId) {
     try {
       const session = await getStripe().checkout.sessions.retrieve(sub.stripeSessionId);
       if (session.payment_status === "paid") {
@@ -60,7 +62,7 @@ export default async function PublicPayPage({
   }
 
   // Still not confirmed paid but returned from Stripe — webhook will catch up.
-  const justReturnedFromStripe = searchParams?.paid === "1" && !isPaid;
+  const justReturnedFromStripe = sp?.paid === "1" && !isPaid;
 
   return (
     <div className="min-h-screen app-bg flex flex-col items-center px-4 py-10">
@@ -78,7 +80,7 @@ export default async function PublicPayPage({
         </div>
 
         {isPaid || justReturnedFromStripe ? (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center">
             <div className="w-14 h-14 rounded-full bg-emerald-500 flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -95,8 +97,8 @@ export default async function PublicPayPage({
           </div>
         ) : (
           <PaymentForm
-            endpoint={`/api/pay/${params.token}`}
-            checkoutEndpoint={`/api/pay/${params.token}/checkout`}
+            endpoint={`/api/pay/${token}`}
+            checkoutEndpoint={`/api/pay/${token}/checkout`}
             stripeEnabled={isStripeConfigured()}
             amount={sub.annualPremium ?? 0}
             appId={appId}

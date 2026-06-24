@@ -143,7 +143,7 @@ export default function SearchPage() {
         {/* Search form */}
         <form
           onSubmit={handleSearch}
-          className="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6"
+          className="bg-white rounded-xl border border-slate-200 shadow-xs p-5 mb-6"
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div>
@@ -155,7 +155,7 @@ export default function SearchPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. John Smith"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
               />
             </div>
             <div>
@@ -167,7 +167,7 @@ export default function SearchPage() {
                 value={appId}
                 onChange={(e) => setAppId(e.target.value)}
                 placeholder="e.g. CM8X4F2A1B"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm font-mono"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm font-mono"
               />
             </div>
             <div>
@@ -180,7 +180,7 @@ export default function SearchPage() {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 title="Policy Date"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
               />
             </div>
             <div>
@@ -192,7 +192,7 @@ export default function SearchPage() {
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 title="Policy Type"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
               >
                 <option value="">All types</option>
                 {Object.values(PRODUCTS).map((p) => (
@@ -212,7 +212,7 @@ export default function SearchPage() {
                   value="policy"
                   disabled
                   title="Stage"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 cursor-not-allowed outline-none text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-100 border border-slate-200 text-slate-500 cursor-not-allowed outline-hidden text-sm"
                 >
                   <option value="policy">Policies only</option>
                 </select>
@@ -222,7 +222,7 @@ export default function SearchPage() {
                   value={stage}
                   onChange={(e) => setStage(e.target.value)}
                   title="Stage"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
                 >
                   <option value="">Quotes &amp; Policies</option>
                   <option value="quote">Quotes only</option>
@@ -239,7 +239,7 @@ export default function SearchPage() {
                 value={decision}
                 onChange={(e) => setDecision(e.target.value)}
                 title="Decision"
-                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+                className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
               >
                 <option value="">All decisions</option>
                 <option value="accept">Accepted</option>
@@ -318,7 +318,7 @@ export default function SearchPage() {
                   return (
                     <div
                       key={r.id}
-                      className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+                      className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
                     >
                       <Link href={href} className="min-w-0 flex-1 group">
                         <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">

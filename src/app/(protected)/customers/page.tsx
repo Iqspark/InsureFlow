@@ -60,13 +60,14 @@ const PAGE_SIZE = 10;
 export default async function CustomersPage({
   searchParams,
 }: {
-  searchParams: { q?: string; page?: string };
+  searchParams: Promise<{ q?: string; page?: string }>;
 }) {
+  const sp = await searchParams;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
   const user = session.user as unknown as SessionUser;
 
-  const q = (searchParams.q ?? "").trim();
+  const q = (sp.q ?? "").trim();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: any = {
     ...submissionScopeWhere(user),
@@ -122,7 +123,7 @@ export default async function CustomersPage({
   const customers = Array.from(map.values()).sort((a, b) => b.totalPremium - a.totalPremium);
   const now = new Date();
 
-  const page = Math.max(1, Number(searchParams.page ?? 1));
+  const page = Math.max(1, Number(sp.page ?? 1));
   const totalPages = Math.max(1, Math.ceil(customers.length / PAGE_SIZE));
   const paged = customers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const pageHref = (n: number) =>

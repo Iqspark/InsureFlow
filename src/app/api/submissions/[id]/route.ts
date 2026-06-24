@@ -9,8 +9,9 @@ import type { SessionUser } from "@/lib/access";
 // Bound policies (purchased) are protected and cannot be deleted.
 export async function DELETE(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -18,7 +19,7 @@ export async function DELETE(
   const user = session.user as unknown as SessionUser;
 
   const sub = await prisma.submission.findUnique({
-    where: { id: params.id },
+    where: { id },
     select: { brokerId: true, purchased: true },
   });
 
@@ -34,7 +35,7 @@ export async function DELETE(
     );
   }
 
-  await prisma.submission.delete({ where: { id: params.id } });
+  await prisma.submission.delete({ where: { id } });
 
   return NextResponse.json({ ok: true });
 }

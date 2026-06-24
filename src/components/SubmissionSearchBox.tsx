@@ -95,7 +95,7 @@ export default function SubmissionSearchBox({
           onKeyDown={onKeyDown}
           onFocus={() => value.trim() && items.length > 0 && setOpen(true)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-9 py-2.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition"
+          className="w-full pl-10 pr-9 py-2.5 rounded-lg bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition"
         />
         {value && (
           <button

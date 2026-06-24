@@ -127,8 +127,8 @@ export default function ConversationView() {
   return (
     <div className="flex flex-col h-full">
       {/* Top bar */}
-      <div className="flex-shrink-0">
-        <div className="flex items-center justify-between px-4 py-2.5 bg-white/80 backdrop-blur-sm border-b border-slate-100">
+      <div className="shrink-0">
+        <div className="flex items-center justify-between px-4 py-2.5 bg-white/80 backdrop-blur-xs border-b border-slate-100">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-full bg-indigo-600 flex items-center justify-center">
               <span className="text-white text-xs font-bold">A</span>
@@ -165,7 +165,7 @@ export default function ConversationView() {
       </div>
 
       {/* Input area */}
-      <div className="flex-shrink-0 bg-white/90 backdrop-blur-sm border-t border-slate-100 px-4 pt-3 pb-4 space-y-2">
+      <div className="shrink-0 bg-white/90 backdrop-blur-xs border-t border-slate-100 px-4 pt-3 pb-4 space-y-2">
         {/* Helper text */}
         <AnimatePresence>
           {inputReady && currentQuestion?.helperText && (
@@ -222,13 +222,13 @@ export default function ConversationView() {
                 onKeyDown={(e) => e.key === "Enter" && handleChangeRequest()}
                 placeholder='e.g. "change my province to Quebec"'
                 disabled={changeLoading}
-                className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-none focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-50"
+                className="flex-1 text-xs bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-slate-700 placeholder-slate-300 focus:outline-hidden focus:border-indigo-400 focus:bg-white transition-colors disabled:opacity-50"
               />
               <button
                 type="button"
                 onClick={handleChangeRequest}
                 disabled={!changeText.trim() || changeLoading}
-                className="w-8 h-8 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                className="w-8 h-8 flex items-center justify-center bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 active:scale-95 transition-all disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
               >
                 {changeLoading ? (
                   <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">

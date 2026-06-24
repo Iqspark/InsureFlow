@@ -44,14 +44,15 @@ function DecisionBadge({ decision, status }: { decision: string | null; status: 
 export default async function PoliciesPage({
   searchParams,
 }: {
-  searchParams: { page?: string; q?: string };
+  searchParams: Promise<{ page?: string; q?: string }>;
 }) {
+  const sp = await searchParams;
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
   const user = session.user as unknown as SessionUser;
 
-  const q = (searchParams.q ?? "").trim();
-  const page = Math.max(1, Number(searchParams.page ?? 1));
+  const q = (sp.q ?? "").trim();
+  const page = Math.max(1, Number(sp.page ?? 1));
   // Policies tab = bound policies only (quotes live under Search).
   // Optional filter by policy number (app id prefix, stored lowercase).
   const where = {
@@ -123,7 +124,7 @@ export default async function PoliciesPage({
               title="No bound policies yet"
               subtitle="Bind an accepted quote and it’ll show up here as an active policy."
               action={
-                <Link href="/new-quote" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold shadow-md shadow-indigo-100 transition-all">
+                <Link href="/new-quote" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white text-sm font-semibold shadow-md shadow-indigo-100 transition-all">
                   Start a new quote →
                 </Link>
               }
@@ -140,7 +141,7 @@ export default async function PoliciesPage({
                 return (
                   <div
                     key={sub.id}
-                    className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+                    className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
                   >
                     <Link href={href} className="min-w-0 flex-1 group">
                       <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">

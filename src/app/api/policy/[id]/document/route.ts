@@ -31,15 +31,16 @@ async function fetchMapDataUri(address: string | null): Promise<string | null> {
 // file download (Content-Disposition: attachment).
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const sub = await prisma.submission.findUnique({
-    where: { id: params.id },
+    where: { id },
     include: { broker: { select: { name: true, email: true } } },
   });
 

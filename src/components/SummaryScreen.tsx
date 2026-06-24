@@ -19,7 +19,7 @@ export default function SummaryScreen() {
       className="flex flex-col h-full"
     >
       {/* Header */}
-      <div className="flex-shrink-0 px-5 pt-8 pb-4">
+      <div className="shrink-0 px-5 pt-8 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center shadow-md">
             <span className="text-white text-sm font-bold">A</span>
@@ -43,7 +43,7 @@ export default function SummaryScreen() {
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: i * 0.04, duration: 0.25 }}
-            className="flex items-start justify-between bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-100 gap-4"
+            className="flex items-start justify-between bg-white rounded-xl px-4 py-3 shadow-xs border border-slate-100 gap-4"
           >
             <div className="min-w-0">
               <p className="text-xs text-slate-400 font-medium uppercase tracking-wide leading-none mb-0.5">
@@ -60,7 +60,7 @@ export default function SummaryScreen() {
                 ?
               </p>
             </div>
-            <div className="flex-shrink-0 flex items-center gap-2 max-w-[55%]">
+            <div className="shrink-0 flex items-center gap-2 max-w-[55%]">
               <span className="text-sm font-semibold text-indigo-700 text-right">
                 {answers[q.id]?.displayValue}
               </span>
@@ -82,7 +82,7 @@ export default function SummaryScreen() {
       </div>
 
       {/* Actions */}
-      <div className="flex-shrink-0 px-5 pb-8 pt-3 space-y-3">
+      <div className="shrink-0 px-5 pb-8 pt-3 space-y-3">
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

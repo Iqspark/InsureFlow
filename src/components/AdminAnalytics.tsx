@@ -13,7 +13,7 @@ const cad = (v: number) =>
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs p-5">
       <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4">{title}</h3>
       {children}
     </div>
@@ -42,7 +42,7 @@ export default function AdminAnalytics({ stats }: { stats: AdminStats }) {
           {premiumByMonth.map((m) => (
             <div key={m.label} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
               <span className="text-[10px] font-medium text-slate-500">{m.total > 0 ? `$${Math.round(m.total / 1000)}k` : ""}</span>
-              <div className="w-full rounded-t-md bg-gradient-to-t from-indigo-500 to-violet-400 min-h-[2px]" style={{ height: `${(m.total / maxMonth) * 100}%` }} title={cad(m.total)} />
+              <div className="w-full rounded-t-md bg-linear-to-t from-indigo-500 to-violet-400 min-h-[2px]" style={{ height: `${(m.total / maxMonth) * 100}%` }} title={cad(m.total)} />
               <span className="text-[10px] text-slate-400">{m.label}</span>
             </div>
           ))}

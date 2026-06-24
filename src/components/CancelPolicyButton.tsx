@@ -83,7 +83,7 @@ export default function CancelPolicyButton({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-red-50 text-red-600 font-medium rounded-xl border border-red-200 shadow-sm transition-colors text-sm"
+        className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-red-50 text-red-600 font-medium rounded-xl border border-red-200 shadow-xs transition-colors text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
@@ -94,7 +94,7 @@ export default function CancelPolicyButton({
   }
 
   return (
-    <div className="w-full bg-white rounded-xl border border-red-200 shadow-sm p-4">
+    <div className="w-full bg-white rounded-xl border border-red-200 shadow-xs p-4">
       <p className="text-sm font-semibold text-slate-900 mb-1">Cancel this policy?</p>
       <p className="text-xs text-slate-500 mb-3">
         This records a mid-term cancellation and emails the customer a confirmation. A short-rate refund may apply, calculated by your broker.
@@ -104,7 +104,7 @@ export default function CancelPolicyButton({
         onChange={(e) => setReason(e.target.value)}
         placeholder="Reason for cancellation (optional) — e.g. property sold, replaced elsewhere."
         rows={2}
-        className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 outline-none transition text-sm resize-none mb-3"
+        className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-red-400 focus:ring-2 focus:ring-red-400/20 outline-hidden transition text-sm resize-none mb-3"
       />
       <div className="flex items-center gap-3">
         <button

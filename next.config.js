@@ -1,9 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: "standalone",
-  experimental: {
-    serverComponentsExternalPackages: ["pdf-parse", "pdfjs-dist", "@react-pdf/renderer"],
-  },
+  serverExternalPackages: ["pdf-parse", "pdfjs-dist", "@react-pdf/renderer"],
 };
 
 const withPWA = require("@ducanh2912/next-pwa").default({

@@ -53,7 +53,7 @@ export default function QuestionProgressRail({ className = "" }: { className?: s
         <div className="absolute left-0 top-0 bottom-0 w-0.5 -translate-x-1/2 bg-slate-200 rounded-full" />
         {/* Fill — slides down with progress */}
         <div
-          className="absolute left-0 top-0 w-0.5 -translate-x-1/2 bg-gradient-to-b from-indigo-400 to-indigo-600 rounded-full transition-all duration-700 ease-out"
+          className="absolute left-0 top-0 w-0.5 -translate-x-1/2 bg-linear-to-b from-indigo-400 to-indigo-600 rounded-full transition-all duration-700 ease-out"
           style={{ height: `${fillPct}%` }}
         />
 
@@ -71,7 +71,7 @@ export default function QuestionProgressRail({ className = "" }: { className?: s
                   done
                     ? "bg-indigo-600 border-indigo-600"
                     : active
-                    ? "bg-white border-indigo-500 shadow-sm shadow-indigo-200"
+                    ? "bg-white border-indigo-500 shadow-xs shadow-indigo-200"
                     : "bg-white border-slate-300"
                 }`}
               >

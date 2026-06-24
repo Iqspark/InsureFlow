@@ -61,7 +61,7 @@ export default function ReviewActions({ submissionId }: { submissionId: string }
   const busy = status === "submitting";
 
   return (
-    <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
       <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
         <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Underwriter Review
@@ -135,13 +135,13 @@ export default function ReviewActions({ submissionId }: { submissionId: string }
           onChange={(e) => setNote(e.target.value)}
           placeholder="Add a review note (optional) — shared with the broker on approval."
           rows={3}
-          className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm resize-none"
+          className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm resize-none"
         />
         <div className="flex flex-wrap gap-3">
           <button
             onClick={() => submit("approve")}
             disabled={busy}
-            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium rounded-xl shadow-sm transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-medium rounded-xl shadow-xs transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -151,7 +151,7 @@ export default function ReviewActions({ submissionId }: { submissionId: string }
           <button
             onClick={() => submit("decline")}
             disabled={busy}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-red-50 disabled:opacity-60 text-red-600 font-medium rounded-xl border border-red-200 shadow-sm transition-colors text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-red-50 disabled:opacity-60 text-red-600 font-medium rounded-xl border border-red-200 shadow-xs transition-colors text-sm"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

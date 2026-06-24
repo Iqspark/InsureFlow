@@ -119,7 +119,7 @@ export default function NewQuotePage() {
     : [];
 
   return (
-    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto bg-gradient-to-br from-slate-50 via-slate-50 to-indigo-50/50">
+    <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto bg-linear-to-br from-slate-50 via-slate-50 to-indigo-50/50">
       <div className="max-w-3xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-slate-900 mb-1">
@@ -146,7 +146,7 @@ export default function NewQuotePage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search policies — e.g. farm, cyber, jeweller…"
-            className="w-full pl-11 pr-10 py-3 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition"
+            className="w-full pl-11 pr-10 py-3 rounded-xl bg-white border border-slate-200 text-sm text-slate-900 placeholder-slate-400 shadow-xs focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition"
           />
           {query && (
             <button
@@ -164,7 +164,7 @@ export default function NewQuotePage() {
 
         {/* Search results — replace the accordion while searching */}
         {q ? (
-          <div className="bg-white rounded-xl border border-slate-200 shadow-sm divide-y divide-slate-100 overflow-hidden">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs divide-y divide-slate-100 overflow-hidden">
             {matches.length === 0 ? (
               <p className="px-5 py-6 text-sm text-slate-400 text-center">
                 No policies match “{query}”.
@@ -208,7 +208,7 @@ export default function NewQuotePage() {
             return (
               <div
                 key={cat.id}
-                className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden"
+                className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden"
               >
                 {/* Category header */}
                 <button

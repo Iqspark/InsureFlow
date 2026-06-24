@@ -15,8 +15,9 @@ const MS_DAY = 86_400_000;
 // remaining term. Owning broker or admin only.
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -32,7 +33,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const sub = await prisma.submission.findUnique({ where: { id: params.id } });
+  const sub = await prisma.submission.findUnique({ where: { id } });
   if (!sub || !canBindOrPay(user, sub)) {
     return NextResponse.json({ error: "Submission not found or not yours" }, { status: 404 });
   }

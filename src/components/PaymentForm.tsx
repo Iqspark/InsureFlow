@@ -71,7 +71,7 @@ export default function PaymentForm({
 
   if (status === "paid") {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 text-center">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center">
         <div className="w-14 h-14 rounded-full bg-emerald-500 flex items-center justify-center mx-auto mb-4">
           <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
@@ -91,8 +91,8 @@ export default function PaymentForm({
 
   if (stripeEnabled && checkoutEndpoint) {
     return (
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+        <div className="bg-linear-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white">
           <p className="text-sm text-indigo-100">Amount due for policy {appId}</p>
           <p className="text-3xl font-bold">{fmtCAD(amount)}</p>
         </div>
@@ -124,8 +124,8 @@ export default function PaymentForm({
   }
 
   return (
-    <form onSubmit={handlePay} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <div className="bg-gradient-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white">
+    <form onSubmit={handlePay} className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+      <div className="bg-linear-to-r from-indigo-600 to-violet-600 px-6 py-5 text-white">
         <p className="text-sm text-indigo-100">Amount due for policy {appId}</p>
         <p className="text-3xl font-bold">{fmtCAD(amount)}</p>
       </div>
@@ -137,7 +137,7 @@ export default function PaymentForm({
             onChange={(e) => setName(e.target.value)}
             required
             placeholder="John Smith"
-            className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm"
+            className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm"
           />
         </div>
         <div>
@@ -148,7 +148,7 @@ export default function PaymentForm({
             required
             inputMode="numeric"
             placeholder="4242 4242 4242 4242"
-            className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm font-mono"
+            className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm font-mono"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
@@ -160,7 +160,7 @@ export default function PaymentForm({
               required
               inputMode="numeric"
               placeholder="MM/YY"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm font-mono"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm font-mono"
             />
           </div>
           <div>
@@ -171,7 +171,7 @@ export default function PaymentForm({
               required
               inputMode="numeric"
               placeholder="123"
-              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-none transition text-sm font-mono"
+              className="w-full px-3.5 py-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-400/20 outline-hidden transition text-sm font-mono"
             />
           </div>
         </div>

@@ -129,7 +129,7 @@ export default async function ReviewPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
           {statCards.map((c) => (
             <div key={c.label} className="bg-white rounded-xl p-4 border border-slate-200 hover:-translate-y-0.5 hover:shadow-lg transition-all duration-200">
-              <div className={`w-9 h-9 rounded-lg bg-gradient-to-br ${c.grad} flex items-center justify-center mb-3 shadow-sm`}>
+              <div className={`w-9 h-9 rounded-lg bg-linear-to-br ${c.grad} flex items-center justify-center mb-3 shadow-xs`}>
                 <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d={c.icon} />
                 </svg>
@@ -143,7 +143,7 @@ export default async function ReviewPage() {
         {/* Analytics */}
         {approvedCount + declinedCount + pendingCount > 0 && <ReviewStats stats={stats} />}
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden mb-8">
+        <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden mb-8">
           <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
             <h2 className="font-semibold text-slate-900 text-sm">Pending Review</h2>
             <div className="flex items-center gap-3">
@@ -158,7 +158,7 @@ export default async function ReviewPage() {
 
           {pending.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-200/60">
+              <div className="w-14 h-14 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 shadow-lg shadow-emerald-200/60">
                 <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M5 13l4 4L19 7" />
                 </svg>
@@ -228,7 +228,7 @@ export default async function ReviewPage() {
                 <Link
                   key={s.id}
                   href={`/policy/${s.id}`}
-                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-3 hover:border-indigo-300 transition-colors"
+                  className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-5 py-3 hover:border-indigo-300 transition-colors"
                 >
                   <div className="min-w-0">
                     <p className="text-sm font-medium text-slate-900 truncate">{s.applicantName ?? "—"}</p>
