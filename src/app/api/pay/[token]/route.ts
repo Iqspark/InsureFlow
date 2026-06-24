@@ -1,16 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { finalizePaidPolicy } from "@/lib/finalizePayment";
+import { isStripeConfigured } from "@/lib/stripe";
 
 // POST /api/pay/[token]
-// Public (no auth) — simulated fallback checkout, used when Stripe is NOT
+// Public (no auth) — simulated fallback checkout, used ONLY when Stripe is NOT
 // configured. Validates the card payload (format only — no real charge), marks
 // the policy paid, and emails a confirmation + receipt. When STRIPE_SECRET_KEY
-// is set, the client uses /api/pay/[token]/checkout + the Stripe webhook instead.
+// is set, real payment must go through /api/pay/[token]/checkout + the Stripe
+// webhook, so this route is disabled to prevent a no-charge payment bypass.
 export async function POST(
   req: NextRequest,
   { params }: { params: { token: string } }
 ) {
+  // Hard guard: never accept the simulated (no-charge) payment when Stripe is live.
+  if (isStripeConfigured()) {
+    return NextResponse.json(
+      { error: "This payment must be completed through secure checkout." },
+      { status: 400 }
+    );
+  }
+
   let cardNumber: string, expiry: string, cvc: string;
   try {
     ({ cardNumber, expiry, cvc } = await req.json());
