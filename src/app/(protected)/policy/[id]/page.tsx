@@ -95,6 +95,7 @@ const AUDIT_LABELS: Record<string, { label: string; dot: string }> = {
   adjusted:            { label: "Policy adjusted",        dot: "bg-amber-500" },
   cancelled:           { label: "Policy cancelled",       dot: "bg-red-500" },
   reviewed:            { label: "Underwriter review",     dot: "bg-violet-500" },
+  change_requested:    { label: "Change requested",       dot: "bg-sky-500" },
 };
 
 // ── Page ─────────────────────────────────────────────────────

@@ -94,6 +94,12 @@ export default async function PublicPayPage({
                 ? `Policy ${appId} (${fmtCAD(sub.annualPremium ?? 0)}) has already been paid. Thank you!`
                 : `Thank you — your payment for policy ${appId} is being confirmed. A receipt will be emailed to you shortly.`}
             </p>
+            <a
+              href={`/portal/${token}`}
+              className="inline-flex items-center justify-center gap-2 mt-5 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold rounded-xl text-sm transition-colors"
+            >
+              View your policy
+            </a>
           </div>
         ) : (
           <PaymentForm

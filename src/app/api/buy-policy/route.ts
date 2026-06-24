@@ -83,7 +83,8 @@ export async function POST(req: NextRequest) {
     });
 
     // Email the applicant a link to pay on our site.
-    const payUrl = `${publicBaseUrl(req)}/pay/${token}`;
+    const baseUrl = publicBaseUrl(req);
+    const payUrl = `${baseUrl}/pay/${token}`;
     const sent = await sendPaymentRequestEmail({
       to,
       applicantName: sub.applicantName ?? "Valued Customer",
@@ -92,6 +93,7 @@ export async function POST(req: NextRequest) {
       amount:        sub.annualPremium ?? 0,
       payUrl,
       brokerName:    sub.broker?.name ?? user.role,
+      portalUrl:     `${baseUrl}/portal/${token}`,
     });
 
     // Notify the underwriting team only on the first bind (best-effort).

@@ -416,6 +416,7 @@ export interface PaymentRequestData {
   amount:        number;
   payUrl:        string;
   brokerName:    string;
+  portalUrl?:    string; // self-service policy portal (view / download / request changes)
 }
 
 export async function sendPaymentRequestEmail(
@@ -449,6 +450,7 @@ export async function sendPaymentRequestEmail(
     <tr><td style="background:#ffffff;padding:24px 32px 32px;text-align:center">
       <a href="${d.payUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px">Pay ${fmt(d.amount)} Now</a>
       <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">Or paste this link into your browser:<br><span style="color:#6366f1;word-break:break-all">${d.payUrl}</span></p>
+      ${d.portalUrl ? `<p style="margin:18px 0 0;font-size:13px;color:#64748b">View your policy, download documents, or request a change anytime:<br><a href="${d.portalUrl}" style="color:#4f46e5;font-weight:600;word-break:break-all">${d.portalUrl}</a></p>` : ""}
     </td></tr>
     <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center">
       <p style="margin:0;font-size:11px;color:#475569">Secure payment · © ${new Date().getFullYear()} InsureFlow</p>
@@ -674,6 +676,63 @@ export async function sendPaymentReceiptEmail(
       `Application ID: ${d.appId}`,
       `Date Paid     : ${paidOn}`,
       `Amount Paid   : ${fmt(d.amount)}`,
+    ].join("\n"),
+  });
+}
+
+// ── Broker: customer change request from the policy portal ────
+export interface ChangeRequestData {
+  to:            string; // broker email
+  brokerName:    string;
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  message:       string;
+  policyUrl:     string; // broker-side policy detail page
+}
+
+export async function sendChangeRequestEmail(d: ChangeRequestData): Promise<SendResult> {
+  const safeMessage = d.message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#0ea5e9;border-radius:12px 12px 0 0;padding:24px 32px">
+      <p style="margin:0;font-size:18px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#e0f2fe">Customer change request</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
+        Hi ${d.brokerName}, <strong>${d.applicantName}</strong> has requested a change to their
+        <strong>${d.policyType}</strong> policy (${d.appId}).
+      </p>
+      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
+        <tr><td style="padding:16px 18px;font-size:14px;color:#0f172a;white-space:pre-wrap">${safeMessage}</td></tr>
+      </table>
+      <a href="${d.policyUrl}" style="display:inline-block;margin-top:20px;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Open Policy</a>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated notification · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return deliver({
+    to:      d.to,
+    subject: `Change request — ${d.policyType} (${d.appId})`,
+    html,
+    label:   "Change request",
+    text: [
+      `Customer Change Request — InsureFlow`,
+      ``,
+      `Hi ${d.brokerName},`,
+      `${d.applicantName} has requested a change to their ${d.policyType} policy (${d.appId}).`,
+      ``,
+      `Message:`,
+      d.message,
+      ``,
+      `Open the policy: ${d.policyUrl}`,
     ].join("\n"),
   });
 }
