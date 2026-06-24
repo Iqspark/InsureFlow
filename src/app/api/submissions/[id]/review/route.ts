@@ -6,6 +6,7 @@ import { canReview, type SessionUser } from "@/lib/access";
 import { sendQuoteApprovedEmail } from "@/lib/email";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
+import { recordAudit } from "@/lib/audit";
 
 // POST /api/submissions/[id]/review
 // Underwriter/Admin approves or declines a referred submission.
@@ -56,6 +57,15 @@ export async function POST(
       reviewedAt: new Date(),
       reviewNote: reviewNote || null,
     },
+  });
+
+  await recordAudit({
+    submissionId: sub.id,
+    action: "reviewed",
+    actorId: user.id,
+    actorName: session.user.name ?? null,
+    actorRole: user.role,
+    detail: `${action === "approve" ? "Approved" : "Declined"}${reviewNote ? ` · ${reviewNote}` : ""}`,
   });
 
   // Notify the broker on approval (best-effort — never block the review)

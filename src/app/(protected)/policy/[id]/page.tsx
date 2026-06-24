@@ -88,6 +88,15 @@ function Field({ label, value }: { label: string; value: string }) {
   );
 }
 
+const AUDIT_LABELS: Record<string, { label: string; dot: string }> = {
+  bound:               { label: "Policy bound",          dot: "bg-indigo-500" },
+  payment_link_resent: { label: "Payment link resent",   dot: "bg-slate-400" },
+  paid:                { label: "Payment received",       dot: "bg-emerald-500" },
+  adjusted:            { label: "Policy adjusted",        dot: "bg-amber-500" },
+  cancelled:           { label: "Policy cancelled",       dot: "bg-red-500" },
+  reviewed:            { label: "Underwriter review",     dot: "bg-violet-500" },
+};
+
 // ── Page ─────────────────────────────────────────────────────
 
 export default async function PolicyDetailPage({
@@ -103,6 +112,7 @@ export default async function PolicyDetailPage({
     include: {
       broker: { select: { name: true, email: true } },
       reviewedBy: { select: { name: true } },
+      auditEvents: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -279,6 +289,36 @@ export default async function PolicyDetailPage({
                     <span className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${ap ? "text-amber-700 bg-amber-50 border-amber-200" : "text-emerald-700 bg-emerald-50 border-emerald-200"}`}>
                       {ap ? "+" : "−"}{fmtCurrency(Math.abs(a.proRata))}
                     </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Activity / audit trail */}
+        {sub.auditEvents.length > 0 && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                Activity
+              </h2>
+            </div>
+            <div className="divide-y divide-slate-100">
+              {sub.auditEvents.map((ev) => {
+                const meta = AUDIT_LABELS[ev.action] ?? { label: ev.action, dot: "bg-slate-400" };
+                return (
+                  <div key={ev.id} className="px-5 py-3 flex items-start gap-3">
+                    <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${meta.dot}`} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-800">{meta.label}</p>
+                      {ev.detail && <p className="text-xs text-slate-500 mt-0.5">{ev.detail}</p>}
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {ev.actorName ?? "System"}
+                        <span className="mx-1.5 text-slate-300">·</span>
+                        {fmtDate(ev.createdAt)}
+                      </p>
+                    </div>
                   </div>
                 );
               })}

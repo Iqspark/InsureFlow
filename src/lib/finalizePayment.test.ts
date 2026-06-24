@@ -7,6 +7,7 @@ vi.mock("@/lib/email", () => ({
   sendPolicyConfirmationEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com" }),
   sendPaymentReceiptEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com", previewUrl: "http://preview" }),
 }));
+vi.mock("@/lib/audit", () => ({ recordAudit: vi.fn().mockResolvedValue(undefined) }));
 
 import { finalizePaidPolicy } from "./finalizePayment";
 import { prisma } from "@/lib/prisma";

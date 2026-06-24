@@ -6,6 +6,7 @@ import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendUnderwriterNotificationEmail, sendPaymentRequestEmail } from "@/lib/email";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
+import { recordAudit } from "@/lib/audit";
 
 // POST /api/buy-policy
 // Binds an accepted quote as a policy (purchased=true, payment pending) and
@@ -66,6 +67,19 @@ export async function POST(req: NextRequest) {
     await prisma.submission.update({
       where: { id: sub.id },
       data: { purchased: true, paymentToken: token, ...termData },
+    });
+
+    const cad = (n: number | null) =>
+      new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n ?? 0);
+    await recordAudit({
+      submissionId: sub.id,
+      action: alreadyBound ? "payment_link_resent" : "bound",
+      actorId: user.id,
+      actorName: session.user.name ?? null,
+      actorRole: user.role,
+      detail: alreadyBound
+        ? "Resent the secure payment link"
+        : `Policy bound · annual premium ${cad(sub.annualPremium)}`,
     });
 
     // Email the applicant a link to pay on our site.

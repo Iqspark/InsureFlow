@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
 import { policyNumber } from "@/utils/policyNumber";
+import { recordAudit } from "@/lib/audit";
 
 type StripeMeta = {
   stripePaymentIntentId?: string | null;
@@ -42,6 +43,15 @@ export async function finalizePaidPolicy(
       ...(opts.stripePaymentIntentId ? { stripePaymentIntentId: opts.stripePaymentIntentId } : {}),
       ...(opts.stripeStatus ? { stripeStatus: opts.stripeStatus } : {}),
     },
+  });
+
+  const cad = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(amount);
+  await recordAudit({
+    submissionId: sub.id,
+    action: "paid",
+    actorName: "Customer",
+    actorRole: "CUSTOMER",
+    detail: `Payment received · ${cad}`,
   });
 
   // Best-effort emails — the payment is already recorded.

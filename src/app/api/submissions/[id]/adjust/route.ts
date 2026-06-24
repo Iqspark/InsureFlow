@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendAdjustmentEmail } from "@/lib/email";
 import { policyNumber } from "@/utils/policyNumber";
+import { recordAudit } from "@/lib/audit";
 
 const MS_DAY = 86_400_000;
 
@@ -85,6 +86,17 @@ export async function POST(
       monthlyPremium: Math.round(newAnnual / 12),
       adjustments: JSON.stringify(log),
     },
+  });
+
+  const cad = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+  await recordAudit({
+    submissionId: sub.id,
+    action: "adjusted",
+    actorId: user.id,
+    actorName: session.user.name ?? null,
+    actorRole: user.role,
+    detail: `Coverage ${cad(oldCoverage)} → ${cad(Math.round(coverageAmount))} · ${proRata >= 0 ? "+" : "−"}${cad(Math.abs(proRata))} pro-rata`,
   });
 
   // Email the applicant a confirmation (best-effort).

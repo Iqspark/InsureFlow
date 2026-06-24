@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendCancellationEmail } from "@/lib/email";
 import { policyNumber } from "@/utils/policyNumber";
+import { recordAudit } from "@/lib/audit";
 
 // POST /api/submissions/[id]/cancel
 // Owning broker (or admin) cancels a bound policy mid-term.
@@ -43,6 +44,15 @@ export async function POST(
   await prisma.submission.update({
     where: { id: sub.id },
     data: { cancelledAt, cancelReason: cleanReason || null },
+  });
+
+  await recordAudit({
+    submissionId: sub.id,
+    action: "cancelled",
+    actorId: user.id,
+    actorName: session.user.name ?? null,
+    actorRole: user.role,
+    detail: cleanReason ? `Cancelled · ${cleanReason}` : "Cancelled",
   });
 
   // Email the applicant a cancellation confirmation (best-effort).

@@ -121,6 +121,9 @@ model Submission {
   reviewedAt   DateTime?
   reviewNote   String?
 
+  // ── Lifecycle audit trail ────────────────────────────────
+  auditEvents  AuditEvent[]
+
   // ── All raw answers (JSON) ───────────────────────────────
   allAnswers String  @default("{}") // JSON — Record<string, Answer>
 
@@ -152,4 +155,19 @@ model WebhookEvent {
   id         String   @id // Stripe event id, e.g. "evt_..."
   type       String
   receivedAt DateTime @default(now())
+}
+
+// Append-only lifecycle log: who did what to a submission, and when.
+model AuditEvent {
+  id           String     @id @default(cuid())
+  submissionId String
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  action       String     // "bound" | "payment_link_resent" | "paid" | "adjusted" | "cancelled" | "reviewed"
+  actorId      String?    // Broker id when a signed-in user acted; null for customer/system
+  actorName    String?    // display-name snapshot at the time
+  actorRole    String?    // "BROKER" | "ADMIN" | "UNDERWRITER" | "CUSTOMER"
+  detail       String?    // human-readable summary
+  createdAt    DateTime   @default(now())
+
+  @@index([submissionId])
 }
