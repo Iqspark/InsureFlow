@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PaymentForm from "@/components/PaymentForm";
-import { isStripeConfigured } from "@/lib/stripe";
+import { isStripeConfigured, getStripe } from "@/lib/stripe";
+import { finalizePaidPolicy } from "@/lib/finalizePayment";
 import { policyNumber } from "@/utils/policyNumber";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function PublicPayPage({
   const sub = await prisma.submission.findUnique({
     where: { paymentToken: params.token },
     select: {
-      id: true, purchased: true, paymentStatus: true,
+      id: true, purchased: true, paymentStatus: true, stripeSessionId: true,
       annualPremium: true, policyType: true, applicantName: true, createdAt: true,
     },
   });
@@ -38,8 +39,27 @@ export default async function PublicPayPage({
   if (!sub || !sub.purchased) notFound();
 
   const appId = policyNumber(sub);
-  const isPaid = sub.paymentStatus === "paid";
-  // Returned from Stripe Checkout; the webhook finalizes shortly after.
+  let isPaid = sub.paymentStatus === "paid";
+
+  // Safety net: on return from Stripe (?paid=1), if the webhook hasn't marked the
+  // policy paid yet, confirm directly with Stripe and finalize. Idempotent, so a
+  // later webhook is a no-op. Guards against a dropped/delayed webhook.
+  if (!isPaid && searchParams?.paid === "1" && isStripeConfigured() && sub.stripeSessionId) {
+    try {
+      const session = await getStripe().checkout.sessions.retrieve(sub.stripeSessionId);
+      if (session.payment_status === "paid") {
+        await finalizePaidPolicy(sub.id, {
+          stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : null,
+          stripeStatus: "paid",
+        });
+        isPaid = true;
+      }
+    } catch (err) {
+      console.error("[pay page] Stripe session reconcile failed:", err);
+    }
+  }
+
+  // Still not confirmed paid but returned from Stripe — webhook will catch up.
   const justReturnedFromStripe = searchParams?.paid === "1" && !isPaid;
 
   return (
