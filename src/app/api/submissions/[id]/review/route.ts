@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { canReview, type SessionUser } from "@/lib/access";
 import { sendQuoteApprovedEmail } from "@/lib/email";
 import { publicBaseUrl } from "@/lib/baseUrl";
+import { policyNumber } from "@/utils/policyNumber";
 
 // POST /api/submissions/[id]/review
 // Underwriter/Admin approves or declines a referred submission.
@@ -67,7 +68,7 @@ export async function POST(
         to:            sub.broker.email,
         brokerName:    sub.broker.name ?? "there",
         applicantName: sub.applicantName ?? "the applicant",
-        appId:         sub.id.slice(0, 10).toUpperCase(),
+        appId:         policyNumber(sub),
         policyType:    sub.policyType,
         annualPremium: sub.annualPremium ?? 0,
         reviewNote,

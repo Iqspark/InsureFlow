@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submissionScopeWhere, type SessionUser } from "@/lib/access";
+import { policyNumber } from "@/utils/policyNumber";
 
 // GET /api/policies/suggest?q= — typeahead for the Policies search box.
 // Role-scoped, bound policies only, matches customer name OR policy number.
@@ -27,13 +28,13 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { createdAt: "desc" },
     take: 8,
-    select: { id: true, applicantName: true, policyType: true },
+    select: { id: true, applicantName: true, policyType: true, createdAt: true },
   });
 
   return NextResponse.json({
     data: rows.map((r) => ({
       id: r.id,
-      appId: r.id.slice(0, 10).toUpperCase(),
+      appId: policyNumber(r),
       applicantName: r.applicantName,
       policyType: r.policyType,
     })),

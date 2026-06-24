@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendCancellationEmail } from "@/lib/email";
+import { policyNumber } from "@/utils/policyNumber";
 
 // POST /api/submissions/[id]/cancel
 // Owning broker (or admin) cancels a bound policy mid-term.
@@ -52,7 +53,7 @@ export async function POST(
       const sent = await sendCancellationEmail({
         to:            sub.contactEmail,
         applicantName: sub.applicantName ?? "Valued Customer",
-        appId:         sub.id.slice(0, 10).toUpperCase(),
+        appId:         policyNumber(sub),
         policyType:    sub.policyType,
         cancelledAt,
         reason:        cleanReason,

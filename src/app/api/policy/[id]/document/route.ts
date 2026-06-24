@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { renderPolicyPdf } from "@/lib/policyPdf";
 import { buildSubmissionSections } from "@/lib/submissionSections";
 import { staticMapUrl } from "@/utils/googleMaps";
+import { policyNumber } from "@/utils/policyNumber";
 
 export const runtime = "nodejs";
 
@@ -46,7 +47,7 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const appId = sub.id.slice(0, 10).toUpperCase();
+  const appId = policyNumber(sub);
   const reasons: string[] =
     sub.decision === "decline"
       ? JSON.parse(sub.declineReasons ?? "[]")

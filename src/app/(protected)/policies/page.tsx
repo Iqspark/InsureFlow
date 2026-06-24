@@ -14,6 +14,7 @@ import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import EmptyState from "@/components/EmptyState";
 import PolicySearchBox from "@/components/PolicySearchBox";
+import { policyNumber } from "@/utils/policyNumber";
 
 const PAGE_SIZE = 10;
 
@@ -148,7 +149,7 @@ export default async function PoliciesPage({
                       <p className="text-xs text-slate-400 mt-0.5 truncate">
                         {sub.policyType}
                         <span className="mx-1.5 text-slate-300">·</span>
-                        <span className="font-mono">{sub.id.slice(0, 10).toUpperCase()}</span>
+                        <span className="font-mono">{policyNumber(sub)}</span>
                         <span className="mx-1.5 text-slate-300">·</span>
                         {new Date(sub.createdAt).toLocaleDateString("en-CA", {
                           year: "numeric",

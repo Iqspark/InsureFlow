@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submissionScopeWhere, type SessionUser } from "@/lib/access";
+import { policyNumber } from "@/utils/policyNumber";
 
 export const runtime = "nodejs";
 
@@ -83,7 +84,7 @@ export async function GET(req: NextRequest) {
   const lines = [headers.join(",")];
   for (const r of rows) {
     lines.push([
-      r.id.slice(0, 10).toUpperCase(),
+      policyNumber(r),
       fmtDate(r.createdAt),
       r.applicantName ?? "",
       r.contactEmail ?? "",

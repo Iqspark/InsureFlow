@@ -12,6 +12,7 @@ import CancelledBadge from "@/components/CancelledBadge";
 import BookCharts from "@/components/BookCharts";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import ActionRequiredList from "@/components/ActionRequiredList";
+import { policyNumber } from "@/utils/policyNumber";
 
 function DecisionBadge({ decision, status }: { decision: string | null; status: string }) {
   if (status === "draft") {
@@ -324,7 +325,7 @@ export default async function DashboardPage() {
                     <p className="text-xs text-slate-400 mt-0.5 truncate">
                       {s.policyType}
                       <span className="mx-1.5 text-slate-300">·</span>
-                      <span className="font-mono">{s.id.slice(0, 10).toUpperCase()}</span>
+                      <span className="font-mono">{policyNumber(s)}</span>
                       <span className="mx-1.5 text-slate-300">·</span>
                       {new Date(s.createdAt).toLocaleDateString("en-CA", {
                         year: "numeric",
@@ -369,7 +370,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-slate-400 mt-0.5 truncate">
                     {s.policyType}
                     <span className="mx-1.5 text-slate-300">·</span>
-                    <span className="font-mono">{s.id.slice(0, 10).toUpperCase()}</span>
+                    <span className="font-mono">{policyNumber(s)}</span>
                     <span className="mx-1.5 text-slate-300">·</span>
                     {new Date(s.createdAt).toLocaleDateString("en-CA", {
                       year: "numeric",
@@ -406,7 +407,7 @@ export default async function DashboardPage() {
                   <p className="text-xs text-slate-400 mt-0.5 truncate">
                     {s.policyType}
                     <span className="mx-1.5 text-slate-300">·</span>
-                    <span className="font-mono">{s.id.slice(0, 10).toUpperCase()}</span>
+                    <span className="font-mono">{policyNumber(s)}</span>
                     {s.cancelledAt && (
                       <>
                         <span className="mx-1.5 text-slate-300">·</span>

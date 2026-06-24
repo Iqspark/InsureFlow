@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
+import { policyNumber } from "@/utils/policyNumber";
 
 type StripeMeta = {
   stripePaymentIntentId?: string | null;
@@ -51,7 +52,7 @@ export async function finalizePaidPolicy(
       const confirm = await sendPolicyConfirmationEmail({
         to,
         applicantName:  sub.applicantName  ?? "Valued Customer",
-        appId:          sub.id.slice(0, 10).toUpperCase(),
+        appId:          policyNumber(sub),
         policyType:     sub.policyType,
         province:       sub.province       ?? "Canada",
         annualPremium:  sub.annualPremium  ?? 0,
@@ -64,7 +65,7 @@ export async function finalizePaidPolicy(
       const receipt = await sendPaymentReceiptEmail({
         to,
         applicantName: sub.applicantName ?? "Valued Customer",
-        appId:         sub.id.slice(0, 10).toUpperCase(),
+        appId:         policyNumber(sub),
         policyType:    sub.policyType,
         amount,
         paidAt,

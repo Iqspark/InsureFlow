@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendUnderwriterNotificationEmail, sendPaymentRequestEmail } from "@/lib/email";
 import { publicBaseUrl } from "@/lib/baseUrl";
+import { policyNumber } from "@/utils/policyNumber";
 
 // POST /api/buy-policy
 // Binds an accepted quote as a policy (purchased=true, payment pending) and
@@ -72,7 +73,7 @@ export async function POST(req: NextRequest) {
     const sent = await sendPaymentRequestEmail({
       to,
       applicantName: sub.applicantName ?? "Valued Customer",
-      appId:         sub.id.slice(0, 10).toUpperCase(),
+      appId:         policyNumber(sub),
       policyType:    sub.policyType,
       amount:        sub.annualPremium ?? 0,
       payUrl,
@@ -86,7 +87,7 @@ export async function POST(req: NextRequest) {
       try {
         await sendUnderwriterNotificationEmail({
           to:             underwriterTo,
-          appId:          sub.id.slice(0, 10).toUpperCase(),
+          appId:          policyNumber(sub),
           policyType:     sub.policyType,
           applicantName:  sub.applicantName  ?? "Valued Customer",
           applicantEmail: to,

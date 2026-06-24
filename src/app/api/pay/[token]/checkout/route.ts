@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { publicBaseUrl } from "@/lib/baseUrl";
+import { policyNumber } from "@/utils/policyNumber";
 
 // POST /api/pay/[token]/checkout
 // Public — creates a Stripe Checkout Session for the bound policy and returns
@@ -19,7 +20,7 @@ export async function POST(
     where: { paymentToken: params.token },
     select: {
       id: true, purchased: true, paymentStatus: true, annualPremium: true,
-      policyType: true, applicantName: true, contactEmail: true,
+      policyType: true, applicantName: true, contactEmail: true, createdAt: true,
     },
   });
 
@@ -51,7 +52,7 @@ export async function POST(
           currency: "cad",
           unit_amount: Math.round(amount * 100),
           product_data: {
-            name: `${sub.policyType} — Policy ${sub.id.slice(0, 10).toUpperCase()}`,
+            name: `${sub.policyType} — Policy ${policyNumber(sub)}`,
             description: sub.applicantName ? `Annual premium for ${sub.applicantName}` : undefined,
           },
         },

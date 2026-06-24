@@ -10,6 +10,7 @@ import CancelledBadge from "@/components/CancelledBadge";
 import DeleteQuoteButton from "@/components/DeleteQuoteButton";
 import ExportCsvButton from "@/components/ExportCsvButton";
 import EmptyState from "@/components/EmptyState";
+import { policyNumber } from "@/utils/policyNumber";
 
 type SearchResult = {
   id: string;
@@ -332,7 +333,7 @@ export default function SearchPage() {
                             </>
                           )}
                           <span className="mx-1.5 text-slate-300">·</span>
-                          <span className="font-mono">{r.id.slice(0, 10).toUpperCase()}</span>
+                          <span className="font-mono">{policyNumber(r)}</span>
                           <span className="mx-1.5 text-slate-300">·</span>
                           {new Date(r.createdAt).toLocaleDateString("en-CA", {
                             year: "numeric",

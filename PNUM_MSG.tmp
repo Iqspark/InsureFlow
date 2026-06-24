@@ -1,0 +1,10 @@
+feat: human-readable policy numbers (PREFIX-YEAR-CODE)
+
+Replaces the raw cuid slice (e.g. CMQIRMRJB0) shown to users with a stable,
+product-aware reference like VH-2026-7K3M9Q. New helper src/utils/policyNumber.ts
+derives it deterministically from id + product + createdAt year, so the same
+submission renders the same number across the UI, PDF, emails, CSV export, and
+the Stripe checkout line item. Applied at all 21 identifier sites; selects
+extended with policyType/createdAt where needed. No DB change.
+
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>

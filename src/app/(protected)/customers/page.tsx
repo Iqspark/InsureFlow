@@ -9,6 +9,7 @@ import { submissionScopeWhere, type SessionUser } from "@/lib/access";
 import CustomerCard from "@/components/CustomerCard";
 import CustomerSearchBox from "@/components/CustomerSearchBox";
 import EmptyState from "@/components/EmptyState";
+import { policyNumber } from "@/utils/policyNumber";
 
 const cad = (v: number) =>
   new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(v);
@@ -168,7 +169,7 @@ export default async function CustomersPage({
                     return {
                       id: s.id,
                       policyType: s.policyType,
-                      appId: s.id.slice(0, 10).toUpperCase(),
+                      appId: policyNumber(s),
                       premiumLabel: s.annualPremium != null ? cad(s.annualPremium) : null,
                       renewalLabel: renewal ? fmtDate(renewal) : null,
                       renewalDays: renewal

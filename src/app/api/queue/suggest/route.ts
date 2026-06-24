@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canReview, type SessionUser } from "@/lib/access";
+import { policyNumber } from "@/utils/policyNumber";
 
 // GET /api/queue/suggest?q= — typeahead for the pending review queue.
 // Underwriter/Admin only; matches applicant name OR policy type OR number.
@@ -31,13 +32,13 @@ export async function GET(req: NextRequest) {
     },
     orderBy: { createdAt: "asc" },
     take: 8,
-    select: { id: true, applicantName: true, policyType: true, decision: true },
+    select: { id: true, applicantName: true, policyType: true, decision: true, createdAt: true },
   });
 
   return NextResponse.json({
     data: rows.map((r) => ({
       id: r.id,
-      appId: r.id.slice(0, 10).toUpperCase(),
+      appId: policyNumber(r),
       applicantName: r.applicantName,
       policyType: r.policyType,
       decision: r.decision,

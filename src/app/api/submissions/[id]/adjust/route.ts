@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
 import { sendAdjustmentEmail } from "@/lib/email";
+import { policyNumber } from "@/utils/policyNumber";
 
 const MS_DAY = 86_400_000;
 
@@ -94,7 +95,7 @@ export async function POST(
       const sent = await sendAdjustmentEmail({
         to:            sub.contactEmail,
         applicantName: sub.applicantName ?? "Valued Customer",
-        appId:         sub.id.slice(0, 10).toUpperCase(),
+        appId:         policyNumber(sub),
         policyType:    sub.policyType,
         oldCoverage, newCoverage: Math.round(coverageAmount),
         oldAnnual, newAnnual, proRata,

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import PaymentForm from "@/components/PaymentForm";
 import { isStripeConfigured } from "@/lib/stripe";
+import { policyNumber } from "@/utils/policyNumber";
 
 export const dynamic = "force-dynamic";
 
@@ -30,13 +31,13 @@ export default async function PublicPayPage({
     where: { paymentToken: params.token },
     select: {
       id: true, purchased: true, paymentStatus: true,
-      annualPremium: true, policyType: true, applicantName: true,
+      annualPremium: true, policyType: true, applicantName: true, createdAt: true,
     },
   });
 
   if (!sub || !sub.purchased) notFound();
 
-  const appId = sub.id.slice(0, 10).toUpperCase();
+  const appId = policyNumber(sub);
   const isPaid = sub.paymentStatus === "paid";
   // Returned from Stripe Checkout; the webhook finalizes shortly after.
   const justReturnedFromStripe = searchParams?.paid === "1" && !isPaid;

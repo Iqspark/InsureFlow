@@ -16,6 +16,7 @@ import CancelPolicyButton from "@/components/CancelPolicyButton";
 import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
 import { canViewSubmission, canReview, canBindOrPay, type SessionUser } from "@/lib/access";
+import { policyNumber } from "@/utils/policyNumber";
 
 // ── Helpers ──────────────────────────────────────────────────
 
@@ -111,7 +112,7 @@ export default async function PolicyDetailPage({
   const referralReasons: string[] = JSON.parse(sub.referralReasons ?? "[]");
   const reasons = sub.decision === "decline" ? declineReasons : referralReasons;
 
-  const appId = sub.id.slice(0, 10).toUpperCase();
+  const appId = policyNumber(sub);
   const sections = buildSubmissionSections(sub);
   const isOwnerOrAdmin = canBindOrPay(user, sub);
 
