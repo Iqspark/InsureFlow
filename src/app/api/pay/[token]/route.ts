@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { finalizePaidPolicy } from "@/lib/finalizePayment";
 import { isStripeConfigured } from "@/lib/stripe";
+import { tooMany, clientIp } from "@/lib/rateLimit";
 
 // POST /api/pay/[token]
 // Public (no auth) — simulated fallback checkout, used ONLY when Stripe is NOT
@@ -13,6 +14,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { token: string } }
 ) {
+  const limited = tooMany(`pay:${clientIp(req)}`, 15, 60_000);
+  if (limited) return limited;
+
   // Hard guard: never accept the simulated (no-charge) payment when Stripe is live.
   if (isStripeConfigured()) {
     return NextResponse.json(

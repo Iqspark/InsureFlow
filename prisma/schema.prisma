@@ -102,6 +102,7 @@ model Submission {
   stripeSessionId       String?  @unique // Checkout Session id
   stripePaymentIntentId String?         // PaymentIntent id (audit)
   stripeStatus          String?         // last Stripe payment status
+  // (WebhookEvent model below records processed Stripe event ids for dedup)
 
   // ── Policy term (set on bind; 12-month annual term) ─────────
   effectiveAt   DateTime?
@@ -142,4 +143,13 @@ model Submission {
   @@index([brokerId])
   @@index([reviewedById])
   @@index([expiresAt])
+}
+
+// Records each Stripe webhook event id we've processed, so a redelivered or
+// replayed event is handled at most once (defense-in-depth on top of the
+// idempotent finalizer).
+model WebhookEvent {
+  id         String   @id // Stripe event id, e.g. "evt_..."
+  type       String
+  receivedAt DateTime @default(now())
 }

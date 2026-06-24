@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
+import { tooMany, clientIp } from "@/lib/rateLimit";
 
 // POST /api/pay/[token]/checkout
 // Public — creates a Stripe Checkout Session for the bound policy and returns
@@ -12,6 +13,9 @@ export async function POST(
   req: NextRequest,
   { params }: { params: { token: string } }
 ) {
+  const limited = tooMany(`checkout:${clientIp(req)}`, 15, 60_000);
+  if (limited) return limited;
+
   if (!isStripeConfigured()) {
     return NextResponse.json({ error: "Stripe is not configured" }, { status: 503 });
   }
