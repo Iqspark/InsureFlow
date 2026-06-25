@@ -1,4 +1,5 @@
 import type { Submission } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { renderPolicyPdf } from "@/lib/policyPdf";
 import { buildSubmissionSections } from "@/lib/submissionSections";
 import { staticMapUrl } from "@/utils/googleMaps";
@@ -31,6 +32,12 @@ export async function buildPolicyPdf(sub: Submission): Promise<Buffer> {
 
   const mapImage = await fetchMapDataUri(sub.propertyAddress);
 
+  // Latest e-signature (if the proposal was signed) → certificate block in the PDF.
+  const sig = await prisma.policySignature.findFirst({
+    where: { submissionId: sub.id },
+    orderBy: { signedAt: "desc" },
+  });
+
   return renderPolicyPdf({
     appId: policyNumber(sub),
     policyType: sub.policyType,
@@ -46,5 +53,14 @@ export async function buildPolicyPdf(sub: Submission): Promise<Buffer> {
     sections: buildSubmissionSections(sub),
     propertyAddress: sub.propertyAddress,
     mapImage,
+    signature: sig
+      ? {
+          signerName: sig.signerName,
+          method: sig.method,
+          signedAt: sig.signedAt,
+          declarationVersion: sig.declarationVersion,
+          documentHash: sig.documentHash,
+        }
+      : null,
   });
 }

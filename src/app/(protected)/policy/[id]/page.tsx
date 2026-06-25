@@ -125,6 +125,7 @@ export default async function PolicyDetailPage({
       broker: { select: { name: true, email: true } },
       reviewedBy: { select: { name: true } },
       auditEvents: { orderBy: { createdAt: "desc" } },
+      signatures: { orderBy: { signedAt: "desc" }, take: 1 },
     },
   });
 
@@ -144,6 +145,8 @@ export default async function PolicyDetailPage({
   };
   let adjustments: Adjustment[] = [];
   try { adjustments = JSON.parse(sub.adjustments ?? "[]"); } catch { adjustments = []; }
+
+  const signature = sub.signatures[0];
 
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
@@ -332,6 +335,34 @@ export default async function PolicyDetailPage({
             ))}
           </Section>
         ))}
+
+        {/* E-signature evidence */}
+        {signature && (
+          <div className="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50">
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">E-Signature</h2>
+            </div>
+            <div className="px-5 py-4 space-y-4">
+              <p className="text-2xl text-slate-800" style={{ fontFamily: "cursive" }}>{signature.signerName}</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+                <Field label="Signed by" value={signature.signerName} />
+                <Field label="Signed on" value={fmtDate(signature.signedAt)} />
+                <Field label="Method" value={signature.method === "typed" ? "Typed signature" : signature.method} />
+                <Field label="Declaration" value={`v${signature.declarationVersion}`} />
+              </div>
+              <div>
+                <dt className="text-xs text-slate-400 mb-0.5">Document hash (SHA-256)</dt>
+                <dd className="text-xs font-mono text-slate-600 break-all">{signature.documentHash}</dd>
+              </div>
+              {user.role === "ADMIN" && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 pt-3 border-t border-slate-100">
+                  <Field label="IP address" value={signature.ip ?? "—"} />
+                  <Field label="User agent" value={signature.userAgent ?? "—"} />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Mid-term adjustment history */}
         {adjustments.length > 0 && (

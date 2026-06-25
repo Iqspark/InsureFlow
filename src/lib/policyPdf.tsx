@@ -28,6 +28,13 @@ export interface PolicyPdfData {
   sections: { title: string; rows: { label: string; value: string }[] }[];
   propertyAddress?: string | null;
   mapImage?: string | null; // base64 data URI of the static map
+  signature?: {
+    signerName: string;
+    method: string;
+    signedAt: Date;
+    declarationVersion: string;
+    documentHash: string;
+  } | null;
 }
 
 const fmtCurrency = (v: number | null | undefined): string =>
@@ -100,6 +107,11 @@ const styles = StyleSheet.create({
 
   mapImage: { width: "100%", height: 170, borderRadius: 6, objectFit: "cover" },
   mapAddress: { fontSize: 9, color: "#64748b", marginTop: 5 },
+
+  sigBox: { borderWidth: 1, borderColor: "#cbd5e1", borderRadius: 6, padding: 12, backgroundColor: "#f8fafc" },
+  sigName: { fontSize: 16, fontFamily: "Helvetica-Oblique", color: "#0f172a" },
+  sigMeta: { fontSize: 8, color: "#64748b", marginTop: 5 },
+  sigHash: { fontSize: 7, color: "#94a3b8", marginTop: 4, fontFamily: "Courier" },
 
   section: { marginTop: 16 },
   sectionTitle: {
@@ -227,6 +239,20 @@ function PolicyPdf({ d }: { d: PolicyPdfData }) {
               ))}
             </View>
           ))}
+
+          {d.signature && (
+            <View style={styles.section} wrap={false}>
+              <Text style={styles.sectionTitle}>Electronic Signature</Text>
+              <View style={styles.sigBox}>
+                <Text style={styles.sigName}>{d.signature.signerName}</Text>
+                <Text style={styles.sigMeta}>
+                  Signed electronically on {fmtDate(d.signature.signedAt)} ·{" "}
+                  {d.signature.method === "typed" ? "Typed" : d.signature.method} signature · Declaration v{d.signature.declarationVersion}
+                </Text>
+                <Text style={styles.sigHash}>Document hash (SHA-256): {d.signature.documentHash}</Text>
+              </View>
+            </View>
+          )}
         </View>
 
         <View style={styles.footer} fixed>
