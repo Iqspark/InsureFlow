@@ -58,16 +58,15 @@ function AcceptResult({
     }
 
     try {
-      const res  = await fetch("/api/buy-policy", {
+      const res  = await fetch(`/api/submissions/${submissionIdRef.current}/send-proposal`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ submissionId: submissionIdRef.current }),
       });
       const data = await res.json();
 
-      if (!res.ok) throw new Error(data.error ?? "Failed to bind policy");
+      if (!res.ok) throw new Error(data.error ?? "Failed to send proposal");
 
-      // Policy is bound — a payment link has been emailed to the applicant.
+      // Proposal emailed — the applicant reviews and e-signs before the broker binds.
       setSentEmail(data.sentTo ?? applicantEmail);
       setPreviewUrl(data.previewUrl ?? undefined);
       setBuyStatus("sent");
@@ -94,13 +93,13 @@ function AcceptResult({
             </svg>
           </div>
           <div className="w-full max-w-xs">
-            <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Policy Bound!</h2>
+            <h2 className="text-2xl font-extrabold text-slate-900 mb-1">Proposal Sent!</h2>
             <p className="text-slate-400 text-sm mb-6">
-              A secure payment link has been emailed to the applicant. The policy activates once
-              they complete payment.
+              The applicant has been emailed a secure link to review and e-sign the proposal.
+              Once they sign, you can review and bind the policy.
             </p>
             <div className="bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 mb-6 text-left">
-              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Payment link sent to</p>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-0.5">Proposal sent to</p>
               <p className="text-sm font-semibold text-indigo-600 break-all">{sentEmail}</p>
             </div>
             {previewUrl && (
@@ -113,7 +112,7 @@ function AcceptResult({
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                 </svg>
-                Open payment email
+                Open proposal email
               </a>
             )}
             <button
@@ -203,10 +202,10 @@ function AcceptResult({
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                 </svg>
-                Binding policy…
+                Sending…
               </>
             ) : (
-              "Buy This Policy →"
+              "Send for Signature →"
             )}
           </button>
 

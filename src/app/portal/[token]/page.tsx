@@ -112,9 +112,9 @@ export default async function PolicyPortalPage({
         {!isPaid && !isCancelled && (
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-amber-800">Payment outstanding</p>
+              <p className="text-sm font-semibold text-amber-800">Premium due</p>
               <p className="text-xs text-amber-700/80 mt-0.5">
-                Pay {fmtCAD(sub.annualPremium)} to activate your coverage.
+                Your cover is in force — pay {fmtCAD(sub.annualPremium)} to settle the premium.
               </p>
             </div>
             <a

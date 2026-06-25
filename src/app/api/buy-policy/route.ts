@@ -3,18 +3,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { canBindOrPay, type SessionUser } from "@/lib/access";
-import { sendUnderwriterNotificationEmail, sendPaymentRequestEmail } from "@/lib/email";
+import { sendPaymentRequestEmail } from "@/lib/email";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
 import { portalTokenExpiry } from "@/lib/portalToken";
+import { payTokenExpiry } from "@/lib/netTerms";
 import { tooMany } from "@/lib/rateLimit";
 import { captureError } from "@/lib/observability";
 
 // POST /api/buy-policy
-// Binds an accepted quote as a policy (purchased=true, payment pending) and
-// emails the applicant a secure link to pay on our site. Calling again on a
-// bound-but-unpaid policy resends the payment link.
+// RESEND-ONLY: re-emails the secure payment link for an already-bound, unpaid
+// policy and refreshes the link's expiry. Binding is done exclusively through the
+// signed-proposal flow (POST /api/submissions/[id]/bind) so a signature is always
+// required first.
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -32,21 +34,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "submissionId is required" }, { status: 400 });
   }
 
-  // Cooldown on (re)sends so a payment link can't be used to email-bomb the
-  // applicant or repeatedly refresh the token-expiry window.
+  // Cooldown so the payment link can't be used to email-bomb the applicant or
+  // repeatedly refresh the token-expiry window.
   const limited = tooMany(`buy-policy:${submissionId}`, 5, 60_000);
   if (limited) return limited;
 
   const sub = await prisma.submission.findUnique({
     where: { id: submissionId },
-    include: { broker: { select: { name: true, email: true } } },
+    include: { broker: { select: { name: true } } },
   });
 
   if (!sub || sub.deletedAt || !canBindOrPay(user, sub)) {
     return NextResponse.json({ error: "Submission not found or not yours" }, { status: 404 });
   }
-  if (sub.decision !== "accept") {
-    return NextResponse.json({ error: "Only accepted quotes can be purchased" }, { status: 400 });
+  if (!sub.purchased) {
+    return NextResponse.json(
+      { error: "This policy isn't bound yet. Bind it from the signed proposal first." },
+      { status: 409 }
+    );
   }
   if (sub.paymentStatus === "paid") {
     return NextResponse.json({ error: "This policy is already paid" }, { status: 409 });
@@ -58,88 +63,47 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const alreadyBound = sub.purchased;
     const token = sub.paymentToken ?? globalThis.crypto.randomUUID();
 
-    // On first bind, stamp a 12-month policy term (annual).
-    const termData: { effectiveAt?: Date; expiresAt?: Date } = {};
-    if (!sub.effectiveAt) {
-      const effectiveAt = new Date();
-      const expiresAt = new Date(effectiveAt);
-      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
-      termData.effectiveAt = effectiveAt;
-      termData.expiresAt = expiresAt;
-    }
+    // Refresh the link window — aligned to the invoice + cancellation window when
+    // net terms are known, else a flat 30 days.
+    const boundAt = sub.policyIssuedAt ?? sub.effectiveAt ?? new Date();
+    const expiry = sub.dueAt ? payTokenExpiry(boundAt, sub.dueAt) : portalTokenExpiry(new Date());
 
-    // Bind (idempotent), ensure a payment token exists, and (re)set its expiry
-    // so each send/resend refreshes the public pay/portal link window.
     await prisma.submission.update({
       where: { id: sub.id },
-      data: { purchased: true, paymentToken: token, paymentTokenExpiresAt: portalTokenExpiry(new Date()), ...termData },
+      data: { paymentToken: token, paymentTokenExpiresAt: expiry },
     });
 
-    const cad = (n: number | null) =>
-      new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n ?? 0);
     await recordAudit({
       submissionId: sub.id,
-      action: alreadyBound ? "payment_link_resent" : "bound",
+      action: "payment_link_resent",
       actorId: user.id,
       actorName: session.user.name ?? null,
       actorRole: user.role,
-      detail: alreadyBound
-        ? "Resent the secure payment link"
-        : `Policy bound · annual premium ${cad(sub.annualPremium)}`,
+      detail: "Resent the secure payment link",
     });
 
-    // Email the applicant a link to pay on our site.
     const baseUrl = publicBaseUrl(req);
-    const payUrl = `${baseUrl}/pay/${token}`;
     const sent = await sendPaymentRequestEmail({
       to,
       applicantName: sub.applicantName ?? "Valued Customer",
       appId:         policyNumber(sub),
       policyType:    sub.policyType,
       amount:        sub.annualPremium ?? 0,
-      payUrl,
+      payUrl:        `${baseUrl}/pay/${token}`,
       brokerName:    sub.broker?.name ?? user.role,
       portalUrl:     `${baseUrl}/portal/${token}`,
     });
 
-    // Notify the underwriting team only on the first bind (best-effort).
-    let underwriterNotified = false;
-    const underwriterTo = process.env.UNDERWRITER_EMAIL;
-    if (!alreadyBound && underwriterTo) {
-      try {
-        await sendUnderwriterNotificationEmail({
-          to:             underwriterTo,
-          appId:          policyNumber(sub),
-          policyType:     sub.policyType,
-          applicantName:  sub.applicantName  ?? "Valued Customer",
-          applicantEmail: to,
-          applicantPhone: sub.contactPhone   ?? "—",
-          province:       sub.province       ?? "Canada",
-          annualPremium:  sub.annualPremium  ?? 0,
-          monthlyPremium: sub.monthlyPremium ?? 0,
-          coverageAmount: sub.coverageAmount ?? 0,
-          deductible:     sub.deductible     ?? 0,
-          brokerName:     sub.broker?.name   ?? session.user.name,
-          brokerEmail:    sub.broker?.email  ?? session.user.email,
-        });
-        underwriterNotified = true;
-      } catch (err) {
-        captureError(err, { area: "email", message: "underwriter notification failed", extra: { submissionId: sub.id } });
-      }
-    }
-
     return NextResponse.json({
       success: true,
-      resent: alreadyBound,
+      resent: true,
       sentTo: sent.sentTo,
       previewUrl: sent.previewUrl ?? null,
-      underwriterNotified,
     });
   } catch (err) {
-    captureError(err, { area: "payment", message: "bind/send payment link failed", extra: { submissionId } });
-    return NextResponse.json({ error: "Failed to bind policy or send payment link" }, { status: 500 });
+    captureError(err, { area: "payment", message: "resend payment link failed", extra: { submissionId } });
+    return NextResponse.json({ error: "Failed to resend the payment link" }, { status: 500 });
   }
 }

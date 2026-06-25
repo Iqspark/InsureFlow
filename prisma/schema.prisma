@@ -93,12 +93,25 @@ model Submission {
 
   // ── Proposal e-signature (broker/commercial flow, Phase A) ──
   // quoted → awaiting_signature → signed → bound (Phase B) → …
+  // quoted → awaiting_signature → signed → bound → pending_cancellation → cancelled
   coverageStatus         String   @default("quoted")
   proposalToken          String?  @unique // public capability URL for the sign page
   proposalTokenExpiresAt DateTime?
   signedAt               DateTime?
   policyIssuedAt         DateTime? // full policy issued at bind (Phase B)
   signatures             PolicySignature[]
+
+  // ── Net terms / invoicing (Phase D) ──────────────────────
+  netTermDays   Int?      // resolved at bind; dueAt = boundAt + netTermDays
+  dueAt         DateTime?
+  invoiceNumber String?
+
+  // ── Dunning / cancel-for-non-payment (Phase D) ───────────
+  lastReminderAt          DateTime?
+  reminderStage           Int       @default(0) // 0=none, 1=due, 2=+3, 3=+7
+  cancellationNoticeAt    DateTime? // Notice of Cancellation issued
+  cancellationEffectiveAt DateTime? // cover ends here if still unpaid
+  earnedPremiumOwed       Float?    // recorded on a non-payment cancel
 
   // ── Purchase state ───────────────────────────────────────
   // false = quote only · true = bound policy (Buy This Policy pressed)

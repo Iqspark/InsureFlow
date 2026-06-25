@@ -157,17 +157,17 @@ model PolicySignature {
   emailed via `sendPolicyIssuedEmail`) + the pay link; underwriter notification.
 - Broker UI: "Review & Bind" on signed proposals; the legacy direct-bind CTA is
   hidden once a proposal flow has started (shows only for `coverageStatus=quoted`).
-- **Consolidation remaining:** the legacy direct [buy-policy](../src/app/api/buy-policy/route.ts)
-  first-bind and the QuoteResult "Buy This Policy" path still allow an *unsigned*
-  bind when no proposal was sent. Removing them (routing all binds through the
-  signed flow) is the final step to fully enforce "signature mandatory to bind".
+- **Consolidation** ✅ Done — [buy-policy](../src/app/api/buy-policy/route.ts) is now
+  **resend-only** (rejects an unbound policy with 409), QuoteResult's primary action
+  is "Send for Signature" (→ send-proposal), and the legacy direct-bind CTA was
+  removed. Binding now always requires a signature.
 
-**Phase C — Payment reframe**
-- [finalizePaidPolicy](../src/lib/finalizePayment.ts) → "premium received": send the **receipt**
-  only; the policy + cover were already issued at bind (don't re-issue / re-activate).
-  Pay page/email copy reframed from "activate your policy" to "pay your invoice."
-- Note: until this lands, a policy bound via the e-sign flow gets the policy-issued
-  email at bind AND the existing confirmation/receipt at payment (mild redundancy).
+**Phase C — Payment reframe** ✅ Implemented
+- [finalizePaidPolicy](../src/lib/finalizePayment.ts) → "premium received": sends the **receipt**
+  only when the policy was issued at bind (`policyIssuedAt`); the legacy flow still
+  issues the policy at payment. No more duplicate policy email.
+- Pay-request email + portal copy reframed from "activate your coverage" to
+  "in force · settle the premium."
 
 **Phase D — Net terms + dunning + cancel-for-non-payment** (see the dedicated section below).
 
@@ -179,7 +179,7 @@ model PolicySignature {
 
 ---
 
-## Phase D — Net terms & cancel-for-non-payment
+## Phase D — Net terms & cancel-for-non-payment ✅ Implemented
 
 Because the full policy is in force and unpaid for the net term, this is the safety
 valve. **Locked defaults:** net-30 (+ per-policy override), 7-day grace before a

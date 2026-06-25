@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
+import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail, sendReinstatementEmail } from "@/lib/email";
 import { buildPolicyPdf } from "@/lib/policyDocument";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
@@ -64,24 +64,59 @@ export async function finalizePaidPolicy(
     detail: `Payment received · ${cad}`,
   });
 
+  const to = sub.contactEmail;
+
+  // Reinstate if this payment cleared a pending cancellation within the notice
+  // window (the dunning job hasn't cancelled yet).
+  if (sub.coverageStatus === "pending_cancellation") {
+    await prisma.submission.update({
+      where: { id: sub.id },
+      data: { coverageStatus: "bound", cancellationNoticeAt: null, cancellationEffectiveAt: null },
+    });
+    await recordAudit({
+      submissionId: sub.id,
+      action: "reinstated",
+      actorName: "Customer",
+      actorRole: "CUSTOMER",
+      detail: "Reinstated on payment within the notice window",
+    });
+    if (to) {
+      try {
+        await sendReinstatementEmail({
+          to,
+          applicantName: sub.applicantName ?? "Valued Customer",
+          appId:         policyNumber(sub),
+          policyType:    sub.policyType,
+        });
+      } catch (err) {
+        captureError(err, { area: "email", message: "reinstatement email failed", extra: { submissionId: sub.id } });
+      }
+    }
+  }
+
   // Best-effort emails — the payment is already recorded.
   let previewUrl: string | null = null;
-  const to = sub.contactEmail;
   if (to) {
     try {
-      const confirm = await sendPolicyConfirmationEmail({
-        to,
-        applicantName:  sub.applicantName  ?? "Valued Customer",
-        appId:          policyNumber(sub),
-        policyType:     sub.policyType,
-        province:       sub.province       ?? "Canada",
-        annualPremium:  sub.annualPremium  ?? 0,
-        monthlyPremium: sub.monthlyPremium ?? 0,
-        coverageAmount: sub.coverageAmount ?? 0,
-        deductible:     sub.deductible     ?? 0,
-        brokerName:     sub.broker?.name   ?? "your broker",
-        brokerEmail:    sub.broker?.email  ?? "",
-      });
+      // The e-sign flow already issued the full policy at bind (policyIssuedAt),
+      // so payment only sends a receipt. The legacy flow issues the policy here.
+      let confirmPreview: string | null = null;
+      if (!sub.policyIssuedAt) {
+        const confirm = await sendPolicyConfirmationEmail({
+          to,
+          applicantName:  sub.applicantName  ?? "Valued Customer",
+          appId:          policyNumber(sub),
+          policyType:     sub.policyType,
+          province:       sub.province       ?? "Canada",
+          annualPremium:  sub.annualPremium  ?? 0,
+          monthlyPremium: sub.monthlyPremium ?? 0,
+          coverageAmount: sub.coverageAmount ?? 0,
+          deductible:     sub.deductible     ?? 0,
+          brokerName:     sub.broker?.name   ?? "your broker",
+          brokerEmail:    sub.broker?.email  ?? "",
+        });
+        confirmPreview = confirm.previewUrl ?? null;
+      }
       // Best-effort branded policy PDF attached to the receipt.
       let pdf;
       try {
@@ -99,7 +134,7 @@ export async function finalizePaidPolicy(
         paidAt,
         pdf,
       });
-      previewUrl = receipt.previewUrl ?? confirm.previewUrl ?? null;
+      previewUrl = receipt.previewUrl ?? confirmPreview ?? null;
     } catch (err) {
       captureError(err, { area: "email", message: "confirmation/receipt email failed", extra: { submissionId: sub.id } });
     }

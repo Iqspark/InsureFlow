@@ -447,10 +447,10 @@ export async function sendPaymentRequestEmail(
       <p style="margin:6px 0 0;font-size:13px;color:#c7d2fe">Complete Your Payment</p>
     </td></tr>
     <tr><td style="background:#ffffff;padding:32px 32px 8px;text-align:center">
-      <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a">Your policy is ready to activate</h1>
+      <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a">Premium due on your policy</h1>
       <p style="margin:0;font-size:14px;color:#64748b">
         Dear ${esc(d.applicantName)}, your <strong>${esc(d.policyType)}</strong> policy has been bound by
-        your broker ${esc(d.brokerName)}. Pay securely below to activate your coverage.
+        your broker ${esc(d.brokerName)} and is in force. Please settle the premium below.
       </p>
     </td></tr>
     <tr><td style="background:#ffffff;padding:20px 32px 8px;text-align:center">
@@ -497,12 +497,16 @@ export interface PolicyIssuedData {
   payUrl:        string;
   portalUrl?:    string;
   brokerName:    string;
+  dueAt?:        Date | null; // invoice due date (net terms)
   pdf?:          EmailAttachment; // the full policy document, attached
 }
 
 export async function sendPolicyIssuedEmail(d: PolicyIssuedData): Promise<SendResult> {
   const fmt = (n: number) =>
     new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+  const due = d.dueAt
+    ? d.dueAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" })
+    : null;
 
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"></head>
@@ -522,7 +526,7 @@ export async function sendPolicyIssuedEmail(d: PolicyIssuedData): Promise<SendRe
     </td></tr>
     <tr><td style="background:#ffffff;padding:20px 32px 8px;text-align:center">
       <div style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 28px">
-        <p style="margin:0 0 2px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Premium Due</p>
+        <p style="margin:0 0 2px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Premium Due${due ? ` by ${esc(due)}` : ""}</p>
         <p style="margin:0;font-size:30px;font-weight:700;color:#059669">${fmt(d.amount)}</p>
         <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">Policy ${esc(d.appId)}</p>
       </div>
@@ -551,6 +555,143 @@ export async function sendPolicyIssuedEmail(d: PolicyIssuedData): Promise<SendRe
       `Your full policy document is attached. Premium due: ${fmt(d.amount)} (Policy ${d.appId}).`,
       ``,
       `Pay securely here: ${d.payUrl}`,
+    ].join("\n"),
+  });
+}
+
+// ── Applicant: payment reminder (dunning) ─────────────────────
+export interface PaymentReminderData {
+  to: string; applicantName: string; appId: string; policyType: string;
+  amount: number; payUrl: string; dueAt: Date | null;
+}
+
+export async function sendPaymentReminderEmail(d: PaymentReminderData): Promise<SendResult> {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+  const due = d.dueAt ? d.dueAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" }) : null;
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#f59e0b;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#fef3c7">Payment Reminder</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 14px;font-size:14px;color:#0f172a">
+        Hi ${esc(d.applicantName)}, this is a reminder that the premium for your
+        <strong>${esc(d.policyType)}</strong> policy (${esc(d.appId)}) of <strong>${fmt(d.amount)}</strong>
+        ${due ? `is due by <strong>${esc(due)}</strong>` : "is now due"}. Your cover is in force —
+        please settle the premium to keep it active.
+      </p>
+      <a href="${d.payUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px">Pay ${fmt(d.amount)}</a>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated reminder · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return deliver({
+    to: d.to,
+    subject: `Payment reminder — ${d.policyType} (${d.appId})`,
+    html,
+    label: "Payment reminder",
+    text: [
+      `Payment Reminder — InsureFlow`,
+      ``,
+      `Hi ${d.applicantName}, the premium of ${fmt(d.amount)} for your ${d.policyType} policy (${d.appId}) ${due ? `is due by ${due}` : "is now due"}.`,
+      `Pay here: ${d.payUrl}`,
+    ].join("\n"),
+  });
+}
+
+// ── Applicant: Notice of Cancellation for non-payment ─────────
+export interface NoticeOfCancellationData {
+  to: string; applicantName: string; appId: string; policyType: string;
+  amount: number; payUrl: string; effectiveAt: Date;
+}
+
+export async function sendNoticeOfCancellationEmail(d: NoticeOfCancellationData): Promise<SendResult> {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+  const on = d.effectiveAt.toLocaleDateString("en-CA", { year: "numeric", month: "long", day: "numeric" });
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#b91c1c;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#fecaca">Notice of Cancellation</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0 0 14px;font-size:14px;color:#0f172a">
+        Dear ${esc(d.applicantName)}, the premium of <strong>${fmt(d.amount)}</strong> for your
+        <strong>${esc(d.policyType)}</strong> policy (${esc(d.appId)}) remains unpaid. This is formal
+        notice that your policy will be <strong>cancelled effective ${esc(on)}</strong> for
+        non-payment unless the premium is paid before that date.
+      </p>
+      <a href="${d.payUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:700;padding:12px 28px;border-radius:8px">Pay now to keep your cover</a>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Notice of cancellation · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return deliver({
+    to: d.to,
+    subject: `Notice of Cancellation — ${d.policyType} (${d.appId})`,
+    html,
+    label: "Notice of cancellation",
+    text: [
+      `Notice of Cancellation — InsureFlow`,
+      ``,
+      `Dear ${d.applicantName}, the premium of ${fmt(d.amount)} for your ${d.policyType} policy (${d.appId}) is unpaid.`,
+      `Your policy will be cancelled effective ${on} for non-payment unless paid before that date.`,
+      `Pay here: ${d.payUrl}`,
+    ].join("\n"),
+  });
+}
+
+// ── Applicant: reinstatement (paid within the notice window) ──
+export interface ReinstatementData {
+  to: string; applicantName: string; appId: string; policyType: string;
+}
+
+export async function sendReinstatementEmail(d: ReinstatementData): Promise<SendResult> {
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#059669;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+      <p style="margin:0;font-size:20px;font-weight:700;color:#ffffff">InsureFlow</p>
+      <p style="margin:4px 0 0;font-size:13px;color:#a7f3d0">Policy Reinstated</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:28px 32px">
+      <p style="margin:0;font-size:14px;color:#0f172a">
+        Good news, ${esc(d.applicantName)} — your payment was received and the pending cancellation
+        on your <strong>${esc(d.policyType)}</strong> policy (${esc(d.appId)}) has been withdrawn.
+        Your cover continues without interruption.
+      </p>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Automated notification · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return deliver({
+    to: d.to,
+    subject: `Policy reinstated — ${d.policyType} (${d.appId})`,
+    html,
+    label: "Reinstatement",
+    text: [
+      `Policy Reinstated — InsureFlow`,
+      ``,
+      `Good news, ${d.applicantName} — your payment was received and the pending cancellation on your ${d.policyType} policy (${d.appId}) has been withdrawn.`,
     ].join("\n"),
   });
 }

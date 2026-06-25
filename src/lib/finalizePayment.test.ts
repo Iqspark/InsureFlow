@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { submission: { findUnique: vi.fn(), updateMany: vi.fn() } },
+  prisma: { submission: { findUnique: vi.fn(), updateMany: vi.fn(), update: vi.fn() } },
 }));
 vi.mock("@/lib/email", () => ({
   sendPolicyConfirmationEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com" }),
   sendPaymentReceiptEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com", previewUrl: "http://preview" }),
+  sendReinstatementEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com" }),
 }));
 vi.mock("@/lib/audit", () => ({ recordAudit: vi.fn().mockResolvedValue(undefined) }));
 vi.mock("@/lib/policyDocument", () => ({
@@ -14,10 +15,11 @@ vi.mock("@/lib/policyDocument", () => ({
 
 import { finalizePaidPolicy } from "./finalizePayment";
 import { prisma } from "@/lib/prisma";
-import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
+import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail, sendReinstatementEmail } from "@/lib/email";
 
 const findUnique = vi.mocked(prisma.submission.findUnique);
 const updateMany = vi.mocked(prisma.submission.updateMany);
+const update = vi.mocked(prisma.submission.update);
 
 const boundUnpaid = {
   id: "s1",
@@ -37,6 +39,7 @@ const boundUnpaid = {
 beforeEach(() => {
   vi.clearAllMocks();
   updateMany.mockResolvedValue({ count: 1 } as never);
+  update.mockResolvedValue({} as never);
 });
 
 describe("finalizePaidPolicy", () => {
@@ -98,5 +101,25 @@ describe("finalizePaidPolicy", () => {
     expect(r).toMatchObject({ ok: true, alreadyPaid: false, amount: 1200, previewUrl: null });
     expect(updateMany).toHaveBeenCalledOnce();
     expect(sendPaymentReceiptEmail).not.toHaveBeenCalled();
+  });
+
+  it("sends a receipt only (no policy confirmation) when the policy was issued at bind (Phase C)", async () => {
+    findUnique.mockResolvedValue({ ...boundUnpaid, policyIssuedAt: new Date() } as never);
+    const r = await finalizePaidPolicy("s1");
+    expect(r.ok).toBe(true);
+    expect(sendPolicyConfirmationEmail).not.toHaveBeenCalled();
+    expect(sendPaymentReceiptEmail).toHaveBeenCalledOnce();
+  });
+
+  it("reinstates a pending_cancellation policy on payment within the notice window (Phase D)", async () => {
+    findUnique.mockResolvedValue({ ...boundUnpaid, policyIssuedAt: new Date(), coverageStatus: "pending_cancellation" } as never);
+    const r = await finalizePaidPolicy("s1");
+    expect(r.ok).toBe(true);
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ coverageStatus: "bound", cancellationNoticeAt: null, cancellationEffectiveAt: null }),
+      })
+    );
+    expect(sendReinstatementEmail).toHaveBeenCalledOnce();
   });
 });

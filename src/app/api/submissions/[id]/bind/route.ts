@@ -8,7 +8,7 @@ import { buildPolicyPdf } from "@/lib/policyDocument";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
-import { portalTokenExpiry } from "@/lib/portalToken";
+import { resolveNetTermDays, dueDate, payTokenExpiry } from "@/lib/netTerms";
 import { proposalDocumentHash } from "@/lib/proposal";
 import { tooMany } from "@/lib/rateLimit";
 import { captureError } from "@/lib/observability";
@@ -31,6 +31,15 @@ export async function POST(
 
   const limited = tooMany(`bind:${id}`, 5, 60_000);
   if (limited) return limited;
+
+  // Optional per-policy net-term override (0 = due on receipt / 15 / 30 / …).
+  let netTermOverride: number | undefined;
+  try {
+    const body = (await req.json()) as { netTermDays?: number };
+    if (typeof body?.netTermDays === "number") netTermOverride = body.netTermDays;
+  } catch {
+    // No body is fine — fall back to the configured default term.
+  }
 
   const sub = await prisma.submission.findUnique({
     where: { id },
@@ -84,6 +93,12 @@ export async function POST(
     const expiresAt = new Date(now);
     expiresAt.setFullYear(expiresAt.getFullYear() + 1);
     const token = globalThis.crypto.randomUUID();
+    const appId = policyNumber(sub);
+
+    // Net terms: premium is a receivable due `netTermDays` after bind. The pay link
+    // must outlive the invoice + cancellation window (see payTokenExpiry).
+    const term = resolveNetTermDays(netTermOverride);
+    const dueAt = dueDate(now, term);
 
     // Atomic claim: only one caller flips signed → bound (in force).
     const claimed = await prisma.submission.updateMany({
@@ -92,10 +107,13 @@ export async function POST(
         coverageStatus: "bound",
         purchased: true,
         paymentToken: token,
-        paymentTokenExpiresAt: portalTokenExpiry(now),
+        paymentTokenExpiresAt: payTokenExpiry(now, dueAt),
         effectiveAt,
         expiresAt,
         policyIssuedAt: now,
+        netTermDays: term,
+        dueAt,
+        invoiceNumber: `INV-${appId}`,
       },
     });
     if (claimed.count === 0) {
@@ -133,6 +151,7 @@ export async function POST(
       payUrl:        `${baseUrl}/pay/${token}`,
       portalUrl:     `${baseUrl}/portal/${token}`,
       brokerName:    sub.broker?.name ?? user.role,
+      dueAt,
       pdf,
     });
 

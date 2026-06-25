@@ -14,7 +14,9 @@ import PaymentBadge from "@/components/PaymentBadge";
 import BuyPolicyButton from "@/components/BuyPolicyButton";
 import SendForSignatureButton from "@/components/SendForSignatureButton";
 import BindPolicyButton from "@/components/BindPolicyButton";
+import NoticeOfCancellationButton from "@/components/NoticeOfCancellationButton";
 import CancelPolicyButton from "@/components/CancelPolicyButton";
+import { canIssueNoticeOfCancellation } from "@/lib/netTerms";
 import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
 import { canViewSubmission, canReview, canDecideReview, canBindOrPay, type SessionUser } from "@/lib/access";
@@ -102,6 +104,8 @@ const AUDIT_LABELS: Record<string, { label: string; dot: string }> = {
   restored:            { label: "Quote restored",          dot: "bg-indigo-500" },
   proposal_sent:       { label: "Proposal sent",           dot: "bg-indigo-400" },
   signed:              { label: "Proposal signed",         dot: "bg-emerald-500" },
+  cancellation_notice: { label: "Cancellation notice",     dot: "bg-red-400" },
+  reinstated:          { label: "Policy reinstated",       dot: "bg-emerald-500" },
 };
 
 // ── Page ─────────────────────────────────────────────────────
@@ -187,28 +191,6 @@ export default async function PolicyDetailPage({
         {/* Decision banner */}
         <DecisionBanner decision={sub.decision} reasons={reasons} />
 
-        {/* Payment call-to-action — resend payment link (bound), or legacy direct
-            bind when no proposal flow has been started (coverageStatus=quoted). */}
-        {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
-          sub.paymentStatus !== "paid" && !sub.cancelledAt &&
-          (sub.purchased || sub.coverageStatus === "quoted") && (
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-emerald-800">
-                {sub.purchased ? "Awaiting customer payment" : "Ready to bind"}
-              </p>
-              <p className="text-xs text-emerald-700/80 mt-0.5">
-                {sub.purchased
-                  ? "This policy is bound — resend the secure payment link to the customer."
-                  : "Bind this policy and email the customer a secure payment link."}
-              </p>
-            </div>
-            <div className="shrink-0">
-              <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
-            </div>
-          </div>
-        )}
-
         {/* Proposal & e-signature (broker/commercial flow) */}
         {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
           !sub.purchased && !sub.cancelledAt && (
@@ -243,6 +225,42 @@ export default async function PolicyDetailPage({
                 </>
               )}
             </div>
+          </div>
+        )}
+
+        {/* Invoice / dunning (in force, unpaid) */}
+        {isOwnerOrAdmin && sub.purchased && sub.paymentStatus !== "paid" && !sub.cancelledAt &&
+          (sub.coverageStatus === "bound" || sub.coverageStatus === "pending_cancellation") && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4">
+            {sub.coverageStatus === "pending_cancellation" ? (
+              <>
+                <p className="text-sm font-semibold text-red-800">
+                  Cancellation pending — effective {sub.cancellationEffectiveAt ? fmtDate(sub.cancellationEffectiveAt) : "—"}
+                </p>
+                <p className="text-xs text-red-700/80 mt-0.5">
+                  Cover stays in force during the notice window. If the customer pays before the effective date, the policy is reinstated automatically.
+                </p>
+              </>
+            ) : (
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">
+                    In force · premium {fmtCurrency(sub.annualPremium)} due{sub.dueAt ? ` ${fmtDate(sub.dueAt)}` : ""}
+                  </p>
+                  <p className="text-xs text-amber-700/80 mt-0.5">
+                    {sub.dueAt && canIssueNoticeOfCancellation(sub.dueAt, new Date())
+                      ? "Past due beyond the grace period — resend the invoice or issue a Notice of Cancellation."
+                      : "Awaiting payment of the invoice."}
+                  </p>
+                </div>
+                <div className="shrink-0 flex flex-col sm:items-end gap-2">
+                  <BuyPolicyButton submissionId={sub.id} purchased={true} />
+                  {sub.dueAt && canIssueNoticeOfCancellation(sub.dueAt, new Date()) && (
+                    <NoticeOfCancellationButton submissionId={sub.id} />
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
