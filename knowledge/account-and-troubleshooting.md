@@ -29,5 +29,8 @@ The AI underwriter needs an AI key set in the environment. If it's not configure
 ## A map isn't showing on a property quote.
 Maps require a Google Maps key configured at build time. If it's missing, the address still works as plain text; ask your administrator to configure the key.
 
+## A payment or customer-portal link says "This link has expired."
+Public pay (`/pay/...`) and customer-portal (`/portal/...`) links **expire 30 days after they're issued**. To refresh one, the broker (or an admin) resends the payment link from the policy page or dashboard — that issues a fresh link with a new 30-day window. The same applies to a link that won't open or shows as invalid.
+
 ## The Help Navigator says my question is out of scope.
 The assistant only answers from its knowledge base and won't guess. For account-specific or policy-specific details, contact your broker or administrator.

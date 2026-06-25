@@ -1,5 +1,7 @@
 # Portal FAQ — Common Questions
 
+This covers the **broker portal** (the signed-in app used by brokers, underwriters, and admins). If you're a customer looking at a no-login link to your own policy, see "Customer Self-Service Portal."
+
 ## How long does a quote take?
 The chat-style questionnaire produces an instant decision and premium in under five minutes.
 

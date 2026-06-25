@@ -393,3 +393,39 @@ C:\Users\InsureFlow>az resource update --resource-group rg-insureflow --name scm
   "tags": null,
   "type": "Microsoft.Web/sites/basicPublishingCredentialsPolicies"
 }
+
+
+---
+
+## App Settings (environment variables) for `insureflow-demo`
+
+The web app above runs **Next.js 16 / React 19** on **Node 22 LTS**. Set the application's runtime config as App Settings. (See `docs/DEPLOYMENT_GUIDE.md` for the full walkthrough; this is the quick CLI reference.)
+
+```bash
+# Required
+az webapp config appsettings set --name insureflow-demo --resource-group rg-insureflow --settings \
+  DATABASE_URL="postgresql://<user>:<YOUR_DB_PASSWORD>@<host>/<db>?sslmode=require" \
+  NEXTAUTH_SECRET="<random-32+-char-string>" \
+  NEXTAUTH_URL="https://insureflow-demo.azurewebsites.net" \
+  WEBSITES_PORT=3000 NODE_ENV=production
+
+# Optional (enable the features you need)
+az webapp config appsettings set --name insureflow-demo --resource-group rg-insureflow --settings \
+  OPENAI_API_KEY="sk-..." \
+  RESEND_API_KEY="re_..." SMTP_FROM="InsureFlow <noreply@yourdomain.com>" \
+  STRIPE_SECRET_KEY="sk_test_..." STRIPE_WEBHOOK_SECRET="whsec_..." \
+  SENTRY_DSN="https://...ingest.sentry.io/..." \
+  UNDERWRITER_EMAIL="underwriting@yourco.com"
+```
+
+| App Setting | Required | Notes |
+|---|---|---|
+| `DATABASE_URL` | Yes | Postgres connection string (Neon / Azure Postgres), `?sslmode=require` |
+| `NEXTAUTH_SECRET` | Yes | `openssl rand -base64 32` |
+| `NEXTAUTH_URL` | Yes | The **real public URL** (`https://insureflow-demo.azurewebsites.net`). Emailed pay/portal links also resolve the host from `x-forwarded-host`/`Host` + `x-forwarded-proto`, which Azure sets (TLS terminated upstream) — but still set this for NextAuth callbacks |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional | **Build-time** — must be a GitHub secret available when the build runs (inlined into the client bundle); setting it only here has no effect |
+| `OPENAI_API_KEY` | Optional | Help Navigator, change-answer, AI underwriter recommendation |
+| `RESEND_API_KEY` + `SMTP_FROM` | Optional | Real email via Resend (needs a verified domain); SMTP_* are an alternative sender |
+| `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` | Optional | Real hosted checkout. Register the webhook at `https://insureflow-demo.azurewebsites.net/api/stripe/webhook` in the Stripe Dashboard (`stripe listen` is local-only). Absent → simulated no-charge gateway |
+| `SENTRY_DSN` | Optional | Error monitoring across the money path |
+| `UNDERWRITER_EMAIL` | Optional | Notified when a policy is first bound |

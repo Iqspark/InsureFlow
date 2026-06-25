@@ -28,3 +28,6 @@ Yes — you cannot remove the last active admin, and you cannot deactivate your 
 
 ## Where does the analytics data come from?
 All figures are computed live from the submissions in the system — decisions, premiums, products, brokers, and payment status — so the dashboard always reflects the current book.
+
+## Can I see who did what to a policy?
+Yes. Each policy detail page has an **Activity** timeline — an append-only record of lifecycle events (bound, payment link resent, paid, adjusted, cancelled, reviewed, change requested), each stamped with the actor (name and role) and the time. It's useful for oversight and auditing across the book.

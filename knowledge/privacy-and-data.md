@@ -17,7 +17,13 @@ Every list, search, and export in the portal is scoped to what the signed-in rol
 Information may be shared with the insurer and other parties necessary to underwrite the risk, issue the policy, and handle claims, consistent with the Privacy Notice in your policy documents and applicable privacy law.
 
 ## How is payment information handled?
-The payment link is unique to your policy and the checkout page is separate from the login area. (In this demo build the card form is validated but not charged.) Card details are entered only on the secure payment page.
+The payment link is unique to your policy and the checkout page is separate from the login area. When card processing is enabled, payment is taken through **Stripe**, a PCI-compliant payment processor, and your card details are entered on Stripe's secure page — InsureFlow does not store full card numbers. (For demo setups a simulated checkout validates the card format without charging.)
+
+## How are the public links secured?
+Customer pay (`/pay/...`) and customer-portal (`/portal/...`) links use a **secure, unique token** and are not guessable. For added safety they **expire 30 days after they're issued**; if a link expires, your broker can resend a fresh one. Don't share these links.
+
+## Is system activity monitored?
+The portal keeps an internal **activity log** of policy lifecycle events (for servicing and audit). The operator may also enable **error monitoring** to capture technical errors and keep the service reliable; this is operational telemetry, not marketing tracking.
 
 ## How long is my information kept?
 Quote and policy records are retained for history, servicing, and compliance. Bound policies are protected from deletion to preserve the record.

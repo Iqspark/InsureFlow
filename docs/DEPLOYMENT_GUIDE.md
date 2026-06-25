@@ -58,6 +58,12 @@ GitHub Actions Runner (ubuntu-latest, Node 22)
 
 `next.config.js` sets `output: "standalone"`. This bundles only the production Node.js files (plus a trimmed `node_modules`) into `.next/standalone/`, so Azure runs `node server.js` with no `npm install` and faster cold starts. The same config also wraps the app with `@ducanh2912/next-pwa` and declares `serverComponentsExternalPackages` for `pdf-parse`, `pdfjs-dist`, and `@react-pdf/renderer` (used for PDF generation).
 
+> **Framework versions:** the app runs **Next.js 16 / React 19** (App Router, async route `params`). This requires a recent Node runtime — CI and App Service both use **Node 22 LTS**.
+
+### Public URL for emailed links
+
+Payment (`/pay/<token>`) and customer-portal (`/portal/<token>`) links are emailed to applicants, so they must resolve to the real public host. At request time the app derives the base URL from the incoming `x-forwarded-host` / `Host` header plus `x-forwarded-proto` — which Just Works on Azure App Service, where TLS is terminated upstream and the platform sets those forwarded headers. **Still set `NEXTAUTH_URL` to the real public URL** (NextAuth uses it for callbacks/session, and it's the fallback when no forwarded headers are present).
+
 ### What the build expects
 
 The workflow runs `npx prisma db push --accept-data-loss` and `node prisma/seed.js` against the production `DATABASE_URL` on pushes to `main` — the schema is applied with `db push` (not `migrate deploy`), and demo brokers are seeded. `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` must be present at **build time** because it is inlined into the client bundle.
@@ -196,9 +202,13 @@ These map to what `.github/workflows/azure-deploy.yml` reads:
 | `DATABASE_URL` | Yes | Postgres connection string from Step 3 |
 | `NEXTAUTH_SECRET` | Yes | Random 32+ char string — `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Yes | Full public URL, e.g. `https://<your-unique-webapp-name>.azurewebsites.net` |
-| `OPENAI_API_KEY` | Yes | `sk-...` (Help Navigator + change-answer AI) |
-| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional | Build-time key for address autocomplete + map (inlined into client bundle) |
-| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Optional | Real email; omit to use Ethereal test mode |
+| `OPENAI_API_KEY` | Optional | `sk-...` — Help Navigator, change-answer, AI underwriter recommendation. Omit and those AI features show a "not configured" message |
+| `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional | **Build-time** key for address autocomplete + map (inlined into the client bundle — must be present when the build runs) |
+| `RESEND_API_KEY` / `SMTP_FROM` | Optional | Real email via Resend (preferred). Resend needs a **verified sending domain** (otherwise it only delivers to the account owner). `SMTP_FROM` sets the From address |
+| `SMTP_HOST` / `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` / `SMTP_FROM` | Optional | Real email via SMTP (fallback if Resend isn't set); omit all to use Ethereal test mode |
+| `STRIPE_SECRET_KEY` / `STRIPE_WEBHOOK_SECRET` | Optional | Real Stripe hosted checkout. Without them, payment falls back to the simulated (no-charge) gateway. See [Stripe webhook](#stripe-webhook-cloud-vs-local) below |
+| `SENTRY_DSN` | Optional | Error monitoring across the money path; omit to log to console only |
+| `UNDERWRITER_EMAIL` | Optional | Back-office inbox notified when a policy is first bound |
 
 > **The publish profile is a secret, never a committed file.** It contains deployment credentials. Get it via the Azure Portal (App Service → **Get publish profile**) or `az webapp deployment list-publishing-profiles --name $WEBAPP_NAME --resource-group $RESOURCE_GROUP --xml`, then paste the entire XML as `AZURE_WEBAPP_PUBLISH_PROFILE`.
 
@@ -228,16 +238,29 @@ az webapp config appsettings set \
 | `DATABASE_URL` | Yes | Postgres connection string |
 | `NEXTAUTH_SECRET` | Yes | `openssl rand -base64 32` |
 | `NEXTAUTH_URL` | Yes | Full public URL of the app |
-| `OPENAI_API_KEY` | Yes | Help Navigator + change-answer AI |
+| `OPENAI_API_KEY` | Optional | Help Navigator, change-answer, AI underwriter recommendation. Without it those features show "not configured" |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` | Optional | Address autocomplete + map. Must also be set at **build time** (GitHub secret) since it is inlined into the client bundle |
-| `UNDERWRITER_EMAIL` | Optional | Back-office inbox notified when a policy is bound. Leave unset to skip |
-| `SMTP_HOST` | Optional | e.g. `smtp.gmail.com` |
+| `RESEND_API_KEY` | Optional | Real email via Resend (preferred sender). Needs a **verified domain** to deliver to anyone but the account owner |
+| `SMTP_HOST` | Optional | e.g. `smtp.gmail.com` (SMTP fallback) |
 | `SMTP_PORT` | Optional | Usually `587` |
 | `SMTP_USER` | Optional | SMTP login |
 | `SMTP_PASS` | Optional | App Password / SMTP password |
-| `SMTP_FROM` | Optional | `"InsureFlow <noreply@yourapp.com>"` |
+| `SMTP_FROM` | Optional | `"InsureFlow <noreply@yourapp.com>"` — the From address (used by both Resend and SMTP) |
+| `STRIPE_SECRET_KEY` | Optional | Enables real Stripe hosted checkout. Absent → simulated (no-charge) gateway |
+| `STRIPE_WEBHOOK_SECRET` | Optional | Signing secret for the `/api/stripe/webhook` endpoint (the authoritative "paid" signal). Required when Stripe is enabled |
+| `SENTRY_DSN` | Optional | Error monitoring across buy/checkout/webhook/pay/finalize/adjust/cancel/portal. Absent → console logging only |
+| `UNDERWRITER_EMAIL` | Optional | Back-office inbox notified when a policy is first bound. Leave unset to skip |
 
-> **Email in production:** if the SMTP vars are not set, the app falls back to Ethereal (test mode) and returns a `previewUrl`. Set all five SMTP vars to send real confirmation emails.
+> **Email in production:** `deliver()` tries **Resend → SMTP → Ethereal** in that order. Set `RESEND_API_KEY` (+ a verified domain) or the SMTP vars for real delivery; with neither, the app falls back to Ethereal (test mode) and returns a `previewUrl`.
+
+### Stripe webhook — cloud vs. local
+
+The webhook is the authoritative confirmation that a customer paid. Configure it per environment:
+
+- **Cloud (Azure):** in the **Stripe Dashboard → Developers → Webhooks**, register an endpoint at `https://<your-unique-webapp-name>.azurewebsites.net/api/stripe/webhook` (event `checkout.session.completed`), then copy its signing secret into the `STRIPE_WEBHOOK_SECRET` App Setting. `stripe listen` does **not** apply to a deployed app.
+- **Local:** use the Stripe CLI — `stripe listen --forward-to localhost:3000/api/stripe/webhook` — and use the signing secret it prints.
+
+A return-page safety net (`/pay/<token>?paid=1` re-checks the Checkout Session) finalizes the policy even if the webhook is dropped or delayed, so a missed webhook won't leave a paid customer unconfirmed. Public pay/portal links expire 30 days after they're issued.
 
 ### knowledge/ folder in production
 

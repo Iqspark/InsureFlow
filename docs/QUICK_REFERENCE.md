@@ -26,14 +26,19 @@ Run `npm run db:seed` to create these accounts if they don't exist.
 | `DATABASE_URL` | Yes | PostgreSQL connection string (Neon), e.g. `postgresql://USER:PASS@HOST/DB?sslmode=require` |
 | `NEXTAUTH_SECRET` | Yes | Any long random string (32+ chars) |
 | `NEXTAUTH_URL` | Yes | `"http://localhost:3000"` for local dev |
-| `OPENAI_API_KEY` | Yes | Powers Help Navigator + change-answer AI |
+| `OPENAI_API_KEY` | Yes | Powers Help Navigator + change-answer + AI underwriter |
+| `STRIPE_SECRET_KEY` | Optional | Enables real hosted Stripe Checkout (simulated-card fallback otherwise) |
+| `STRIPE_WEBHOOK_SECRET` | Optional | Verifies `/api/stripe/webhook` signatures |
+| `RESEND_API_KEY` | Optional | Transactional email (preferred sender; needs a verified domain) |
 | `SMTP_HOST` | Optional | SMTP server (e.g. `smtp.gmail.com`) |
 | `SMTP_PORT` | Optional | SMTP port (e.g. `587`) |
 | `SMTP_USER` | Optional | SMTP login email |
 | `SMTP_PASS` | Optional | SMTP password or App Password |
 | `SMTP_FROM` | Optional | Sender display name + address |
+| `UNDERWRITER_EMAIL` | Optional | Back-office notice on first bind |
+| `SENTRY_DSN` | Optional | Money-path error capture (console-only without it) |
 
-> **Email fallback:** If SMTP vars are absent, the app uses Ethereal (free test inbox). A preview URL is returned by the API and shown in the UI.
+> **Email delivery order:** Resend (`RESEND_API_KEY`) → SMTP (`SMTP_USER`/`PASS`) → Ethereal (free test inbox). In Ethereal mode a preview URL is returned by the API and shown in the UI.
 
 ---
 
@@ -244,9 +249,9 @@ Decline always beats Refer if both are triggered.
 
 ### Buy → Pay flow
 
-1. Broker clicks **Buy This Policy** → policy is bound (`purchased`) and a payment link is **emailed to the applicant** (`/pay/<token>`).
-2. The **customer** opens the link (public, no login) and pays via a card form that is format-validated only — **no real charge** (swap a real gateway into `/api/pay/[token]` later).
-3. On success the policy is marked **Paid** and a confirmation + receipt are emailed. Bound-but-unpaid policies show in the broker's **Action Required** with a Resend Link option.
+1. Broker clicks **Buy This Policy** → policy is bound (`purchased`) and `/pay/<token>` + `/portal/<token>` links are **emailed to the applicant** (30-day expiry).
+2. The **customer** opens the pay link (public, no login). With `STRIPE_SECRET_KEY` set they pay via **hosted Stripe Checkout** (`/api/pay/[token]/checkout`); the signature-verified, deduped, amount-checked `/api/stripe/webhook` is the authoritative paid signal, with a confirm-on-return safety net. Without Stripe, a simulated-card form stands in (`/api/pay/[token]`, no charge — disabled with 400 once Stripe is live).
+3. On success `finalizePaidPolicy()` marks the policy **Paid** (idempotent), writes a `paid` audit, and emails a confirmation + receipt (branded PDF attached). The customer can also self-serve from `/portal/<token>` (view, PDF, pay, change request). Bound-but-unpaid policies show in the broker's **Action Required** with a Resend Link option.
 
 Once a policy is **paid**, it can be **adjusted** mid-term (revise the sum insured → premium scales proportionally, difference charged/returned pro-rata) or **cancelled** from the policy detail page; both require a bound + paid, non-cancelled policy and email the applicant. A cancelled policy shows a red **Cancelled** badge. Full lifecycle: **quote → (refer → AI review/approve) → bind → pay → adjust (MTA) → cancel.**
 
@@ -329,7 +334,15 @@ npx prisma generate  # Regenerate Prisma client after schema changes
 | Summary screen | `src/components/SummaryScreen.tsx` |
 | Result screens (Accept/Decline/Refer) | `src/components/QuoteResult.tsx` |
 | Buy → bind + email pay link | `src/app/api/buy-policy/route.ts` |
-| Customer payment (public) | `src/app/pay/[token]/page.tsx`, `src/app/api/pay/[token]/route.ts` |
+| Customer payment (public) | `src/app/pay/[token]/page.tsx`, `src/app/api/pay/[token]/route.ts` (simulated) |
+| Stripe Checkout + webhook | `src/lib/stripe.ts`, `src/app/api/pay/[token]/checkout/route.ts`, `src/app/api/stripe/webhook/route.ts` |
+| Shared paid finalizer (idempotent) | `src/lib/finalizePayment.ts` (`finalizePaidPolicy`) |
+| Customer portal (public, token) | `src/app/portal/[token]/page.tsx`, `src/app/api/portal/[token]/{document,request}/route.ts` |
+| Public-link token expiry (30-day) | `src/lib/portalToken.ts` |
+| Rate limiting (public routes) | `src/lib/rateLimit.ts` |
+| Observability (Sentry) | `src/lib/observability.ts` (`captureError`) |
+| Audit trail / Activity timeline | `src/lib/audit.ts` (`recordAudit`) → `AuditEvent` |
+| Policy number (`PREFIX-YEAR-CODE`) | `src/utils/policyNumber.ts` |
 | Underwriter review | `src/app/(protected)/review/page.tsx`, `src/app/api/submissions/[id]/review/route.ts` |
 | Cancel a paid policy (mid-term) | `src/components/CancelPolicyButton.tsx` → `src/app/api/submissions/[id]/cancel/route.ts` (paid-only) |
 | Mid-term adjustment (MTA, pro-rata) | `src/components/AdjustPolicyButton.tsx` → `src/app/api/submissions/[id]/adjust/route.ts` (paid-only) |

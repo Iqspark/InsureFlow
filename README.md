@@ -1,8 +1,8 @@
 # InsureFlow — Broker Portal
 
-A chat-style insurance quoting portal for brokers, built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS**, **Framer Motion**, **NextAuth**, and **Prisma + PostgreSQL**.
+A chat-style insurance quoting portal for brokers, built with **Next.js 16 (App Router, React 19)**, **TypeScript**, **Tailwind CSS**, **Framer Motion**, **NextAuth**, and **Prisma + PostgreSQL**.
 
-Brokers log in, walk an applicant through a conversational questionnaire with a virtual broker named **Alex**, and get an instant **Accept / Decline / Refer** decision with a premium breakdown. Accepted quotes can be **saved as a quote** or **bound as a policy** — binding emails the applicant a payment link to a simulated checkout, starts a 12-month policy term, and notifies the underwriting team. The portal is **role-based** (Broker / Underwriter / Admin) with dashboards, analytics, Policies/Customers/Search, and Upcoming Renewals. It installs on a phone as a **PWA**.
+Brokers log in, walk an applicant through a conversational questionnaire with a virtual broker named **Alex**, and get an instant **Accept / Decline / Refer** decision with a premium breakdown. Accepted quotes can be **saved as a quote** or **bound as a policy** — binding emails the applicant a payment link, starts a 12-month policy term, and notifies the underwriting team. Checkout is **real Stripe (hosted Checkout)** when configured, with a simulated-card fallback otherwise. The applicant can also self-serve from a **customer portal** to view their policy, download the PDF, pay, and request changes. The portal is **role-based** (Broker / Underwriter / Admin) with dashboards, analytics, Policies/Customers/Search, and Upcoming Renewals. It installs on a phone as a **PWA**.
 
 ---
 
@@ -29,7 +29,11 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 - **Multiple insurance packages** — Vacant Home, Jeweller's Block, Farm, Cyber, Contractor, Architects & Engineers, Retailers, Rental Home, Personal Items, and Lithium Batteries — each with their own questions, rating factors, and underwriting rules (a product registry makes adding more easy).
 - **Underwriting decision** — every quote resolves to **Accept**, **Decline**, or **Refer to underwriter**, with the reasons recorded.
 - **AI underwriter recommendation** — on a referred quote, an underwriter can get an advisory **approve/decline** verdict (with confidence + reasons) that pre-fills the review note; the human confirms. Pluggable engine, currently an inline OpenAI call.
-- **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** and emails the applicant a payment link to a **simulated checkout** (no real charge). Binding stamps a **12-month policy term**.
+- **Quote ↔ Policy states** — a calculated quote is saved automatically; pressing **Buy This Policy** binds it as a **Policy** and emails the applicant a payment link. Binding stamps a **12-month policy term**.
+- **Real Stripe checkout** — when `STRIPE_SECRET_KEY` is set the payment link opens **hosted Stripe Checkout**; a signature-verified webhook (deduped + amount-checked) is the authoritative paid signal, with a confirm-on-return safety net. Without Stripe, a simulated-card flow stands in (and is disabled once Stripe is live).
+- **Customer portal** — a public, token-authenticated `/portal/<token>` page lets the applicant view their policy, download the PDF, pay if unpaid, and submit a change request (which emails the broker) — no login.
+- **Audit trail** — every lifecycle/money action (bind, resend, paid, adjust, cancel, review, change request) is logged to an `AuditEvent` and shown as an **Activity** timeline on the policy page.
+- **Policy numbers** — a stable human-readable `PREFIX-YEAR-CODE` reference (e.g. `VH-2026-7K3M9Q`) shown across UI, PDF, and emails.
 - **Mid-term adjustments (MTA)** — a **paid** policy's sum insured can be revised mid-term; the premium scales proportionally and the difference is charged/returned **pro-rata** over the remaining term. Each change is logged and the applicant is emailed.
 - **Policy cancellation** — a **paid** policy can be cancelled mid-term by the owning broker or an admin; the applicant gets a cancellation confirmation email, the policy shows a **Cancelled** badge, and it is excluded from Upcoming Renewals.
 - **Role-based portal** — three roles (Broker / Underwriter / Admin). Brokers see their own book; underwriters review referred quotes; admins manage users and see everything.
@@ -37,7 +41,8 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 - **Property address + map** — Vacant Home quotes capture the address with Google Places autocomplete and show the location on a map (portal + PDF).
 - **Downloadable PDF & CSV export** — a branded one-click PDF of any quote/policy (with location map and a Quote/Policy stamp), and CSV export of list views.
 - **Help Navigator** — an in-portal knowledge-base assistant that answers from the `knowledge/` docs.
-- **Email** — applicant payment link + confirmation/receipt, broker approval notice, an underwriter/back-office notification, plus mid-term adjustment and cancellation confirmations.
+- **Email** — Resend → SMTP → Ethereal delivery: applicant payment link (pay + portal) + confirmation/receipt (branded PDF attached), broker approval notice, an underwriter/back-office notification, plus mid-term adjustment, cancellation, and change-request emails.
+- **Observability** — money-path errors captured via `captureError` (console always; Sentry when `SENTRY_DSN` is set).
 - **Installable PWA** — add it to a phone home screen and run it full-screen.
 
 ---
@@ -46,14 +51,16 @@ Brokers log in, walk an applicant through a conversational questionnaire with a 
 
 | Area | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router), TypeScript 5 |
+| Framework | Next.js 16 (App Router, React 19), TypeScript 5 |
 | Styling | Tailwind CSS, Framer Motion |
 | Auth | NextAuth v4 (credentials) |
 | Database | Prisma 5 + PostgreSQL (Neon) |
+| Payments | Stripe (hosted Checkout + webhook); simulated-card fallback |
 | PDF | `@react-pdf/renderer` (pure Node) |
 | Maps | Google Maps (Places + Embed + Static) |
-| AI | OpenAI `gpt-4o-mini` (Help Navigator, change-answer) |
-| Email | Nodemailer (Ethereal fallback in dev) |
+| AI | OpenAI `gpt-4o-mini` (Help Navigator, change-answer, AI underwriter) |
+| Email | Resend → Nodemailer (SMTP) → Ethereal fallback |
+| Observability | Sentry (`@sentry/nextjs`) |
 | PWA | `@ducanh2912/next-pwa` |
 
 ---
@@ -106,15 +113,23 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST/DB?sslmode=require"
 NEXTAUTH_SECRET="run: openssl rand -base64 32"
 NEXTAUTH_URL="http://localhost:3000"        # must match the URL you load
 
-OPENAI_API_KEY="sk-..."                      # Help Navigator + change-answer
+OPENAI_API_KEY="sk-..."                      # Help Navigator + change-answer + AI underwriter
 
-# Email — leave SMTP_PASS blank to use the Ethereal test inbox (preview URL in console)
+# Payments — set both to enable real hosted Stripe Checkout (simulated-card fallback otherwise)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...               # verifies /api/stripe/webhook signatures
+
+# Email — Resend preferred; else SMTP; else Ethereal test inbox (preview URL in console)
+RESEND_API_KEY=re_...                          # transactional email (needs a verified domain)
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=you@gmail.com
 SMTP_PASS=                                    # Gmail App Password for real delivery
 SMTP_FROM="InsureFlow <you@gmail.com>"
 UNDERWRITER_EMAIL=underwriting@yourco.com     # notified when a policy is bound
+
+# Observability — money-path errors go to Sentry when set (console-only otherwise)
+SENTRY_DSN=
 
 # Google Maps — address autocomplete + maps. Enable: Maps JavaScript, Places, Maps Embed, Maps Static.
 NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=
@@ -146,7 +161,7 @@ Two independent dimensions are tracked per submission:
 | **Decision** | Accept · Decline · Refer | The underwriting outcome |
 | **Stage** | Quote · Policy | A quote, or a bound policy (Buy pressed) |
 
-On the result screen an accepted quote offers **Save as Quote** or **Buy This Policy**. Binding a policy emails the applicant a **payment link** to a simulated checkout, starts a **12-month term** (`effectiveAt`/`expiresAt`), notifies the underwriter, and flips the badge to **Policy** across the dashboard, search, detail page, and PDF.
+On the result screen an accepted quote offers **Save as Quote** or **Buy This Policy**. Binding a policy emails the applicant **pay + portal links**, starts a **12-month term** (`effectiveAt`/`expiresAt`), notifies the underwriter, and flips the badge to **Policy** across the dashboard, search, detail page, and PDF. The customer pays via **hosted Stripe Checkout** (or the simulated-card fallback when Stripe is not configured); a signature-verified, deduped, amount-checked webhook is the authoritative paid signal, finalized idempotently by `finalizePaidPolicy()`. Public pay/portal links carry a **30-day expiry** (`paymentTokenExpiresAt`), refreshed when the link is resent.
 
 The Buy / Resend payment action is a prominent **call-to-action banner near the top** of the policy detail page ("Ready to bind" for an accepted-unbound quote; "Awaiting customer payment" for a bound-but-unpaid policy). Once a policy is **paid**, the detail page also supports **mid-term adjustments** (revise the sum insured → premium scales proportionally, difference charged/returned pro-rata over the remaining term) and **cancellation** (stamps `cancelledAt`/`cancelReason`, shows a red **Cancelled** badge, excludes it from Upcoming Renewals) — each emailing the applicant. Adjust and cancel are restricted to paid, non-cancelled policies. The full lifecycle is:
 
@@ -198,7 +213,7 @@ The installed app shows the **IF** icon, launches full-screen, and uses the cach
 A GitHub Actions pipeline (`.github/workflows/azure-deploy.yml`) builds the Next.js standalone output, applies the DB schema, and deploys to Azure App Service.
 
 Before the live app works you must:
-1. Add the GitHub **secrets** the workflow needs (`AZURE_WEBAPP_NAME`, `AZURE_WEBAPP_PUBLISH_PROFILE`, `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `OPENAI_API_KEY`, and optionally `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `SMTP_*`, `UNDERWRITER_EMAIL`).
+1. Add the GitHub **secrets** the workflow needs (`AZURE_WEBAPP_NAME`, `AZURE_WEBAPP_PUBLISH_PROFILE`, `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`, `OPENAI_API_KEY`, and optionally `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `RESEND_API_KEY`, `SMTP_*`, `UNDERWRITER_EMAIL`, `SENTRY_DSN`).
 2. Set the **runtime** Application Settings (same keys) in Azure App Service → Configuration.
 3. Use a strong `NEXTAUTH_SECRET` and set `NEXTAUTH_URL` to the deployed URL.
 
@@ -224,12 +239,16 @@ src/
 │   │   │   ├── jeweller-block/    ← Jeweller's Block quote flow
 │   │   │   ├── farm/              ← Farm Insurance quote flow
 │   │   │   └── …/                 ← cyber, contractor, AE, retailers, rental, items, batteries
-│   │   ├── policy/[id]/           ← Saved quote/policy detail (map, PDF, buy)
+│   │   ├── policy/[id]/           ← Saved quote/policy detail (map, PDF, buy, Activity timeline)
 │   │   ├── review/                ← Underwriter review queue (+ AI recommendation)
 │   │   ├── privacy / terms / support
 │   │   ├── icon / apple-icon / pwa-icon / manifest   ← PWA assets (dynamic)
+│   ├── pay/[token]/               ← PUBLIC customer checkout (Stripe or simulated)
+│   ├── portal/[token]/            ← PUBLIC customer self-service portal (view, PDF, pay, change request)
 │   └── api/                       ← submissions, drafts, buy-policy, search, analytics,
-│                                     pay/[token] (public checkout), admin/users,
+│                                     pay/[token] (public checkout) + pay/[token]/checkout (Stripe session),
+│                                     stripe/webhook (authoritative paid signal), admin/users,
+│                                     portal/[token]/document (PDF) + portal/[token]/request (change request),
 │                                     policies/suggest, customers/suggest, reviews/suggest, queue/suggest,
 │                                     policy/[id]/document (PDF), chat-intent, help-chat,
 │                                     submissions/[id]/review, submissions/[id]/ai-review,
@@ -251,15 +270,22 @@ src/
 ├── lib/
 │   ├── policyPdf.tsx              ← PDF document (react-pdf)
 │   ├── aiUnderwriter.ts          ← Pluggable AI underwriter engine (inline OpenAI)
+│   ├── stripe.ts                 ← Stripe client + isStripeConfigured()
+│   ├── finalizePayment.ts        ← finalizePaidPolicy() — shared idempotent paid finalizer
+│   ├── portalToken.ts            ← Public pay/portal link 30-day TTL
+│   ├── rateLimit.ts              ← In-memory fixed-window limiter (public routes)
+│   ├── observability.ts          ← captureError (console + Sentry when SENTRY_DSN set)
+│   ├── audit.ts                  ← recordAudit → AuditEvent lifecycle log
+│   ├── policyDocument.ts         ← buildPolicyPdf (react-pdf + static map)
 │   ├── submissionSections.ts     ← Detail/PDF section builder
-│   ├── email.ts                  ← Confirmation + underwriter + adjustment/cancellation emails
+│   ├── email.ts                  ← deliver() (Resend → SMTP → Ethereal) + templated senders
 │   ├── auth.ts / prisma.ts
 ├── components/                    ← Chat UI, inputs, result screens, badges, map, buttons,
 │                                     AdminAnalytics + BookCharts, CustomerCard, ReviewActions,
 │                                     CancelPolicyButton, AdjustPolicyButton
-└── utils/                         ← validation, interpolation, googleMaps loader
+└── utils/                         ← validation, interpolation, googleMaps loader, policyNumber
 
-prisma/schema.prisma               ← Submission + Broker models
+prisma/schema.prisma               ← Submission + Broker + WebhookEvent + AuditEvent models
 ```
 
 ---

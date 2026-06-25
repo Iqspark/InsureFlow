@@ -24,8 +24,13 @@ The top navigation changes by role:
 1. **Quote** — answer the questions and get an instant decision.
 2. **Refer** (if needed) — borderline risks route to an underwriter.
 3. **Policy** — pressing *Buy This Policy* binds the quote and emails the applicant a payment link.
-4. **Paid** — the customer pays on a secure page and the policy activates.
+4. **Paid** — the customer pays on a secure page (Stripe checkout when configured) and the policy activates.
 5. **Renewal** — each policy carries a 12-month term and surfaces in Upcoming Renewals.
+
+Every bound policy gets a human-readable **policy number** like **VH-2026-7K3M9Q** (the prefix marks the product), shown across the portal, PDF, and emails.
+
+## Can customers see their own policy?
+Yes — separately from the broker portal, each customer gets a no-login **customer portal** link to view their policy, download its PDF, pay if unpaid, and request a change. Public pay and portal links expire after 30 days and can be resent. See "Customer Self-Service Portal."
 
 ## Where do I get help?
 Use the Help Navigator chat widget in the bottom corner of any page — it answers questions about products, coverage, pricing, underwriting, and how to use the portal.

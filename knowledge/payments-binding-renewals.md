@@ -4,13 +4,19 @@
 On an accepted quote, the broker presses **Buy This Policy**. This *binds* the quote — it becomes a policy (purchased) with a 12-month term — and the applicant is emailed a secure link to pay.
 
 ## How does the customer pay?
-The applicant receives a tokenised payment link to a public checkout page (no login needed). They enter their card details and pay there. The broker never handles the card. On success, the policy is marked paid, activates, and a confirmation and receipt are emailed.
+The applicant receives a tokenised payment link to a public checkout page (no login needed). When card processing is configured, the link opens a **secure Stripe checkout** and the customer pays by card there. The broker never handles the card. Once the payment is confirmed, the policy is marked **Paid**, activates, and a confirmation plus a receipt (with the branded policy PDF attached) are emailed.
 
 ## Is this a real charge?
-In the current build the card form is **format-validated only — there is no real charge** (a simulated gateway). A real payment processor can be connected later without changing the broker or customer experience.
+Yes, when payments are configured. InsureFlow uses **Stripe secure checkout** for real card payments. If Stripe is not configured (for demos), the system falls back to a **simulated** checkout that validates the card format but does not charge — the broker and customer experience is otherwise the same. Either way, the policy shows **Paid** once payment is confirmed.
+
+## How do I know a payment really went through?
+A real Stripe payment is confirmed by Stripe itself (not by the customer's browser), and only then is the policy marked Paid. The policy detail page shows the Paid status and a receipt is emailed.
 
 ## What if the customer hasn't paid yet?
-A bound-but-unpaid policy appears in the broker's **Action Required** with a **Resend Link** option. The broker can resend the payment link from the policy page or the dashboard.
+A bound-but-unpaid policy appears in the broker's **Action Required** with a **Resend Link** option. The broker can resend the payment link from the policy page or the dashboard. Resending also refreshes the link's 30-day expiry window.
+
+## The payment link doesn't work or says it's expired.
+Pay (and portal) links **expire 30 days after they're issued**. If a customer reports an expired or broken link, the broker can **resend** it from the policy page or dashboard, which issues a fresh link with a new 30-day window.
 
 ## Who gets notified?
 - **Applicant** — payment-request email when bound, plus a confirmation and receipt after paying.
@@ -31,3 +37,6 @@ Policies approaching their expiry appear in **Upcoming Renewals** on the broker 
 
 ## Can a policy be deleted?
 Quotes and drafts can be deleted, but a **bound policy is protected from deletion** to preserve the record.
+
+## Can the customer see their policy without logging in?
+Yes. The same email that carries the payment link also includes a **customer portal** link (`/portal/<token>`) where the customer can view their policy, download the policy PDF, and request a change — no login required. See "Customer Self-Service Portal."

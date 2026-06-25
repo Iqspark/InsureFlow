@@ -30,21 +30,26 @@ This document explains how the application is structured — the multi-product r
 
 | Layer | Technology | Version |
 |---|---|---|
-| Framework | Next.js (App Router) | 14 |
+| Framework | Next.js (App Router, async params) | 16 |
+| UI runtime | React | 19 |
 | Language | TypeScript | 5 |
 | Styling | Tailwind CSS | v3 |
 | Animation | Framer Motion | v11 |
 | Auth | NextAuth.js | v4 (JWT, Credentials) |
 | ORM | Prisma | 5 |
 | Database | PostgreSQL | — |
-| Email | Nodemailer + Ethereal | — |
+| Payments | Stripe (hosted Checkout + webhook) | — |
+| Email | Resend → Nodemailer (SMTP) → Ethereal | — |
 | PDF | `@react-pdf/renderer` | — |
 | Maps | Google Maps JS + Static/Embed APIs | — |
 | AI | OpenAI API | gpt-4o-mini |
+| Observability | Sentry (`@sentry/nextjs`) | — |
 | PWA | Web manifest + dynamic OG icons | — |
 | State | React Context | — |
 
 > Note: `prisma/schema.prisma` declares `provider = "postgresql"`. The README/CLAUDE notes that mention SQLite are out of date relative to the schema.
+>
+> **Next.js 16 / React 19:** route handlers and dynamic pages receive `params` as a Promise — `{ params }: { params: Promise<{ id: string }> }` and `const { id } = await params`.
 
 ---
 
@@ -76,6 +81,9 @@ src/
                               Adjust/Cancel actions only when paymentStatus = "paid"
       privacy/ terms/ support/  ← Static info pages
     pay/[token]/page.tsx    ← PUBLIC (no auth) customer checkout via emailed link
+                              (Stripe hosted Checkout, or simulated card; ?paid=1 confirm-on-return)
+    portal/[token]/page.tsx ← PUBLIC (no auth) customer self-service portal
+                              (read-only policy, map, PDF, pay CTA, "Request a Change"; 410 when token expired)
     api/
       auth/[...nextauth]/   ← NextAuth handler
       submissions/          ← POST (save complete quote) + GET (role-scoped list)
@@ -87,8 +95,12 @@ src/
       submissions/[id]/adjust/ ← POST (owning broker/admin; mid-term adjustment, pro-rata)
       drafts/               ← POST (upsert draft)
       drafts/[id]/          ← GET (load a draft for resume)
-      buy-policy/           ← Bind policy (stamp 12-mo term) + email pay link + underwriter notice
-      pay/[token]/          ← PUBLIC POST → mark paid + confirmation/receipt emails
+      buy-policy/           ← Bind policy (stamp 12-mo term) + email pay/portal links + underwriter notice; audits "bound"
+      pay/[token]/          ← PUBLIC POST → simulated card (no charge); returns 400 when Stripe is configured
+      pay/[token]/checkout/ ← PUBLIC POST → create a Stripe Checkout Session (rate-limited) → hosted URL
+      stripe/webhook/       ← PUBLIC POST → signature-verified, deduped (WebhookEvent), amount-checked → finalizePaidPolicy
+      portal/[token]/document/ ← PUBLIC GET → token-auth policy PDF
+      portal/[token]/request/  ← PUBLIC POST → change request (rate-limited) → broker email + "change_requested" audit
       admin/users/          ← GET list / POST create (Admin only)
       admin/users/[id]/     ← PATCH role/active / reset password (Admin only)
       search/               ← Role-scoped search
@@ -145,9 +157,16 @@ src/
     auth.ts                 ← NextAuth options (Credentials, JWT, role + active check)
     access.ts               ← Role helpers (scope/can*/requireRole) — RBAC source of truth
     aiUnderwriter.ts        ← Pluggable AI underwriter engine (inline OpenAI; Skill-ready)
+    stripe.ts               ← Stripe client singleton + isStripeConfigured()
+    finalizePayment.ts      ← finalizePaidPolicy(): shared idempotent paid finalizer (pay + webhook)
+    portalToken.ts          ← Public pay/portal link 30-day TTL + expiry check
+    rateLimit.ts            ← In-memory fixed-window limiter + clientIp + tooMany() (public routes)
+    observability.ts        ← captureError(err, {area}); console always, Sentry when SENTRY_DSN set
+    audit.ts                ← recordAudit() → AuditEvent (append-only lifecycle log)
     baseUrl.ts              ← publicBaseUrl(req): public link base (prefers NEXTAUTH_URL)
     prisma.ts               ← Prisma client singleton
-    email.ts                ← Nodemailer + Ethereal fallback; templated senders
+    email.ts                ← deliver() (Resend → SMTP → Ethereal); templated senders
+    policyDocument.ts       ← buildPolicyPdf(): renders the policy PDF (used by routes + receipt email)
     policyPdf.tsx           ← React-PDF document (renderPolicyPdf)
     submissionSections.ts   ← Builds detail sections (typed cols vs. generic JSON)
   utils/
@@ -155,11 +174,12 @@ src/
     sections.ts             ← Section labels + ordered section list
     validate.ts             ← Pure input validators
     googleMaps.ts           ← Lazy JS loader + embed/static map URLs
+    policyNumber.ts         ← Stable PREFIX-YEAR-CODE reference (UI/PDF/emails/Stripe)
   middleware.ts             ← withAuth — guards /dashboard, /new-quote, /search
 
 knowledge/                  ← FAQ + policy-wording docs for Help Navigator (.md/.txt/.pdf)
 prisma/
-  schema.prisma             ← Broker (role/active) + Submission (review + payment + effectiveAt/expiresAt term + cancelledAt/cancelReason + adjustments log) models
+  schema.prisma             ← Broker (role/active) + Submission (review + payment + Stripe fields + paymentTokenExpiresAt + effectiveAt/expiresAt term + cancelledAt/cancelReason + adjustments log) + WebhookEvent (Stripe dedup) + AuditEvent (lifecycle log) models
 .eslintrc.json              ← ESLint (next/core-web-vitals)
   seed.js                   ← Creates demo admin / underwriter / broker accounts
 ```
@@ -205,7 +225,7 @@ Each product page (`/new-quote/<slug>`) is a thin wrapper that renders `<QuoteEx
 3. Login posts to NextAuth's Credentials provider (`src/lib/auth.ts`), which looks up the `Broker` by email, **rejects inactive accounts** (`!broker.active`), and verifies the password with `bcrypt.compare`.
 4. On success a signed JWT (8-hour `maxAge`) is issued; `id`, `name`, and **`role`** are copied onto the token and surfaced on `session.user`.
 5. API route handlers individually call `getServerSession(authOptions)` and return `401`/`403` based on session and role.
-6. `/pay/[token]` and `/api/pay/[token]` are **public** (no session) — the customer reaches them via a tokenised link emailed after a policy is bound.
+6. `/pay/[token]`, `/portal/[token]`, and their APIs (`/api/pay/[token]*`, `/api/stripe/webhook`, `/api/portal/[token]/*`) are **public** (no session) — the customer reaches them via a tokenised link emailed after a policy is bound. The token carries a **30-day expiry** (`paymentTokenExpiresAt`, `src/lib/portalToken.ts`); expired public links return **410** (and the portal page shows a "link expired" state). Public routes are rate-limited (`src/lib/rateLimit.ts`); the Stripe webhook additionally verifies its signature.
 
 ### Roles & RBAC
 
@@ -392,23 +412,40 @@ ANSWER SUBMITTED (InputRenderer → ConversationView.handleSubmit)
    └─ POST /api/buy-policy { submissionId }
         → canBindOrPay ownership check; decision must be "accept"; not already paid
         → set purchased = true; stamp effectiveAt/expiresAt (12-month term);
-          generate paymentToken (idempotent)
-        → sendPaymentRequestEmail() to the APPLICANT with a /pay/<token> link
+          generate paymentToken + paymentTokenExpiresAt (30-day TTL, idempotent)
+        → sendPaymentRequestEmail() to the APPLICANT with /pay/<token> + /portal/<token> links
         → optional sendUnderwriterNotificationEmail() on first bind
+        → recordAudit("bound" | "payment_link_resent")
         → { success, sentTo, previewUrl }   (broker sees "payment link sent")
-        (calling again on a bound-but-unpaid policy resends the link)
+        (calling again on a bound-but-unpaid policy resends the link and refreshes the 30-day window)
 
 Customer pays (public — no login)  /pay/<token>
-   └─ POST /api/pay/[token] { cardNumber, expiry, cvc }
-        → validate card format only (NO real charge)
-        → set paymentStatus = "paid", paidAt, paidAmount
-        → sendPolicyConfirmationEmail() + sendPaymentReceiptEmail() to applicant
-        → { success, previewUrl }
+   ├─ STRIPE (when STRIPE_SECRET_KEY set):
+   │    POST /api/pay/[token]/checkout → create hosted Checkout Session (CAD, line item =
+   │      product + policy number), store stripeSessionId → redirect to Stripe
+   │    POST /api/stripe/webhook (authoritative): verify signature, dedup via WebhookEvent,
+   │      check amount vs annualPremium → finalizePaidPolicy()
+   │    Safety net: return to /pay/<token>?paid=1 retrieves the session and finalizes if
+   │      Stripe says paid (covers a dropped/delayed webhook) — idempotent
+   └─ SIMULATED (only when Stripe NOT configured):
+        POST /api/pay/[token] { cardNumber, expiry, cvc } → validate format only (NO charge)
+        → finalizePaidPolicy()   (returns 400 if Stripe IS configured)
+
+   finalizePaidPolicy() (src/lib/finalizePayment.ts) — single idempotent finalizer:
+        → set paymentStatus = "paid", paidAt, paidAmount (+ stripe fields); no-op if already paid
+        → recordAudit("paid")
+        → sendPolicyConfirmationEmail() + sendPaymentReceiptEmail() (branded PDF attached) to applicant
+
+Customer self-service (public — no login)  /portal/<token>
+   ├─ GET /api/portal/[token]/document → token-auth policy PDF
+   └─ POST /api/portal/[token]/request { message } → rate-limited change request
+        → recordAudit("change_requested") + sendChangeRequestEmail() to the broker
 
 Underwriter review (referred quotes)  /review → /policy/[id]
    └─ POST /api/submissions/[id]/review { action: approve|decline, note }
         → canReview; submission must be decision = "refer"
         → set decision (accept|decline) + reviewedById/reviewedAt/reviewNote
+        → recordAudit("reviewed")
         → on approve → sendQuoteApprovedEmail() to the broker
 
 Mid-term adjustment (paid, non-cancelled)  /policy/[id] (AdjustPolicyButton)
@@ -417,16 +454,18 @@ Mid-term adjustment (paid, non-cancelled)  /policy/[id] (AdjustPolicyButton)
         → newAnnual = oldAnnual × newCoverage / oldCoverage (premium scales with sum insured)
         → proRata = (newAnnual − oldAnnual) × remainingDays / termDays (effectiveAt→expiresAt)
         → update coverageAmount/annualPremium/monthlyPremium; append an MTA record to adjustments[]
+        → recordAudit("adjusted")
         → sendAdjustmentEmail() to the applicant → { success, newAnnual, oldAnnual, proRata, remainingDays, sentTo, previewUrl }
 
 Cancellation (paid policy)  /policy/[id] (CancelPolicyButton)
    └─ POST /api/submissions/[id]/cancel { reason }
         → canBindOrPay ownership check; must be purchased AND paymentStatus = "paid" and not already cancelled
         → stamp cancelledAt + cancelReason
+        → recordAudit("cancelled")
         → sendCancellationEmail() to the applicant → { success, sentTo, previewUrl }
 ```
 
-The full policy lifecycle is: **quote → (refer → AI review/approve) → bind → pay → adjust (MTA) → cancel.**
+The full policy lifecycle is: **quote → (refer → AI review/approve) → bind → pay → adjust (MTA) / cancel**, with the **customer portal** and **change requests** running alongside. Every money/lifecycle action emails the customer and writes an `AuditEvent` (rendered as the **Activity** timeline on the policy detail page). Money-path failures are reported via `captureError` (Sentry when `SENTRY_DSN` is set).
 
 `brokerText` shown in the chat is run through `interpolate()` to substitute `{{answer_id}}`
 placeholders with prior `displayValue`s.
@@ -501,14 +540,18 @@ A single `Submission` row models both drafts and completed quotes/policies, dist
   Agent-Skill engine (render submission → PDF → Files API → custom Skill + code execution) can be
   dropped in by swapping `activeEngine` without touching the route or UI. Gated by
   `isAiUnderwriterConfigured()` (`503` "not configured" without the key).
-- **Payment** — pressing Buy binds the policy and emails the *applicant* a tokenised
-  `/pay/<token>` link (`paymentToken` is a unique column). The customer pays on the public page
-  with a card form that is **format-validated only — no real charge** (a real gateway can be
-  swapped into `/api/pay/[token]` later). On success `paymentStatus` becomes `"paid"` and the
-  applicant receives a confirmation + receipt. A bound-but-unpaid policy can have its link
-  resent from the policy page or dashboard. The Buy / Resend action is a prominent **call-to-action
-  banner near the top** of the policy detail page ("Ready to bind" for an accepted-unbound quote;
-  "Awaiting customer payment" for a bound-but-unpaid policy), not in the bottom actions row.
+- **Payment** — pressing Buy binds the policy and emails the *applicant* tokenised
+  `/pay/<token>` + `/portal/<token>` links (`paymentToken` is a unique column with a 30-day
+  `paymentTokenExpiresAt`). When `STRIPE_SECRET_KEY` is set the customer pays via **hosted Stripe
+  Checkout** (`/api/pay/[token]/checkout` creates the session); the **authoritative paid signal** is
+  the signature-verified, deduped (`WebhookEvent`), amount-checked `/api/stripe/webhook`, with a
+  confirm-on-return safety net on `/pay/<token>?paid=1`. Without Stripe, the simulated `/api/pay/[token]`
+  (format-validated card, no charge) stands in — and returns **400** once Stripe is configured. Both paths
+  converge on the idempotent `finalizePaidPolicy()`: `paymentStatus` becomes `"paid"`, a `paid` audit is
+  written, and the applicant receives a confirmation + receipt (branded PDF attached). A bound-but-unpaid
+  policy can have its link resent (refreshing the 30-day window) from the policy page or dashboard. The Buy /
+  Resend action is a prominent **call-to-action banner near the top** of the policy detail page ("Ready to
+  bind" for an accepted-unbound quote; "Awaiting customer payment" for a bound-but-unpaid policy).
 - **Mid-term adjustment & cancellation (paid only)** — both `/api/submissions/[id]/adjust` and
   `/cancel` require the policy to be bound **and** paid (`purchased && paymentStatus === "paid"`)
   and not already cancelled; the policy page only renders the Adjust / Cancel buttons for a paid,
@@ -525,11 +568,14 @@ A single `Submission` row models both drafts and completed quotes/policies, dist
 
 ## PDF Generation
 
-`GET /api/policy/[id]/document` (Node runtime) authorizes the broker, optionally fetches a
-Google **Static Maps** PNG and inlines it as a base64 data URI, builds the detail sections via
-`buildSubmissionSections`, and calls `renderPolicyPdf` (`src/lib/policyPdf.tsx`,
-`@react-pdf/renderer`) to stream an `application/pdf` attachment. This is pure Node — no
-headless browser.
+`buildPolicyPdf` (`src/lib/policyDocument.ts`) optionally fetches a Google **Static Maps** PNG and
+inlines it as a base64 data URI, builds the detail sections via `buildSubmissionSections`, and calls
+`renderPolicyPdf` (`src/lib/policyPdf.tsx`, `@react-pdf/renderer`) to produce a PDF buffer. This is pure
+Node — no headless browser. It is served two ways and reused for email attachments:
+
+- `GET /api/policy/[id]/document` — **broker** (auth, role-scoped).
+- `GET /api/portal/[token]/document` — **customer** (public, token-auth; 410 when expired).
+- Attached to the payment-receipt email by `finalizePaidPolicy` (best-effort).
 
 `buildSubmissionSections` (`src/lib/submissionSections.ts`) is product-aware: Vacant Home
 renders from typed columns; other products (Jeweller Block) render generically from the
@@ -540,15 +586,17 @@ The same builder feeds the on-screen detail page (`policy/[id]/page.tsx`) and th
 
 ## Email Flow
 
-`src/lib/email.ts` builds a Nodemailer transport: real SMTP when `SMTP_USER` + `SMTP_PASS`
-are set, otherwise an auto-created **Ethereal** test account that returns a browser
-`previewUrl`. It exposes these templated senders:
+`src/lib/email.ts` centralizes delivery in `deliver()`, which prefers **Resend** (`RESEND_API_KEY`),
+then real **SMTP** (`SMTP_USER` + `SMTP_PASS`), then an auto-created **Ethereal** test account that
+returns a browser `previewUrl`. Senders accept optional attachments (the receipt attaches a branded
+policy PDF). It exposes these templated senders:
 
-- `sendPaymentRequestEmail` — applicant-facing "complete your payment" with the `/pay/<token>`
-  link and amount due. Sent by `/api/buy-policy` after the policy is bound.
-- `sendPolicyConfirmationEmail` — applicant-facing confirmation (premium summary, app id).
-  Sent by `/api/pay/[token]` after payment succeeds.
-- `sendPaymentReceiptEmail` — applicant-facing receipt (amount, date). Sent on payment success.
+- `sendPaymentRequestEmail` — applicant-facing "complete your payment" with the `/pay/<token>` +
+  `/portal/<token>` links and amount due. Sent by `/api/buy-policy` after the policy is bound.
+- `sendPolicyConfirmationEmail` — applicant-facing confirmation (premium summary, policy number).
+  Sent by `finalizePaidPolicy` after payment succeeds.
+- `sendPaymentReceiptEmail` — applicant-facing receipt (amount, date) **with the branded PDF attached**.
+  Sent by `finalizePaidPolicy` on payment success.
 - `sendQuoteApprovedEmail` — broker-facing notice that a referred quote was approved and is
   ready to bind. Sent by the review endpoint.
 - `sendUnderwriterNotificationEmail` — best-effort back-office notice on first bind, only when
@@ -557,10 +605,11 @@ are set, otherwise an auto-created **Ethereal** test account that returns a brow
   old/new premium, pro-rata charge/return). Sent by `/api/submissions/[id]/adjust`.
 - `sendCancellationEmail` — applicant-facing cancellation confirmation (effective date, reason).
   Sent by `/api/submissions/[id]/cancel`.
+- `sendChangeRequestEmail` — broker-facing notice of a customer change request from the portal.
+  Sent by `/api/portal/[token]/request`.
 
-All senders use the same Ethereal/SMTP transport and return `{ sentTo, previewUrl }`.
-The buy/review/pay/adjust/cancel UIs surface the recipient and, in Ethereal mode, an "Open … email" button
-(`previewUrl`).
+All senders return `{ sentTo, previewUrl? }` (`previewUrl` only in Ethereal mode). The
+buy/review/pay/adjust/cancel UIs surface the recipient and, in Ethereal mode, an "Open … email" button.
 
 ---
 

@@ -18,7 +18,16 @@ Click **New Quote**, pick a product (use the search box to find one fast), and a
 - **Refer** — the risk needs an underwriter's review; it's sent to the review queue and you're notified when a decision is made.
 
 ## How do I bind a policy and collect payment?
-On an accepted quote, press **Buy This Policy**. This binds the quote as a policy and emails the applicant a secure link to pay on our site — you never handle the card. Once they pay, the policy activates and a receipt is sent. You can resend the link from the policy page or your dashboard if needed.
+On an accepted quote, press **Buy This Policy**. This binds the quote as a policy and emails the applicant a secure link to pay — you never handle the card. When card processing is configured, the customer pays via **Stripe secure checkout** (otherwise a simulated demo checkout); either way the policy shows **Paid** once payment is confirmed, the policy activates, and a receipt (with the policy PDF attached) is sent. You can resend the link from the policy page or your dashboard if needed — resending also refreshes the link's 30-day expiry.
+
+## The customer says their payment link expired.
+Pay and customer-portal links expire **30 days** after they're issued. Just **resend** the payment link from the policy page or dashboard to issue a fresh one with a new 30-day window.
+
+## How do customers request changes?
+From their **customer portal** link, a customer can submit a "Request a Change." You receive that request by **email** and follow up — the request is also recorded on the policy's Activity timeline. You then make any actual change (e.g. a mid-term adjustment). See "Customer Self-Service Portal."
+
+## Where do I see the history of a policy?
+Each policy detail page has an **Activity** timeline showing who did what and when — bound, payment link resent, paid, adjusted, cancelled, reviewed, and change requested — each with the actor and timestamp. It's an append-only record of the policy's lifecycle.
 
 ## Where do I find my policies and quotes?
 - **Policies** — your bound policies, searchable by customer name or policy number (type-ahead suggestions).

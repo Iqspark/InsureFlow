@@ -21,6 +21,12 @@ The three quote outcomes. **Accept** = within appetite, premium shown. **Decline
 ## Bind
 To convert an accepted quote into an active policy. In InsureFlow the broker presses "Buy This Policy" to bind.
 
+## Policy number
+A human-readable identifier assigned to each policy, in the form `{PREFIX}-{YEAR}-{CODE}` — for example **VH-2026-7K3M9Q** (Vacant Home). The prefix indicates the product (e.g. VH, JB, CY, FRM). It appears in the portal, the policy PDF, emails, and on the payment line item.
+
+## Activity / audit trail
+The append-only timeline on a policy showing who did what and when — events such as bound, payment link resent, paid, adjusted, cancelled, reviewed, and change requested, each with the actor and timestamp.
+
 ## Policy term
 The length of cover — all InsureFlow policies are 12 months, with effective and expiry dates recorded on binding.
 
