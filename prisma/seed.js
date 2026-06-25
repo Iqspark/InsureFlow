@@ -5,6 +5,14 @@ const bcrypt = require("bcryptjs");
 const prisma = new PrismaClient();
 
 async function main() {
+  // Demo accounts use a public, well-known password. Seeding is OFF by default so
+  // a real deployment never gets a public admin login; the demo site opts in
+  // explicitly with ALLOW_DEMO_SEED=true.
+  if (process.env.ALLOW_DEMO_SEED !== "true") {
+    console.log("↷ Skipping demo seed (set ALLOW_DEMO_SEED=true to enable).");
+    return;
+  }
+
   const hashedPassword = bcrypt.hashSync("Demo1234!", 10);
 
   const brokers = await Promise.all([

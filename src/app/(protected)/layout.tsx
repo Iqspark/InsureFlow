@@ -12,7 +12,7 @@ export default async function ProtectedLayout({
   children: ReactNode;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session) redirect("/login");
+  if (!session?.user) redirect("/login");
 
   return (
     <div className="min-h-screen flex flex-col app-bg">

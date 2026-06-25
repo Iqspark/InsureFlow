@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { finalizePaidPolicy } from "@/lib/finalizePayment";
 import { isStripeConfigured } from "@/lib/stripe";
 import { tooMany, clientIp } from "@/lib/rateLimit";
+import { isPortalTokenExpired } from "@/lib/portalToken";
 
 // POST /api/pay/[token]
 // Public (no auth) — simulated fallback checkout, used ONLY when Stripe is NOT
@@ -46,11 +47,14 @@ export async function POST(
 
   const sub = await prisma.submission.findUnique({
     where: { paymentToken: token },
-    select: { id: true, purchased: true, paymentStatus: true },
+    select: { id: true, purchased: true, paymentStatus: true, paymentTokenExpiresAt: true },
   });
 
   if (!sub || !sub.purchased) {
     return NextResponse.json({ error: "Payment link is invalid" }, { status: 404 });
+  }
+  if (isPortalTokenExpired(sub.paymentTokenExpiresAt, new Date())) {
+    return NextResponse.json({ error: "This link has expired" }, { status: 410 });
   }
   if (sub.paymentStatus === "paid") {
     return NextResponse.json({ error: "This policy is already paid" }, { status: 409 });

@@ -52,6 +52,19 @@ describe("POST /api/pay/[token] (simulated fallback)", () => {
     expect(finalize).toHaveBeenCalledWith("s1");
   });
 
+  it("returns 410 for an expired pay link and never finalizes (H3)", async () => {
+    stripeOn.mockReturnValue(false);
+    findUnique.mockResolvedValue({
+      id: "s1",
+      purchased: true,
+      paymentStatus: "unpaid",
+      paymentTokenExpiresAt: new Date(Date.now() - 60_000),
+    } as never);
+    const res = await POST(mkReq({ cardNumber: "4242424242424242", expiry: "12/30", cvc: "123" }), ctx);
+    expect(res.status).toBe(410);
+    expect(finalize).not.toHaveBeenCalled();
+  });
+
   it("returns 409 when the policy is already paid", async () => {
     stripeOn.mockReturnValue(false);
     findUnique.mockResolvedValue({ id: "s1", purchased: true, paymentStatus: "paid" } as never);
