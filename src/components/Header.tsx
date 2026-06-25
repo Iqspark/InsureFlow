@@ -8,23 +8,23 @@ type Role = "ADMIN" | "BROKER" | "UNDERWRITER";
 
 const NAV: Record<Role, { href: string; label: string }[]> = {
   BROKER: [
-    { href: "/dashboard", label: "Dashboard" },
+    { href: "/dashboard", label: "Overview" },
     { href: "/new-quote", label: "New Quote" },
-    { href: "/policies", label: "Policies" },
+    { href: "/policies", label: "My Policies" },
     { href: "/customers", label: "Customers" },
     { href: "/search", label: "Search" },
   ],
   UNDERWRITER: [
     { href: "/review", label: "Overview" },
     { href: "/reviews", label: "Reviews" },
-    { href: "/search", label: "All Policies" },
+    { href: "/search", label: "Search" },
   ],
   ADMIN: [
-    { href: "/admin", label: "Admin" },
+    { href: "/admin", label: "Overview" },
+    { href: "/admin/users", label: "Users" },
     { href: "/reviews", label: "Reviews" },
     { href: "/customers", label: "Customers" },
-    { href: "/search", label: "All Policies" },
-    { href: "/admin/users", label: "Users" },
+    { href: "/search", label: "Search" },
   ],
 };
 
@@ -104,7 +104,7 @@ export async function Header() {
             className="relative text-slate-300 hover:text-white text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors hidden sm:block"
           >
             {l.label}
-            {l.label === "Dashboard" && actionCount > 0 && (
+            {l.href === "/dashboard" && actionCount > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
                 {actionCount}
               </span>
