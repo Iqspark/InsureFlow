@@ -96,6 +96,7 @@ const AUDIT_LABELS: Record<string, { label: string; dot: string }> = {
   cancelled:           { label: "Policy cancelled",       dot: "bg-red-500" },
   reviewed:            { label: "Underwriter review",     dot: "bg-violet-500" },
   change_requested:    { label: "Change requested",       dot: "bg-sky-500" },
+  deleted:             { label: "Quote deleted",           dot: "bg-red-500" },
 };
 
 // ── Page ─────────────────────────────────────────────────────
@@ -118,7 +119,7 @@ export default async function PolicyDetailPage({
     },
   });
 
-  if (!sub || !canViewSubmission(user, sub)) notFound();
+  if (!sub || sub.deletedAt || !canViewSubmission(user, sub)) notFound();
 
   const declineReasons:  string[] = JSON.parse(sub.declineReasons  ?? "[]");
   const referralReasons: string[] = JSON.parse(sub.referralReasons ?? "[]");

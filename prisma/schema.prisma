@@ -88,6 +88,9 @@ model Submission {
   // ── Draft / complete status ──────────────────────────────
   status     String  @default("complete") // "draft" | "complete"
 
+  // ── Soft delete (preserves the row + audit trail) ────────
+  deletedAt  DateTime?
+
   // ── Purchase state ───────────────────────────────────────
   // false = quote only · true = bound policy (Buy This Policy pressed)
   purchased  Boolean @default(false)
@@ -147,6 +150,7 @@ model Submission {
   @@index([brokerId])
   @@index([reviewedById])
   @@index([expiresAt])
+  @@index([deletedAt])
 }
 
 // Records each Stripe webhook event id we've processed, so a redelivered or

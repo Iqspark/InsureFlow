@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     include: { broker: { select: { name: true, email: true } } },
   });
 
-  if (!sub || !canBindOrPay(user, sub)) {
+  if (!sub || sub.deletedAt || !canBindOrPay(user, sub)) {
     return NextResponse.json({ error: "Submission not found or not yours" }, { status: 404 });
   }
   if (sub.decision !== "accept") {

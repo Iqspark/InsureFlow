@@ -3,10 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { SessionUser } from "@/lib/access";
+import { recordAudit } from "@/lib/audit";
 
 // DELETE /api/submissions/[id]
-// Deletes a quote owned by the authenticated broker (or any quote for an admin).
-// Bound policies (purchased) are protected and cannot be deleted.
+// Soft-deletes a quote owned by the authenticated broker (or any quote for an
+// admin): the row is kept with a deletedAt stamp and a "deleted" audit event, so
+// the trail survives. Bound policies and quotes under review are protected.
 export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,11 +22,11 @@ export async function DELETE(
 
   const sub = await prisma.submission.findUnique({
     where: { id },
-    select: { brokerId: true, purchased: true, decision: true, reviewedAt: true },
+    select: { brokerId: true, purchased: true, decision: true, reviewedAt: true, deletedAt: true },
   });
 
   const owns = sub && (user.role === "ADMIN" || sub.brokerId === user.id);
-  if (!owns) {
+  if (!owns || sub.deletedAt) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
@@ -44,7 +46,15 @@ export async function DELETE(
     );
   }
 
-  await prisma.submission.delete({ where: { id } });
+  await prisma.submission.update({ where: { id }, data: { deletedAt: new Date() } });
+  await recordAudit({
+    submissionId: id,
+    action: "deleted",
+    actorId: user.id,
+    actorName: session.user.name ?? null,
+    actorRole: user.role,
+    detail: "Quote deleted",
+  });
 
   return NextResponse.json({ ok: true });
 }
