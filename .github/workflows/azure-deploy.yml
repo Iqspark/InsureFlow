@@ -1,3 +1,4 @@
+
 # ============================================================
 # CI/CD Pipeline — InsureFlow Broker Portal
 # Platform: GitHub Actions → Azure App Service
@@ -23,9 +24,12 @@ name: CI / Deploy to Azure
 
 on:
   push:
-    branches: [main]
+    # TEMPORARY: feature/esign-flow-complete is included to deploy the e-sign flow
+    # to the demo before merging. Remove it once the PR is merged.
+    branches: [main, feature/esign-flow-complete]
   pull_request:
     branches: [main]
+  workflow_dispatch:
 
 env:
   NODE_VERSION: "22.x"
@@ -71,7 +75,7 @@ jobs:
           NEXT_PUBLIC_ENABLE_DEMO: ${{ secrets.NEXT_PUBLIC_ENABLE_DEMO }}
 
       - name: Apply database schema and seed
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/esign-flow-complete') && github.event_name == 'push'
         run: |
           npx prisma db push --accept-data-loss
           node prisma/seed.js
@@ -141,7 +145,7 @@ jobs:
     name: Deploy to Azure App Service
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feature/esign-flow-complete') && github.event_name == 'push'
 
     environment:
       name: production
