@@ -487,6 +487,74 @@ export async function sendPaymentRequestEmail(
   });
 }
 
+// ── Applicant: policy issued at bind (full policy + invoice) ──
+export interface PolicyIssuedData {
+  to:            string; // applicant email
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  amount:        number;
+  payUrl:        string;
+  portalUrl?:    string;
+  brokerName:    string;
+  pdf?:          EmailAttachment; // the full policy document, attached
+}
+
+export async function sendPolicyIssuedEmail(d: PolicyIssuedData): Promise<SendResult> {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#059669;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center">
+      <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px">InsureFlow</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#a7f3d0">Your Policy is Issued</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:32px 32px 8px;text-align:center">
+      <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a">You're covered, ${esc(d.applicantName)}</h1>
+      <p style="margin:0;font-size:14px;color:#64748b">
+        Your <strong>${esc(d.policyType)}</strong> policy has been bound by your broker
+        ${esc(d.brokerName)} and is now in force. Your full policy document is attached.
+        Payment of the premium is due — please pay using the link below.
+      </p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:20px 32px 8px;text-align:center">
+      <div style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 28px">
+        <p style="margin:0 0 2px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Premium Due</p>
+        <p style="margin:0;font-size:30px;font-weight:700;color:#059669">${fmt(d.amount)}</p>
+        <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">Policy ${esc(d.appId)}</p>
+      </div>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:24px 32px 32px;text-align:center">
+      <a href="${d.payUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px">Pay ${fmt(d.amount)}</a>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">Or paste this link into your browser:<br><span style="color:#6366f1;word-break:break-all">${d.payUrl}</span></p>
+      ${d.portalUrl ? `<p style="margin:18px 0 0;font-size:13px;color:#64748b">View your policy or request a change anytime:<br><a href="${d.portalUrl}" style="color:#4f46e5;font-weight:600;word-break:break-all">${d.portalUrl}</a></p>` : ""}
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Policy issued · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return deliver({
+    to:      d.to,
+    subject: `Your policy is issued — ${d.policyType} (${d.appId})`,
+    html,
+    label:   "Policy issued",
+    attachments: d.pdf ? [d.pdf] : undefined,
+    text: [
+      `Your Policy is Issued — InsureFlow`,
+      ``,
+      `You're covered, ${d.applicantName}. Your ${d.policyType} policy has been bound and is now in force.`,
+      `Your full policy document is attached. Premium due: ${fmt(d.amount)} (Policy ${d.appId}).`,
+      ``,
+      `Pay securely here: ${d.payUrl}`,
+    ].join("\n"),
+  });
+}
+
 // ── Applicant: proposal ready to review + e-sign ──────────────
 export interface ProposalEmailData {
   to:            string; // applicant email

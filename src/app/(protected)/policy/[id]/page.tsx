@@ -13,6 +13,7 @@ import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
 import BuyPolicyButton from "@/components/BuyPolicyButton";
 import SendForSignatureButton from "@/components/SendForSignatureButton";
+import BindPolicyButton from "@/components/BindPolicyButton";
 import CancelPolicyButton from "@/components/CancelPolicyButton";
 import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
@@ -186,9 +187,11 @@ export default async function PolicyDetailPage({
         {/* Decision banner */}
         <DecisionBanner decision={sub.decision} reasons={reasons} />
 
-        {/* Payment call-to-action — bind / resend payment link (top of page) */}
+        {/* Payment call-to-action — resend payment link (bound), or legacy direct
+            bind when no proposal flow has been started (coverageStatus=quoted). */}
         {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
-          sub.paymentStatus !== "paid" && !sub.cancelledAt && (
+          sub.paymentStatus !== "paid" && !sub.cancelledAt &&
+          (sub.purchased || sub.coverageStatus === "quoted") && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
               <p className="text-sm font-semibold text-emerald-800">
@@ -223,9 +226,12 @@ export default async function PolicyDetailPage({
             </div>
             <div className="px-5 py-4">
               {sub.coverageStatus === "signed" ? (
-                <p className="text-sm text-emerald-700">
-                  Signed by the client{sub.signedAt ? ` on ${fmtDate(sub.signedAt)}` : ""}. Ready to bind.
-                </p>
+                <div className="space-y-3">
+                  <p className="text-sm text-emerald-700">
+                    Signed by the client{sub.signedAt ? ` on ${fmtDate(sub.signedAt)}` : ""}. Review and bind to issue the policy.
+                  </p>
+                  <BindPolicyButton submissionId={sub.id} />
+                </div>
               ) : (
                 <>
                   <p className="text-sm text-slate-500 mb-3">

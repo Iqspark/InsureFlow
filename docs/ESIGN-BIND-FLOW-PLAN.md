@@ -143,23 +143,31 @@ model PolicySignature {
 
 ## Phasing
 
-**Phase A — Proposal + e-signature**
+**Phase A — Proposal + e-signature** ✅ Implemented
 - `send-proposal` endpoint + `proposalToken`; `/proposal/[token]` page with the
   signature capture screen; `sign` endpoint; `PolicySignature`; proposal PDF +
   hash; `coverageStatus awaiting_signature → signed`.
 - Broker UI: Send-for-signature + "awaiting signature" state.
 
-**Phase B — Broker review + Bind**
-- `bind` endpoint **gated on `signed`** (atomic `signed → bound` claim); set
-  `effectiveAt/expiresAt`; **issue the full policy** PDF + email; create
-  `paymentToken`; issue **invoice** + email pay link. Split out of
-  [buy-policy](../src/app/api/buy-policy/route.ts).
-- Broker UI: "Review & Bind" on signed proposals.
+**Phase B — Broker review + Bind** ✅ Implemented
+- `POST /api/submissions/[id]/bind` **gated on `signed`** and **re-verifies the
+  signature `documentHash` matches the current proposal** (a quote edit voids it →
+  409, re-send for signature); atomic `signed → bound` claim; sets
+  `effectiveAt/expiresAt` + `policyIssuedAt`; **issues the full policy** (PDF
+  emailed via `sendPolicyIssuedEmail`) + the pay link; underwriter notification.
+- Broker UI: "Review & Bind" on signed proposals; the legacy direct-bind CTA is
+  hidden once a proposal flow has started (shows only for `coverageStatus=quoted`).
+- **Consolidation remaining:** the legacy direct [buy-policy](../src/app/api/buy-policy/route.ts)
+  first-bind and the QuoteResult "Buy This Policy" path still allow an *unsigned*
+  bind when no proposal was sent. Removing them (routing all binds through the
+  signed flow) is the final step to fully enforce "signature mandatory to bind".
 
 **Phase C — Payment reframe**
 - [finalizePaidPolicy](../src/lib/finalizePayment.ts) → "premium received": send the **receipt**
   only; the policy + cover were already issued at bind (don't re-issue / re-activate).
   Pay page/email copy reframed from "activate your policy" to "pay your invoice."
+- Note: until this lands, a policy bound via the e-sign flow gets the policy-issued
+  email at bind AND the existing confirmation/receipt at payment (mild redundancy).
 
 **Phase D — Net terms + dunning + cancel-for-non-payment** (see the dedicated section below).
 

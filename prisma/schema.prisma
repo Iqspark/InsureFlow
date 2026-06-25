@@ -97,6 +97,7 @@ model Submission {
   proposalToken          String?  @unique // public capability URL for the sign page
   proposalTokenExpiresAt DateTime?
   signedAt               DateTime?
+  policyIssuedAt         DateTime? // full policy issued at bind (Phase B)
   signatures             PolicySignature[]
 
   // ── Purchase state ───────────────────────────────────────
