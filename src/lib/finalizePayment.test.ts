@@ -111,6 +111,25 @@ describe("finalizePaidPolicy", () => {
     expect(sendPaymentReceiptEmail).toHaveBeenCalledOnce();
   });
 
+  it("records an offline payment with its method + reference (broker actor)", async () => {
+    findUnique.mockResolvedValue(boundUnpaid as never);
+    const r = await finalizePaidPolicy("s1", { method: "cheque", reference: "CHQ-1001", recordedByName: "Bob", recordedByRole: "BROKER" });
+    expect(r.ok).toBe(true);
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ paymentStatus: "paid", paymentMethod: "cheque", paymentReference: "CHQ-1001" }),
+      })
+    );
+  });
+
+  it("defaults the method to online_card for the customer online path", async () => {
+    findUnique.mockResolvedValue(boundUnpaid as never);
+    await finalizePaidPolicy("s1");
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ paymentMethod: "online_card" }) })
+    );
+  });
+
   it("reinstates a pending_cancellation policy on payment within the notice window (Phase D)", async () => {
     findUnique.mockResolvedValue({ ...boundUnpaid, policyIssuedAt: new Date(), coverageStatus: "pending_cancellation" } as never);
     const r = await finalizePaidPolicy("s1");

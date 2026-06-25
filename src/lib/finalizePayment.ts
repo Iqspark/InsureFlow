@@ -3,11 +3,21 @@ import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail, sendReinstatement
 import { buildPolicyPdf } from "@/lib/policyDocument";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
+import { paymentMethodLabel } from "@/lib/paymentMethods";
 import { captureError } from "@/lib/observability";
 
 type StripeMeta = {
   stripePaymentIntentId?: string | null;
   stripeStatus?: string | null;
+};
+
+// Who/how a payment was recorded. Online routes omit these (defaults to the
+// customer online-card path); a broker recording an offline payment supplies them.
+type RecordMeta = {
+  method?: string;                  // payment method (defaults to "online_card")
+  reference?: string | null;        // cheque #, transfer ref, etc.
+  recordedByName?: string | null;   // broker who recorded an offline payment
+  recordedByRole?: string | null;
 };
 
 export type FinalizeResult =
@@ -19,7 +29,7 @@ export type FinalizeResult =
 // Shared by the simulated pay route and the Stripe webhook.
 export async function finalizePaidPolicy(
   submissionId: string,
-  opts: { paidAt?: Date; paidAmount?: number } & StripeMeta = {}
+  opts: { paidAt?: Date; paidAmount?: number } & StripeMeta & RecordMeta = {}
 ): Promise<FinalizeResult> {
   const sub = await prisma.submission.findUnique({
     where: { id: submissionId },
@@ -38,6 +48,7 @@ export async function finalizePaidPolicy(
   }
 
   const paidAt = opts.paidAt ?? new Date();
+  const method = opts.method ?? "online_card";
   // Atomic claim: only the first finalizer flips unpaid→paid, so concurrent
   // callers (webhook + the /pay return-page reconciler) can't double-send emails.
   const claimed = await prisma.submission.updateMany({
@@ -46,6 +57,8 @@ export async function finalizePaidPolicy(
       paymentStatus: "paid",
       paidAt,
       paidAmount: amount,
+      paymentMethod: method,
+      paymentReference: opts.reference ?? null,
       ...(opts.stripePaymentIntentId ? { stripePaymentIntentId: opts.stripePaymentIntentId } : {}),
       ...(opts.stripeStatus ? { stripeStatus: opts.stripeStatus } : {}),
     },
@@ -56,12 +69,13 @@ export async function finalizePaidPolicy(
   }
 
   const cad = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(amount);
+  const offline = method !== "online_card";
   await recordAudit({
     submissionId: sub.id,
     action: "paid",
-    actorName: "Customer",
-    actorRole: "CUSTOMER",
-    detail: `Payment received · ${cad}`,
+    actorName: opts.recordedByName ?? "Customer",
+    actorRole: opts.recordedByRole ?? "CUSTOMER",
+    detail: `Payment ${offline ? "recorded" : "received"} · ${cad} · ${paymentMethodLabel(method)}${opts.reference ? ` (${opts.reference})` : ""}`,
   });
 
   const to = sub.contactEmail;

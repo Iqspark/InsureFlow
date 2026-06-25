@@ -15,8 +15,10 @@ import BuyPolicyButton from "@/components/BuyPolicyButton";
 import SendForSignatureButton from "@/components/SendForSignatureButton";
 import BindPolicyButton from "@/components/BindPolicyButton";
 import NoticeOfCancellationButton from "@/components/NoticeOfCancellationButton";
+import RecordPaymentButton from "@/components/RecordPaymentButton";
 import CancelPolicyButton from "@/components/CancelPolicyButton";
 import { canIssueNoticeOfCancellation } from "@/lib/netTerms";
+import { paymentMethodLabel } from "@/lib/paymentMethods";
 import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
 import { canViewSubmission, canReview, canDecideReview, canBindOrPay, type SessionUser } from "@/lib/access";
@@ -241,8 +243,11 @@ export default async function PolicyDetailPage({
                   Cancellation pending — effective {sub.cancellationEffectiveAt ? fmtDate(sub.cancellationEffectiveAt) : "—"}
                 </p>
                 <p className="text-xs text-red-700/80 mt-0.5">
-                  Cover stays in force during the notice window. If the customer pays before the effective date, the policy is reinstated automatically.
+                  Cover stays in force during the notice window. Paying — or recording a payment — before the effective date reinstates the policy automatically.
                 </p>
+                <div className="mt-3">
+                  <RecordPaymentButton submissionId={sub.id} defaultAmount={sub.annualPremium ?? 0} />
+                </div>
               </>
             ) : (
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -257,6 +262,7 @@ export default async function PolicyDetailPage({
                   </p>
                 </div>
                 <div className="shrink-0 flex flex-col sm:items-end gap-2">
+                  <RecordPaymentButton submissionId={sub.id} defaultAmount={sub.annualPremium ?? 0} />
                   <BuyPolicyButton submissionId={sub.id} purchased={true} />
                   {sub.dueAt && canIssueNoticeOfCancellation(sub.dueAt, new Date()) && (
                     <NoticeOfCancellationButton submissionId={sub.id} />
@@ -434,6 +440,9 @@ export default async function PolicyDetailPage({
           <Field label="Decision"               value={sub.decision ? sub.decision.charAt(0).toUpperCase() + sub.decision.slice(1) : "Draft"} />
           <Field label="Submitted"              value={fmtDate(sub.createdAt)} />
           <Field label="Last Updated"           value={fmtDate(sub.updatedAt)} />
+          {sub.paymentStatus === "paid" && sub.paymentMethod && (
+            <Field label="Payment Method" value={paymentMethodLabel(sub.paymentMethod) + (sub.paymentReference ? ` · ${sub.paymentReference}` : "")} />
+          )}
         </Section>
 
         {/* Actions */}

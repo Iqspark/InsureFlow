@@ -121,6 +121,8 @@ model Submission {
   paymentStatus String   @default("unpaid") // "unpaid" | "paid"
   paidAt        DateTime?
   paidAmount    Float?
+  paymentMethod    String?  // online_card | cash | cheque | eft | pad | card_terminal | on_account
+  paymentReference String?  // cheque #, transfer ref, etc. (offline payments)
   paymentToken  String?  @unique // emailed to the applicant as a public pay link
   paymentTokenExpiresAt DateTime? // public pay/portal link expiry; null = legacy (no expiry)
 
