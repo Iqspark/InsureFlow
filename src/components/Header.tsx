@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { SignOutButton } from "./SignOutButton";
+import MobileNav from "./MobileNav";
 
 type Role = "ADMIN" | "BROKER" | "UNDERWRITER";
 
@@ -84,6 +85,11 @@ export async function Header() {
 
   return (
     <header className="h-16 bg-linear-to-r from-slate-900 via-slate-900 to-indigo-950 flex items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/10 shadow-lg shadow-indigo-950/20 supports-backdrop-filter:bg-slate-900/85 backdrop-blur-xl">
+      {/* Mobile menu (hidden on desktop) */}
+      <div className="mr-2 sm:hidden">
+        <MobileNav links={links} actionCount={actionCount} />
+      </div>
+
       {/* Logo */}
       <Link
         href={links[0].href}
