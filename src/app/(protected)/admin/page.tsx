@@ -3,45 +3,17 @@ export const dynamic = "force-dynamic";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import Link from "next/link";
 import { requireRole } from "@/lib/access";
-import StageBadge from "@/components/StageBadge";
-import PaymentBadge from "@/components/PaymentBadge";
-import CancelledBadge from "@/components/CancelledBadge";
 import AdminAnalytics from "@/components/AdminAnalytics";
-import AdminTabs from "@/components/admin/AdminTabs";
+import ProductMixCard from "@/components/ProductMixCard";
+import PremiumByProductCard from "@/components/PremiumByProductCard";
+import TopBrokersCard from "@/components/TopBrokersCard";
 import ConversionFunnel, { type FunnelStage, type FunnelRow } from "@/components/ConversionFunnel";
 import ProductSignals, { type ProductSignal } from "@/components/ProductSignals";
 import ExportCsvButton from "@/components/ExportCsvButton";
 
-function fmtDate(d: Date): string {
-  return new Date(d).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
-}
 function fmtCurrency(v: number): string {
   return new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(v);
-}
-
-function DecisionBadge({ decision, status }: { decision: string | null; status: string }) {
-  if (status === "draft") {
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
-        Draft
-      </span>
-    );
-  }
-  const styles: Record<string, string> = {
-    accept:  "bg-emerald-100 text-emerald-700 border border-emerald-200",
-    decline: "bg-red-100 text-red-700 border border-red-200",
-    refer:   "bg-amber-100 text-amber-700 border border-amber-200",
-  };
-  const labels: Record<string, string> = { accept: "Accepted", decline: "Declined", refer: "Referred" };
-  const d = decision ?? "";
-  const cls = styles[d] ?? "bg-slate-100 text-slate-600 border border-slate-200";
-  return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
-      {labels[d] ?? d}
-    </span>
-  );
 }
 
 export default async function AdminPage() {
@@ -49,7 +21,7 @@ export default async function AdminPage() {
   requireRole(session, ["ADMIN"]);
   const adminName = session!.user.name;
 
-  const [total, accepts, declines, refers, paid, userCount, boundAgg, recent, rows, funnelRows] = await Promise.all([
+  const [total, accepts, declines, refers, paid, userCount, boundAgg, rows, funnelRows] = await Promise.all([
     prisma.submission.count({ where: { status: { not: "draft" } } }),
     prisma.submission.count({ where: { decision: "accept" } }),
     prisma.submission.count({ where: { decision: "decline" } }),
@@ -60,20 +32,10 @@ export default async function AdminPage() {
     prisma.submission.findMany({
       where: { status: { not: "draft" } },
       orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true, createdAt: true, applicantName: true, policyType: true,
-        decision: true, status: true, purchased: true, paymentStatus: true, cancelledAt: true,
-        broker: { select: { name: true } },
-      },
-    }),
-    prisma.submission.findMany({
-      where: { status: { not: "draft" } },
-      orderBy: { createdAt: "desc" },
       take: 2000,
       select: {
-        decision: true, policyType: true, annualPremium: true, createdAt: true,
-        purchased: true, broker: { select: { name: true } },
+        decision: true, policyType: true, annualPremium: true, createdAt: true, purchased: true,
+        broker: { select: { name: true } },
       },
     }),
     // All submissions incl. drafts — funnel "started" counts every quote begun.
@@ -81,8 +43,8 @@ export default async function AdminPage() {
       take: 5000,
       orderBy: { createdAt: "desc" },
       select: {
-        status: true, decision: true, policyType: true,
-        purchased: true, paymentStatus: true, broker: { select: { name: true } },
+        status: true, decision: true, policyType: true, purchased: true, paymentStatus: true,
+        broker: { select: { name: true } },
       },
     }),
   ]);
@@ -103,12 +65,21 @@ export default async function AdminPage() {
   });
 
   const mixCounts: Record<string, number> = {};
-  for (const s of rows) mixCounts[s.policyType] = (mixCounts[s.policyType] ?? 0) + 1;
+  const premiumByProductMap: Record<string, number> = {};
+  for (const s of rows) {
+    mixCounts[s.policyType] = (mixCounts[s.policyType] ?? 0) + 1;
+    if (s.purchased) premiumByProductMap[s.policyType] = (premiumByProductMap[s.policyType] ?? 0) + (s.annualPremium ?? 0);
+  }
   const productMix = Object.entries(mixCounts)
     .map(([label, count]) => ({ label, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
+  const premiumByProduct = Object.entries(premiumByProductMap)
+    .map(([label, total]) => ({ label, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 8);
 
+  // Top brokers by bound premium (summary; full table on /admin/brokers).
   const brokerPrem: Record<string, number> = {};
   for (const s of rows) {
     if (!s.purchased) continue;
@@ -184,8 +155,6 @@ export default async function AdminPage() {
     premiumByMonth,
     decisionSplit: { accept: accepts, decline: declines, refer: refers },
     acceptanceRate: total > 0 ? Math.round((accepts / total) * 100) : 0,
-    productMix,
-    topBrokers,
   };
 
   const statCards = [
@@ -212,8 +181,6 @@ export default async function AdminPage() {
           <ExportCsvButton label="Export CSV" />
         </div>
 
-        <AdminTabs active="overview" />
-
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           {statCards.map((c) => (
@@ -234,45 +201,18 @@ export default async function AdminPage() {
 
         {/* Conversion funnel + underwriting signals */}
         {total > 0 && (
-          <ConversionFunnel overall={funnelOverall} byProduct={funnelByProduct} byBroker={funnelByBroker} />
+          <ConversionFunnel
+            overall={funnelOverall}
+            byProduct={funnelByProduct}
+            byBroker={funnelByBroker}
+            aside={<ProductMixCard data={productMix} />}
+            byProductAside={<PremiumByProductCard data={premiumByProduct} />}
+            byBrokerAside={<TopBrokersCard data={topBrokers} />}
+          />
         )}
         {productSignals.length > 0 && (
           <ProductSignals signals={productSignals} portfolio={{ declineRate: portDeclineRate, referRate: portReferRate }} />
         )}
-
-        {/* Recent activity */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold text-slate-900 text-sm">Recent Activity (all brokers)</h2>
-          <Link href="/search?show=all" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
-            View all →
-          </Link>
-        </div>
-        <div className="space-y-2">
-          {recent.map((s) => (
-            <div
-              key={s.id}
-              className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
-            >
-              <Link href={`/policy/${s.id}`} className="min-w-0 flex-1 group">
-                <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
-                  {s.applicantName ?? "—"}
-                </p>
-                <p className="text-xs text-slate-400 mt-0.5 truncate">
-                  {s.policyType}
-                  <span className="mx-1.5 text-slate-300">·</span>
-                  {s.broker?.name ?? "—"}
-                  <span className="mx-1.5 text-slate-300">·</span>
-                  {fmtDate(s.createdAt)}
-                </p>
-              </Link>
-              <div className="flex items-center gap-2 shrink-0">
-                <DecisionBadge decision={s.decision} status={s.status} />
-                {s.status !== "draft" && <StageBadge purchased={s.purchased} decision={s.decision} />}
-                {s.purchased && (s.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={s.paymentStatus} />)}
-              </div>
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

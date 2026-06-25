@@ -63,10 +63,16 @@ export default function ConversionFunnel({
   overall,
   byProduct,
   byBroker,
+  aside,
+  byProductAside,
+  byBrokerAside,
 }: {
   overall: FunnelStage;
   byProduct: FunnelRow[];
-  byBroker: FunnelRow[];
+  byBroker?: FunnelRow[];
+  aside?: React.ReactNode;          // beside the overall funnel (e.g. Product Mix)
+  byProductAside?: React.ReactNode; // beside Funnel by Product (e.g. Premium by Product)
+  byBrokerAside?: React.ReactNode;  // beside Funnel by Broker (e.g. Top Brokers)
 }) {
   const max = Math.max(1, overall.started);
   // Step-over-step conversion: each stage relative to the previous.
@@ -78,7 +84,8 @@ export default function ConversionFunnel({
 
   return (
     <div className="space-y-4 mb-6">
-      {/* Overall funnel */}
+      {/* Overall funnel — optionally beside an aside card (e.g. Product Mix) */}
+      <div className={`grid grid-cols-1 gap-4 ${aside ? "lg:grid-cols-2" : ""}`}>
       <Card title="Conversion Funnel (all brokers)" subtitle="Started → Quoted → Bound → Paid">
         <div className="space-y-2.5">
           {STAGES.map((s) => {
@@ -110,15 +117,21 @@ export default function ConversionFunnel({
           </span>
         </div>
       </Card>
+      {aside}
+      </div>
 
       {/* Grouped breakdowns */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${(byBroker || byProductAside) ? "lg:grid-cols-2" : ""}`}>
         <Card title="Funnel by Product">
           <GroupTable rows={byProduct} />
         </Card>
-        <Card title="Funnel by Broker">
-          <GroupTable rows={byBroker} />
-        </Card>
+        {byProductAside}
+        {byBroker && (
+          <Card title="Funnel by Broker">
+            <GroupTable rows={byBroker} />
+          </Card>
+        )}
+        {byBroker && byBrokerAside}
       </div>
     </div>
   );

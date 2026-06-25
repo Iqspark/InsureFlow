@@ -8,12 +8,13 @@ import Link from "next/link";
 // links + action-count badge.
 export default function MobileNav({
   links,
-  actionCount,
+  badges,
 }: {
   links: { href: string; label: string }[];
-  actionCount: number;
+  badges: Record<string, number>;
 }) {
   const [open, setOpen] = useState(false);
+  const totalBadge = Object.values(badges).reduce((sum, n) => sum + (n || 0), 0);
 
   return (
     <div className="sm:hidden">
@@ -31,9 +32,9 @@ export default function MobileNav({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           )}
         </svg>
-        {!open && actionCount > 0 && (
+        {!open && totalBadge > 0 && (
           <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-            {actionCount}
+            {totalBadge}
           </span>
         )}
       </button>
@@ -52,9 +53,9 @@ export default function MobileNav({
                 className="flex items-center justify-between px-4 py-3 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
               >
                 {l.label}
-                {l.href === "/dashboard" && actionCount > 0 && (
+                {badges[l.href] > 0 && (
                   <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-                    {actionCount}
+                    {badges[l.href]}
                   </span>
                 )}
               </Link>

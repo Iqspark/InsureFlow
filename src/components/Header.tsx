@@ -22,6 +22,7 @@ const NAV: Record<Role, { href: string; label: string }[]> = {
   ],
   ADMIN: [
     { href: "/admin", label: "Overview" },
+    { href: "/admin/brokers", label: "Brokers" },
     { href: "/admin/users", label: "Users" },
     { href: "/reviews", label: "Reviews" },
     { href: "/customers", label: "Customers" },
@@ -69,10 +70,11 @@ export async function Header() {
   const role: Role = (session?.user?.role as Role) ?? "BROKER";
   const links = NAV[role];
 
-  // Action-required count for brokers (approved & unbound, or bound & unpaid).
-  let actionCount = 0;
+  // Warm-coloured count badges per nav link.
+  const badges: Record<string, number> = {};
+  // Brokers: action-required (approved & unbound, or bound & unpaid).
   if (role === "BROKER" && session?.user?.id) {
-    actionCount = await prisma.submission.count({
+    badges["/dashboard"] = await prisma.submission.count({
       where: {
         brokerId: session.user.id,
         OR: [
@@ -82,12 +84,18 @@ export async function Header() {
       },
     });
   }
+  // Underwriters / admins: referred quotes awaiting a decision.
+  if (role === "UNDERWRITER" || role === "ADMIN") {
+    badges["/reviews"] = await prisma.submission.count({
+      where: { decision: "refer", status: { not: "draft" } },
+    });
+  }
 
   return (
     <header className="h-16 bg-linear-to-r from-slate-900 via-slate-900 to-indigo-950 flex items-center px-4 sm:px-6 shrink-0 z-20 border-b border-white/10 shadow-lg shadow-indigo-950/20 supports-backdrop-filter:bg-slate-900/85 backdrop-blur-xl">
       {/* Mobile menu (hidden on desktop) */}
       <div className="mr-2 sm:hidden">
-        <MobileNav links={links} actionCount={actionCount} />
+        <MobileNav links={links} badges={badges} />
       </div>
 
       {/* Logo */}
@@ -110,9 +118,9 @@ export async function Header() {
             className="relative text-slate-300 hover:text-white text-sm px-3 py-1.5 rounded-md hover:bg-white/10 transition-colors hidden sm:block"
           >
             {l.label}
-            {l.href === "/dashboard" && actionCount > 0 && (
+            {badges[l.href] > 0 && (
               <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-amber-500 text-white text-[10px] font-bold flex items-center justify-center">
-                {actionCount}
+                {badges[l.href]}
               </span>
             )}
           </Link>

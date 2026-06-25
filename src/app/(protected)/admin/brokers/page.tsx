@@ -6,7 +6,9 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { requireRole } from "@/lib/access";
 import RangeTabs from "@/components/RangeTabs";
-import AdminTabs from "@/components/admin/AdminTabs";
+import StageBadge from "@/components/StageBadge";
+import PaymentBadge from "@/components/PaymentBadge";
+import CancelledBadge from "@/components/CancelledBadge";
 import {
   computeBrokerMetrics, normalizeRange, rangeCutoff, pctRate, RANGE_LABEL,
   type SubLite, type BrokerMetrics,
@@ -14,6 +16,32 @@ import {
 
 const cad = (v: number) =>
   new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(v);
+
+const fmtDate = (d: Date) =>
+  new Date(d).toLocaleDateString("en-CA", { year: "numeric", month: "short", day: "numeric" });
+
+function DecisionBadge({ decision, status }: { decision: string | null; status: string }) {
+  if (status === "draft") {
+    return (
+      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+        Draft
+      </span>
+    );
+  }
+  const styles: Record<string, string> = {
+    accept:  "bg-emerald-100 text-emerald-700 border border-emerald-200",
+    decline: "bg-red-100 text-red-700 border border-red-200",
+    refer:   "bg-amber-100 text-amber-700 border border-amber-200",
+  };
+  const labels: Record<string, string> = { accept: "Accepted", decline: "Declined", refer: "Referred" };
+  const d = decision ?? "";
+  const cls = styles[d] ?? "bg-slate-100 text-slate-600 border border-slate-200";
+  return (
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+      {labels[d] ?? d}
+    </span>
+  );
+}
 
 type Row = { id: string; name: string; m: BrokerMetrics };
 
@@ -41,7 +69,7 @@ export default async function BrokerPerformancePage({
   const dir = sp.dir === "asc" ? "asc" : "desc";
 
   const cutoff = rangeCutoff(range, new Date());
-  const [brokers, subs] = await Promise.all([
+  const [brokers, subs, recent] = await Promise.all([
     prisma.broker.findMany({
       where: { role: "BROKER", active: true },
       select: { id: true, name: true },
@@ -52,6 +80,16 @@ export default async function BrokerPerformancePage({
       select: {
         brokerId: true, decision: true, status: true, purchased: true,
         paymentStatus: true, cancelledAt: true, annualPremium: true, paidAmount: true,
+      },
+    }),
+    prisma.submission.findMany({
+      where: { status: { not: "draft" } },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+      select: {
+        id: true, createdAt: true, applicantName: true, policyType: true,
+        decision: true, status: true, purchased: true, paymentStatus: true, cancelledAt: true,
+        broker: { select: { name: true } },
       },
     }),
   ]);
@@ -99,8 +137,6 @@ export default async function BrokerPerformancePage({
   return (
     <div className="flex-1 p-4 sm:p-6 lg:p-8 overflow-auto">
       <div className="max-w-6xl mx-auto">
-        <AdminTabs active="brokers" />
-
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">Broker Performance</h1>
@@ -171,6 +207,40 @@ export default async function BrokerPerformancePage({
               </tfoot>
             )}
           </table>
+        </div>
+
+        {/* Recent activity across all brokers */}
+        <div className="flex items-center justify-between mt-8 mb-3">
+          <h2 className="font-semibold text-slate-900 text-sm">Recent Activity (all brokers)</h2>
+          <Link href="/search?show=all" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+            View all →
+          </Link>
+        </div>
+        <div className="space-y-2">
+          {recent.map((s) => (
+            <div
+              key={s.id}
+              className="flex items-center justify-between gap-3 bg-white rounded-xl border border-slate-200 shadow-xs px-4 sm:px-5 py-3.5 hover:border-indigo-300 hover:shadow-md transition-all"
+            >
+              <Link href={`/policy/${s.id}`} className="min-w-0 flex-1 group">
+                <p className="text-sm font-semibold text-slate-900 group-hover:text-indigo-700 transition-colors truncate">
+                  {s.applicantName ?? "—"}
+                </p>
+                <p className="text-xs text-slate-400 mt-0.5 truncate">
+                  {s.policyType}
+                  <span className="mx-1.5 text-slate-300">·</span>
+                  {s.broker?.name ?? "—"}
+                  <span className="mx-1.5 text-slate-300">·</span>
+                  {fmtDate(s.createdAt)}
+                </p>
+              </Link>
+              <div className="flex items-center gap-2 shrink-0">
+                <DecisionBadge decision={s.decision} status={s.status} />
+                {s.status !== "draft" && <StageBadge purchased={s.purchased} decision={s.decision} />}
+                {s.purchased && (s.cancelledAt ? <CancelledBadge /> : <PaymentBadge paymentStatus={s.paymentStatus} />)}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

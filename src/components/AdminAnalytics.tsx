@@ -4,8 +4,6 @@ export type AdminStats = {
   premiumByMonth: { label: string; total: number }[];
   decisionSplit: { accept: number; decline: number; refer: number };
   acceptanceRate: number; // 0–100
-  productMix: { label: string; count: number }[];
-  topBrokers: { name: string; premium: number }[];
 };
 
 const cad = (v: number) =>
@@ -21,11 +19,9 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 
 export default function AdminAnalytics({ stats }: { stats: AdminStats }) {
-  const { premiumByMonth, decisionSplit, acceptanceRate, productMix, topBrokers } = stats;
+  const { premiumByMonth, decisionSplit, acceptanceRate } = stats;
 
   const maxMonth = Math.max(1, ...premiumByMonth.map((m) => m.total));
-  const maxProduct = Math.max(1, ...productMix.map((p) => p.count));
-  const maxBroker = Math.max(1, ...topBrokers.map((b) => b.premium));
   const totalDecisions = decisionSplit.accept + decisionSplit.decline + decisionSplit.refer || 1;
 
   const seg = [
@@ -71,43 +67,6 @@ export default function AdminAnalytics({ stats }: { stats: AdminStats }) {
         </div>
       </Card>
 
-      {/* Product mix */}
-      <Card title="Product Mix">
-        {productMix.length === 0 ? (
-          <p className="text-sm text-slate-400">No quotes yet.</p>
-        ) : (
-          <div className="space-y-2.5">
-            {productMix.map((p) => (
-              <div key={p.label} className="flex items-center gap-3">
-                <span className="text-xs text-slate-600 w-44 truncate shrink-0" title={p.label}>{p.label}</span>
-                <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${(p.count / maxProduct) * 100}%` }} />
-                </div>
-                <span className="text-xs font-semibold text-slate-700 w-6 text-right">{p.count}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
-
-      {/* Top brokers by bound premium */}
-      <Card title="Top Brokers by Premium">
-        {topBrokers.length === 0 ? (
-          <p className="text-sm text-slate-400">No bound policies yet.</p>
-        ) : (
-          <div className="space-y-2.5">
-            {topBrokers.map((b) => (
-              <div key={b.name} className="flex items-center gap-3">
-                <span className="text-xs text-slate-600 w-32 truncate shrink-0" title={b.name}>{b.name}</span>
-                <div className="flex-1 bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${(b.premium / maxBroker) * 100}%` }} />
-                </div>
-                <span className="text-xs font-semibold text-emerald-600 w-16 text-right">{cad(b.premium)}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
     </div>
   );
 }
