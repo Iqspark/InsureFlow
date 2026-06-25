@@ -24,6 +24,13 @@ export async function POST(req: NextRequest) {
     }
     const brokerId = authSession.user.id;
 
+    if (!answers) {
+      return NextResponse.json({ error: "answers are required" }, { status: 400 });
+    }
+    if (JSON.stringify(answers).length > 100_000) {
+      return NextResponse.json({ error: "Draft is too large" }, { status: 413 });
+    }
+
     const get = (id: string) => answers[id]?.value;
     const getString = (id: string) => String(get(id) ?? "");
     const getNumber = (id: string) => {

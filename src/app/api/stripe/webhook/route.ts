@@ -73,6 +73,8 @@ export async function POST(req: NextRequest) {
         const result = await finalizePaidPolicy(submissionId, {
           stripePaymentIntentId: typeof session.payment_intent === "string" ? session.payment_intent : null,
           stripeStatus: mismatch ? "paid_amount_mismatch" : "paid",
+          // Record the amount Stripe actually captured (truth), not the expected premium.
+          paidAmount: typeof session.amount_total === "number" ? session.amount_total / 100 : undefined,
         });
         if (!result.ok) {
           console.error("[stripe webhook] finalize skipped:", submissionId, result.reason);

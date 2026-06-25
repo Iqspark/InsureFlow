@@ -26,7 +26,7 @@ export default function PropertyMap({ address }: { address: string }) {
         className="w-full h-72"
         style={{ border: 0 }}
         loading="lazy"
-        referrerPolicy="no-referrer-when-downgrade"
+        referrerPolicy="no-referrer"
       />
     </div>
   );

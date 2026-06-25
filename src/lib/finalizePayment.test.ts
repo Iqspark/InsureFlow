@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@/lib/prisma", () => ({
-  prisma: { submission: { findUnique: vi.fn(), update: vi.fn() } },
+  prisma: { submission: { findUnique: vi.fn(), updateMany: vi.fn() } },
 }));
 vi.mock("@/lib/email", () => ({
   sendPolicyConfirmationEmail: vi.fn().mockResolvedValue({ sentTo: "a@b.com" }),
@@ -17,7 +17,7 @@ import { prisma } from "@/lib/prisma";
 import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/email";
 
 const findUnique = vi.mocked(prisma.submission.findUnique);
-const update = vi.mocked(prisma.submission.update);
+const updateMany = vi.mocked(prisma.submission.updateMany);
 
 const boundUnpaid = {
   id: "s1",
@@ -36,7 +36,7 @@ const boundUnpaid = {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  update.mockResolvedValue({} as never);
+  updateMany.mockResolvedValue({ count: 1 } as never);
 });
 
 describe("finalizePaidPolicy", () => {
@@ -44,21 +44,21 @@ describe("finalizePaidPolicy", () => {
     findUnique.mockResolvedValue(null as never);
     const r = await finalizePaidPolicy("missing");
     expect(r).toEqual({ ok: false, reason: "not_found" });
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it("returns not_bound when the policy isn't purchased", async () => {
     findUnique.mockResolvedValue({ ...boundUnpaid, purchased: false } as never);
     const r = await finalizePaidPolicy("s1");
     expect(r).toEqual({ ok: false, reason: "not_bound" });
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
   });
 
   it("is idempotent — already paid is a no-op (no update, no email)", async () => {
     findUnique.mockResolvedValue({ ...boundUnpaid, paymentStatus: "paid" } as never);
     const r = await finalizePaidPolicy("s1");
     expect(r).toEqual({ ok: true, alreadyPaid: true, amount: 1200, previewUrl: null });
-    expect(update).not.toHaveBeenCalled();
+    expect(updateMany).not.toHaveBeenCalled();
     expect(sendPolicyConfirmationEmail).not.toHaveBeenCalled();
     expect(sendPaymentReceiptEmail).not.toHaveBeenCalled();
   });
@@ -68,9 +68,9 @@ describe("finalizePaidPolicy", () => {
     const r = await finalizePaidPolicy("s1", { stripePaymentIntentId: "pi_1", stripeStatus: "paid" });
     expect(r.ok).toBe(true);
     expect(r).toMatchObject({ ok: true, alreadyPaid: false, amount: 1200, previewUrl: "http://preview" });
-    expect(update).toHaveBeenCalledWith(
+    expect(updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { id: "s1" },
+        where: { id: "s1", paymentStatus: { not: "paid" } },
         data: expect.objectContaining({ paymentStatus: "paid", paidAmount: 1200, stripePaymentIntentId: "pi_1", stripeStatus: "paid" }),
       })
     );
@@ -83,11 +83,20 @@ describe("finalizePaidPolicy", () => {
     );
   });
 
+  it("treats a lost atomic claim (concurrent finalizer) as already paid — no duplicate emails", async () => {
+    findUnique.mockResolvedValue(boundUnpaid as never);
+    updateMany.mockResolvedValue({ count: 0 } as never); // another finalizer won the race
+    const r = await finalizePaidPolicy("s1");
+    expect(r).toEqual({ ok: true, alreadyPaid: true, amount: 1200, previewUrl: null });
+    expect(sendPolicyConfirmationEmail).not.toHaveBeenCalled();
+    expect(sendPaymentReceiptEmail).not.toHaveBeenCalled();
+  });
+
   it("still marks paid when there is no contact email (skips sending)", async () => {
     findUnique.mockResolvedValue({ ...boundUnpaid, contactEmail: null } as never);
     const r = await finalizePaidPolicy("s1");
     expect(r).toMatchObject({ ok: true, alreadyPaid: false, amount: 1200, previewUrl: null });
-    expect(update).toHaveBeenCalledOnce();
+    expect(updateMany).toHaveBeenCalledOnce();
     expect(sendPaymentReceiptEmail).not.toHaveBeenCalled();
   });
 });

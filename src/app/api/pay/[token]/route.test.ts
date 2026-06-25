@@ -45,7 +45,7 @@ describe("POST /api/pay/[token] (simulated fallback)", () => {
 
   it("finalizes a valid simulated payment when Stripe is off", async () => {
     stripeOn.mockReturnValue(false);
-    findUnique.mockResolvedValue({ id: "s1", purchased: true, paymentStatus: "unpaid" } as never);
+    findUnique.mockResolvedValue({ id: "s1", purchased: true, paymentStatus: "unpaid", paymentTokenExpiresAt: new Date(Date.now() + 86_400_000) } as never);
     finalize.mockResolvedValue({ ok: true, alreadyPaid: false, amount: 1000, previewUrl: null } as never);
     const res = await POST(mkReq({ cardNumber: "4242 4242 4242 4242", expiry: "12/30", cvc: "123" }), ctx);
     expect(res.status).toBe(200);
@@ -67,7 +67,7 @@ describe("POST /api/pay/[token] (simulated fallback)", () => {
 
   it("returns 409 when the policy is already paid", async () => {
     stripeOn.mockReturnValue(false);
-    findUnique.mockResolvedValue({ id: "s1", purchased: true, paymentStatus: "paid" } as never);
+    findUnique.mockResolvedValue({ id: "s1", purchased: true, paymentStatus: "paid", paymentTokenExpiresAt: new Date(Date.now() + 86_400_000) } as never);
     const res = await POST(mkReq({ cardNumber: "4242424242424242", expiry: "12/30", cvc: "123" }), ctx);
     expect(res.status).toBe(409);
     expect(finalize).not.toHaveBeenCalled();

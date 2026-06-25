@@ -33,6 +33,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (JSON.stringify(answers).length > 100_000) {
+      return NextResponse.json({ error: "Submission is too large" }, { status: 413 });
+    }
 
     // Recompute the underwriting decision + premium SERVER-SIDE from the answers.
     // The client-sent decision/premium are never trusted: they drive policy

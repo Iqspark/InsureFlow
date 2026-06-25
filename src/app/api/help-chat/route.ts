@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { tooMany, clientIp } from "@/lib/rateLimit";
 import OpenAI from "openai";
 import fs from "fs";
 import path from "path";
+
+const MAX_MESSAGE_CHARS = 4000;
+const MAX_HISTORY_TURNS = 10;
 
 // Cap the knowledge base sent to OpenAI to avoid context overflow with many PDFs
 const KB_CHAR_LIMIT = 200_000;
@@ -93,9 +97,13 @@ interface ChatMessage {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // Cap billed OpenAI calls + knowledge-base re-parsing per user.
+  const limited = tooMany(`help-chat:${session.user.id ?? clientIp(req)}`, 20, 60_000);
+  if (limited) return limited;
 
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your-openai-api-key-here") {
     return NextResponse.json({
@@ -109,23 +117,33 @@ export async function POST(req: NextRequest) {
       history: ChatMessage[];
     };
 
+    // Bound + sanitize untrusted input: cap the message, and only forward the
+    // last few user/assistant turns (never a client-supplied "system" role).
+    const safeMessage = String(message ?? "").slice(0, MAX_MESSAGE_CHARS);
+    const safeHistory = (Array.isArray(history) ? history : [])
+      .filter((m) => m && (m.role === "user" || m.role === "assistant"))
+      .slice(-MAX_HISTORY_TURNS)
+      .map((m) => ({ role: m.role, content: String(m.content ?? "").slice(0, MAX_MESSAGE_CHARS) }));
+
     const kb = await loadKnowledgeBase();
     const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-    console.log(`\n[HelpNav] -- KB size: ${kb.length} chars | User: ${message}`);
+    // Don't log message/reply contents in production — they can contain PII.
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`\n[HelpNav] -- KB size: ${kb.length} chars | msg length: ${safeMessage.length}`);
+    }
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
       max_tokens: 512,
       messages: [
         { role: "system", content: systemPrompt(kb) },
-        ...history.map((m) => ({ role: m.role, content: m.content })),
-        { role: "user", content: message },
+        ...safeHistory,
+        { role: "user", content: safeMessage },
       ],
     });
 
     const reply = completion.choices[0]?.message?.content ?? "Sorry, I couldn't generate a response.";
-    console.log(`[HelpNav] -- Bot: ${reply}\n`);
     return NextResponse.json({ reply });
   } catch (err) {
     console.error("[help-chat] Error:", err);

@@ -42,11 +42,17 @@ export async function POST(req: NextRequest) {
   if (!name || !email || !password) {
     return NextResponse.json({ error: "Name, email and password are required" }, { status: 400 });
   }
+  if (name.length > 200 || email.length > 200 || (licenseId ?? "").length > 100) {
+    return NextResponse.json({ error: "Name, email or licence ID is too long" }, { status: 400 });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+  }
   if (!ROLES.includes(role as Role)) {
     return NextResponse.json({ error: "Invalid role" }, { status: 400 });
   }
-  if ((password as string).length < 8) {
-    return NextResponse.json({ error: "Password must be at least 8 characters" }, { status: 400 });
+  if ((password as string).length < 8 || (password as string).length > 200) {
+    return NextResponse.json({ error: "Password must be 8–200 characters" }, { status: 400 });
   }
 
   const existing = await prisma.broker.findUnique({ where: { email } });

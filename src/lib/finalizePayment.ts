@@ -19,7 +19,7 @@ export type FinalizeResult =
 // Shared by the simulated pay route and the Stripe webhook.
 export async function finalizePaidPolicy(
   submissionId: string,
-  opts: { paidAt?: Date } & StripeMeta = {}
+  opts: { paidAt?: Date; paidAmount?: number } & StripeMeta = {}
 ): Promise<FinalizeResult> {
   const sub = await prisma.submission.findUnique({
     where: { id: submissionId },
@@ -29,15 +29,19 @@ export async function finalizePaidPolicy(
   if (!sub) return { ok: false, reason: "not_found" };
   if (!sub.purchased) return { ok: false, reason: "not_bound" };
 
-  const amount = sub.annualPremium ?? 0;
+  // Record what was actually charged when the caller knows it (Stripe), falling
+  // back to the policy premium for the simulated path.
+  const amount = opts.paidAmount ?? sub.annualPremium ?? 0;
 
   if (sub.paymentStatus === "paid") {
     return { ok: true, alreadyPaid: true, amount, previewUrl: null };
   }
 
   const paidAt = opts.paidAt ?? new Date();
-  await prisma.submission.update({
-    where: { id: sub.id },
+  // Atomic claim: only the first finalizer flips unpaid→paid, so concurrent
+  // callers (webhook + the /pay return-page reconciler) can't double-send emails.
+  const claimed = await prisma.submission.updateMany({
+    where: { id: sub.id, paymentStatus: { not: "paid" } },
     data: {
       paymentStatus: "paid",
       paidAt,
@@ -46,6 +50,10 @@ export async function finalizePaidPolicy(
       ...(opts.stripeStatus ? { stripeStatus: opts.stripeStatus } : {}),
     },
   });
+  if (claimed.count === 0) {
+    // Another concurrent finalizer already marked it paid — no-op (no duplicate email).
+    return { ok: true, alreadyPaid: true, amount, previewUrl: null };
+  }
 
   const cad = new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(amount);
   await recordAudit({

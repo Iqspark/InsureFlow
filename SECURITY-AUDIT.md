@@ -31,69 +31,40 @@ Notes:
 
 ---
 
-## ⬜ Open — backlog (Medium / Low / Info)
+## ✅ Fixed (Medium / Low / Info — second pass)
 
-Ranked by adjusted severity. Each item is independently actionable.
+All remediated and covered by `tsc --noEmit` + the test suite (154 passing).
 
 ### Medium
-
-- **M1 — Host-header injection in `publicBaseUrl`** · `src/lib/baseUrl.ts:14-28`
-  When `NEXTAUTH_URL` is unset/localhost, emailed pay-links and Stripe
-  success/cancel URLs are built from `X-Forwarded-Host`/`Host`. A forged host →
-  `https://attacker.com/pay/<token>` (token exfiltration / in-brand phishing).
-  *Fix:* require a pinned non-localhost `NEXTAUTH_URL` in prod; never derive
-  email links from request headers (or validate host against an allowlist).
-
-- **M2 — HTML injection into outbound emails** · `src/lib/email.ts` (only `message` is escaped)
-  `applicantName`/`brokerName`/`reviewNote`/`reason`/`policyType` are
-  interpolated raw into HTML. `applicantName` is attacker-controlled and reaches
-  the broker inbox **unauthenticated** via `POST /api/portal/[token]/request`.
-  *Fix:* one `htmlEscape` helper applied to every interpolated field in all templates.
-
-- **M3 — Broker rewrites a paid policy's premium via adjust route** · `src/app/api/submissions/[id]/adjust/route.ts:46-90`
-  Linear rescale with no bounds, no re-rating, no underwriting re-check, and the
-  pro-rata delta is never charged/refunded. `coverageAmount:1` ≈ zeroes premium.
-  *Fix:* re-rate through the engine; require approval for material changes;
-  settle the delta via Stripe; cap coverage to product limits.
-
-- **M4 — Pay/portal token leaked to Google via Referer** · `src/components/PropertyMap.tsx:23-30`
-  `referrerPolicy="no-referrer-when-downgrade"` ships the full `/portal/<token>`
-  path to Google in the map-iframe Referer.
-  *Fix:* `referrerPolicy="no-referrer"` + a strict `Referrer-Policy` header on `/pay` & `/portal`.
-
-- **M5 — AI chat endpoints: no rate limit + unbounded input** · `src/app/api/help-chat/route.ts:94-125`, `src/app/api/chat-intent/route.ts`
-  Unbounded `history`/`questions` to gpt-4o-mini + per-call KB PDF re-parse →
-  OpenAI cost amplification / DoS. `chat-intent` 500s on malformed body.
-  *Fix:* `tooMany()` keyed by user id; cap history/length; cache the KB; wrap `req.json()` in try/catch.
-
-- **M6 — PWA service worker caches authenticated PII, never cleared on logout** · `public/sw.js`, `src/components/SignOutButton.tsx`
-  NetworkFirst caches `/api/*` and authed pages; sign-out doesn't purge caches →
-  next user on a shared device reads prior broker's customer PII.
-  *Fix:* clear caches + unregister SW on sign-out; exclude PII routes from runtime caching; `Cache-Control: no-store` on PII responses.
-
-- **M7 — No brute-force protection on login** · `src/lib/auth.ts:14-35`
-  No lockout/throttle on the credentials callback → unthrottled credential stuffing.
-  *Fix:* per-IP + per-account throttle (reuse `src/lib/rateLimit.ts`) and lockout state.
+- **M1 — Host-header injection in `publicBaseUrl`** · [baseUrl.ts](src/lib/baseUrl.ts) — header-derived origin now validated against `PUBLIC_HOST_ALLOWLIST`; a pinned non-localhost `NEXTAUTH_URL` (required in prod) remains the primary defense. Tests added.
+- **M2 — Email HTML injection** · [email.ts](src/lib/email.ts) — added a shared `esc()` helper applied to every attacker-controlled field (`applicantName`/`brokerName`/`policyType`/`reviewNote`/`reason`/`appId`/emails) across all templates.
+- **M3 — Adjust-route premium rewrite** · [adjust/route.ts](src/app/api/submissions/[id]/adjust/route.ts) — coverage bounded to 0.25×–4× of the original; out-of-band changes must go through a new quote (blocks premium-zeroing / absurd inflation). *Partial:* full engine re-rate + Stripe delta settlement is a larger product change (see L11).
+- **M4 — Token leaked via Referer** · [PropertyMap.tsx](src/components/PropertyMap.tsx) — `referrerPolicy="no-referrer"` + global `Referrer-Policy: no-referrer` header (L10).
+- **M5 — AI-route DoS** · [help-chat](src/app/api/help-chat/route.ts), [chat-intent](src/app/api/chat-intent/route.ts) — per-user rate limit, capped message/history/questions, try/catch on JSON.
+- **M6 — PWA cache on logout** · [SignOutButton.tsx](src/components/SignOutButton.tsx) — purges Cache Storage and unregisters the SW before sign-out. *Optional follow-up:* exclude `/api/*` from `next-pwa` runtime caching.
+- **M7 — Login brute-force** · [auth.ts](src/lib/auth.ts) — per-account (10/5min) + per-IP (50/5min) throttle in `authorize`, fails closed with no lockout oracle.
 
 ### Low
-
-- **L1 — `buy-policy` has no resend rate limit** · `src/app/api/buy-policy/route.ts` — applicant email-bombing + indefinite token-expiry refresh. *Fix:* cooldown keyed by submissionId.
-- **L2 — Rate limiter bypassable via spoofed `X-Forwarded-For`** · `src/lib/rateLimit.ts:38-41` — take a trusted-proxy hop, not the leftmost client value; consider per-token caps.
-- **L3 — Legacy null-expiry tokens never expire** · `src/lib/portalToken.ts:14` — backfill `paymentTokenExpiresAt`; treat null as expired (fail-closed).
-- **L4 — `SESSION_VERSION` only covers 3 route prefixes, not tied to user state** · `src/middleware.ts` — fold into the H4 per-user re-validation.
-- **L5 — `finalizePaidPolicy` check-then-update TOCTOU** · `src/lib/finalizePayment.ts:24-48` — use atomic `updateMany({ where:{ id, paymentStatus:{ not:"paid" } } })`; gate emails on `count===1`.
-- **L6 — Prompt injection into the advisory AI underwriter recommendation** · `src/lib/aiUnderwriter.ts:67-130` — delimit untrusted answer text as data; keep verdict advisory (already is).
-- **L7 — `help-chat` trusts client-supplied message `role`** · `src/app/api/help-chat/route.ts:122` — filter `history` roles to `user`/`assistant`.
-- **L8 — `help-chat` logs full user messages/replies** · `src/app/api/help-chat/route.ts:115,128` — drop or gate behind `NODE_ENV!=="production"`.
-- **L9 — Unbounded `allAnswers` blob / no body-size limit** · `src/app/api/submissions/route.ts`, `src/app/api/drafts/route.ts` — cap body size; validate `answers` shape with zod.
-- **L10 — Security headers configured only in `vercel.json` but deploy target is Azure** — `next.config.js` `output:"standalone"` on Azure ignores `vercel.json`, so `X-Frame-Options`/CSP/HSTS are likely absent in prod. *Fix:* add a `headers()` block in `next.config.js`.
-- **L11 — Mid-term adjust uses naive linear re-pricing** · `src/app/api/submissions/[id]/adjust/route.ts:60` — re-run the rating + underwriting engine (overlaps M3).
+- **L1 — buy-policy resend spam** · [buy-policy](src/app/api/buy-policy/route.ts) — 5/min cooldown keyed by submissionId.
+- **L2 — XFF spoofing** · [rateLimit.ts](src/lib/rateLimit.ts) — `clientIp` honors `TRUSTED_PROXY_HOP_COUNT`; portal-request also limited per-token.
+- **L3 — Legacy null-expiry tokens** · [portalToken.ts](src/lib/portalToken.ts) — now fail-closed (null = expired); re-sending the link stamps a fresh window. Test updated.
+- **L4 — `SESSION_VERSION` scope** — superseded by the H4 per-request DB re-validation (`active`/`role`).
+- **L5 — finalize TOCTOU** · [finalizePayment.ts](src/lib/finalizePayment.ts) — atomic `updateMany({ where:{ id, paymentStatus:{ not:"paid" } } })`; emails gated on the winning claim. Test added.
+- **L6 — AI underwriter prompt injection** · [aiUnderwriter.ts](src/lib/aiUnderwriter.ts) — untrusted data fenced in `<APPLICATION_DATA>` with a system-prompt directive to never follow embedded instructions.
+- **L7 — help-chat role injection** · history filtered to `user`/`assistant` only.
+- **L8 — help-chat PII logging** · message/reply logs gated to non-production (and only lengths logged).
+- **L9 — Unbounded body** · 100 KB cap on `answers` in submissions + drafts (413).
+- **L10 — Security headers** · [next.config.js](next.config.js) — `headers()` adds `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy: no-referrer`, HSTS, `Permissions-Policy` (works on Azure standalone, unlike `vercel.json`).
+- **L11 — Adjust linear re-pricing** — mitigated by the M3 coverage band; full engine re-rate remains a product enhancement.
 
 ### Info
+- **I1 — policy document check** · [policy/[id]/document](src/app/api/policy/[id]/document/route.ts) — now uses `canViewSubmission`.
+- **I2 — Admin field bounds** · [admin/users](src/app/api/admin/users/route.ts) — name/email/licence/password length-bounded + email format check.
+- **I3 — Webhook amount mismatch** · [webhook](src/app/api/stripe/webhook/route.ts) + [finalizePayment.ts](src/lib/finalizePayment.ts) — records the actual Stripe-captured `amount_total` as `paidAmount`.
 
-- **I1 — `policy/[id]/document` uses an ad-hoc owner check instead of `canViewSubmission`** · stricter than the helper (admins/underwriters get 404), not a leak. Align with the helper for consistency.
-- **I2 — Admin user create/update fields not length-bounded** · `src/app/api/admin/users/route.ts` — add max-length validation (the important RBAC guards are present).
-- **I3 — Stripe webhook honors a confirmed payment on amount mismatch** · `src/app/api/stripe/webhook/route.ts:62-76` — data-integrity only (records expected, not captured, amount). Record `amount_total` as `paidAmount`, or hold for manual review.
+### Remaining (explicitly deferred, not security-blocking)
+- M3/L11 full rating-engine re-rate + Stripe pro-rata settlement on mid-term adjustments.
+- M6 `next-pwa` runtime-cache exclusion of `/api/*` (logout purge already mitigates the disclosure).
 
 ---
 

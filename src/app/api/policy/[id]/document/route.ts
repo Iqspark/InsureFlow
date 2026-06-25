@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { buildPolicyPdf } from "@/lib/policyDocument";
 import { policyNumber } from "@/utils/policyNumber";
+import { canViewSubmission, type SessionUser } from "@/lib/access";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ export async function GET(
 ) {
   const { id } = await params;
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -25,7 +26,7 @@ export async function GET(
     include: { broker: { select: { name: true, email: true } } },
   });
 
-  if (!sub || sub.brokerId !== session.user.id) {
+  if (!sub || !canViewSubmission(session.user as unknown as SessionUser, sub)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

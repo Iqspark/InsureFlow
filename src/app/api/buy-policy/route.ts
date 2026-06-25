@@ -8,6 +8,7 @@ import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
 import { portalTokenExpiry } from "@/lib/portalToken";
+import { tooMany } from "@/lib/rateLimit";
 import { captureError } from "@/lib/observability";
 
 // POST /api/buy-policy
@@ -30,6 +31,11 @@ export async function POST(req: NextRequest) {
   if (!submissionId) {
     return NextResponse.json({ error: "submissionId is required" }, { status: 400 });
   }
+
+  // Cooldown on (re)sends so a payment link can't be used to email-bomb the
+  // applicant or repeatedly refresh the token-expiry window.
+  const limited = tooMany(`buy-policy:${submissionId}`, 5, 60_000);
+  if (limited) return limited;
 
   const sub = await prisma.submission.findUnique({
     where: { id: submissionId },

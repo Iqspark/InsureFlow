@@ -1,5 +1,18 @@
 import nodemailer from "nodemailer";
 
+// Escape user/broker-controlled values before interpolating them into HTML email
+// bodies. Applicant/broker names, notes and reasons are attacker-influenced (some
+// reach an inbox unauthenticated via the portal change-request), so every dynamic
+// string in an HTML template must pass through this to prevent HTML/link injection.
+function esc(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 // ── Delivery ──────────────────────────────────────────────────
 // Order of preference: Resend (RESEND_API_KEY) → SMTP (SMTP_USER/PASS) →
 // Ethereal test inbox (no config; returns a browser preview URL).
@@ -148,7 +161,7 @@ function buildHtml(d: PolicyEmailData): string {
         <div style="display:inline-block;width:72px;height:72px;background:#d1fae5;border-radius:50%;line-height:72px;font-size:34px;margin-bottom:20px">✓</div>
         <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#0f172a">Your Policy is Confirmed!</h1>
         <p style="margin:0;font-size:14px;color:#64748b">
-          Dear ${d.applicantName}, your <strong>${d.policyType}</strong> policy has been successfully issued.
+          Dear ${esc(d.applicantName)}, your <strong>${esc(d.policyType)}</strong> policy has been successfully issued.
         </p>
       </td>
     </tr>
@@ -188,8 +201,8 @@ function buildHtml(d: PolicyEmailData): string {
       <td style="background:#ffffff;padding:0 32px 28px">
         <p style="margin:0 0 12px;font-size:12px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Policy Details</p>
         <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-          ${row("Policy Type",       d.policyType)}
-          ${row("Province",          d.province)}
+          ${row("Policy Type",       esc(d.policyType))}
+          ${row("Province",          esc(d.province))}
           ${row("Coverage Amount",   fmt(d.coverageAmount))}
           ${row("Deductible",        fmt(d.deductible))}
           ${row("Policy Term",       "12 months")}
@@ -204,10 +217,10 @@ function buildHtml(d: PolicyEmailData): string {
           <tr>
             <td style="font-size:13px;color:#92400e">
               <strong>What happens next?</strong><br><br>
-              Your assigned broker <strong>${d.brokerName}</strong> will contact you at
-              <a href="mailto:${d.to}" style="color:#b45309">${d.to}</a> within 1 business day
+              Your assigned broker <strong>${esc(d.brokerName)}</strong> will contact you at
+              <a href="mailto:${esc(d.to)}" style="color:#b45309">${esc(d.to)}</a> within 1 business day
               to finalise your policy documents and payment details.
-              You can also reach them at <a href="mailto:${d.brokerEmail}" style="color:#b45309">${d.brokerEmail}</a>.
+              You can also reach them at <a href="mailto:${esc(d.brokerEmail)}" style="color:#b45309">${esc(d.brokerEmail)}</a>.
             </td>
           </tr>
         </table>
@@ -297,20 +310,20 @@ function buildUnderwriterHtml(d: UnderwriterNotificationData): string {
     <tr>
       <td style="background:#ffffff;padding:24px 32px">
         <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
-          Broker <strong>${d.brokerName}</strong> has bound the following policy. No action is required unless you wish to review it.
+          Broker <strong>${esc(d.brokerName)}</strong> has bound the following policy. No action is required unless you wish to review it.
         </p>
         <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-          ${row("Application ID",  d.appId)}
-          ${row("Policy Type",     d.policyType)}
-          ${row("Applicant",       d.applicantName)}
-          ${row("Applicant Email", d.applicantEmail)}
-          ${row("Applicant Phone", d.applicantPhone)}
-          ${row("Province",        d.province)}
+          ${row("Application ID",  esc(d.appId))}
+          ${row("Policy Type",     esc(d.policyType))}
+          ${row("Applicant",       esc(d.applicantName))}
+          ${row("Applicant Email", esc(d.applicantEmail))}
+          ${row("Applicant Phone", esc(d.applicantPhone))}
+          ${row("Province",        esc(d.province))}
           ${row("Annual Premium",  fmt(d.annualPremium))}
           ${row("Monthly Premium", fmt(d.monthlyPremium))}
           ${row("Coverage",        fmt(d.coverageAmount))}
           ${row("Deductible",      fmt(d.deductible))}
-          ${row("Broker",          `${d.brokerName} (${d.brokerEmail})`)}
+          ${row("Broker",          `${esc(d.brokerName)} (${esc(d.brokerEmail)})`)}
         </table>
       </td>
     </tr>
@@ -376,12 +389,12 @@ export async function sendQuoteApprovedEmail(
     </td></tr>
     <tr><td style="background:#ffffff;padding:28px 32px">
       <p style="margin:0 0 14px;font-size:14px;color:#0f172a">
-        Hi ${d.brokerName}, your referred quote for <strong>${d.applicantName}</strong>
-        (<strong>${d.policyType}</strong>, ${fmt(d.annualPremium)}/yr) has been
+        Hi ${esc(d.brokerName)}, your referred quote for <strong>${esc(d.applicantName)}</strong>
+        (<strong>${esc(d.policyType)}</strong>, ${fmt(d.annualPremium)}/yr) has been
         <strong style="color:#059669">approved</strong> and is ready to bind.
       </p>
-      ${d.reviewNote ? `<p style="margin:0 0 14px;font-size:13px;color:#475569;background:#f8fafc;border-left:4px solid #94a3b8;padding:12px 16px">Underwriter note: ${d.reviewNote}</p>` : ""}
-      <p style="margin:0 0 20px;font-size:13px;color:#64748b">Application ID: <strong style="font-family:monospace">${d.appId}</strong></p>
+      ${d.reviewNote ? `<p style="margin:0 0 14px;font-size:13px;color:#475569;background:#f8fafc;border-left:4px solid #94a3b8;padding:12px 16px">Underwriter note: ${esc(d.reviewNote)}</p>` : ""}
+      <p style="margin:0 0 20px;font-size:13px;color:#64748b">Application ID: <strong style="font-family:monospace">${esc(d.appId)}</strong></p>
       <a href="${d.policyUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:8px">Review & Bind Policy</a>
     </td></tr>
     <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
@@ -436,15 +449,15 @@ export async function sendPaymentRequestEmail(
     <tr><td style="background:#ffffff;padding:32px 32px 8px;text-align:center">
       <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a">Your policy is ready to activate</h1>
       <p style="margin:0;font-size:14px;color:#64748b">
-        Dear ${d.applicantName}, your <strong>${d.policyType}</strong> policy has been bound by
-        your broker ${d.brokerName}. Pay securely below to activate your coverage.
+        Dear ${esc(d.applicantName)}, your <strong>${esc(d.policyType)}</strong> policy has been bound by
+        your broker ${esc(d.brokerName)}. Pay securely below to activate your coverage.
       </p>
     </td></tr>
     <tr><td style="background:#ffffff;padding:20px 32px 8px;text-align:center">
       <div style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 28px">
         <p style="margin:0 0 2px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Amount Due</p>
         <p style="margin:0;font-size:30px;font-weight:700;color:#4f46e5">${fmt(d.amount)}</p>
-        <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">Application ID ${d.appId}</p>
+        <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">Application ID ${esc(d.appId)}</p>
       </div>
     </td></tr>
     <tr><td style="background:#ffffff;padding:24px 32px 32px;text-align:center">
@@ -500,18 +513,18 @@ export async function sendCancellationEmail(
     </td></tr>
     <tr><td style="background:#ffffff;padding:28px 32px">
       <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
-        Dear ${d.applicantName}, this confirms that your <strong>${d.policyType}</strong> policy has been cancelled.
+        Dear ${esc(d.applicantName)}, this confirms that your <strong>${esc(d.policyType)}</strong> policy has been cancelled.
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">Policy Type</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${d.policyType}</td></tr>
-        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Application ID</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;font-family:monospace">${d.appId}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">Policy Type</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${esc(d.policyType)}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Application ID</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;font-family:monospace">${esc(d.appId)}</td></tr>
         <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Cancelled On</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${on}</td></tr>
-        ${d.reason ? `<tr><td style="padding:10px 16px;color:#64748b;font-size:13px">Reason</td><td style="padding:10px 16px;color:#0f172a;font-size:13px;font-weight:600">${d.reason}</td></tr>` : ""}
+        ${d.reason ? `<tr><td style="padding:10px 16px;color:#64748b;font-size:13px">Reason</td><td style="padding:10px 16px;color:#0f172a;font-size:13px;font-weight:600">${esc(d.reason)}</td></tr>` : ""}
       </table>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:18px;background:#fff7ed;border-left:4px solid #f59e0b;border-radius:0 8px 8px 0;padding:14px 18px">
         <tr><td style="font-size:13px;color:#92400e">
           A short-rate refund may apply for the unused portion of the term. Your broker
-          <strong>${d.brokerName}</strong> will be in touch with the details. If you have
+          <strong>${esc(d.brokerName)}</strong> will be in touch with the details. If you have
           questions, contact your broker directly.
         </td></tr>
       </table>
@@ -576,13 +589,13 @@ export async function sendAdjustmentEmail(d: AdjustmentData): Promise<SendResult
     </td></tr>
     <tr><td style="background:#ffffff;padding:28px 32px">
       <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
-        Dear ${d.applicantName}, your <strong>${d.policyType}</strong> policy has been adjusted mid-term.
+        Dear ${esc(d.applicantName)}, your <strong>${esc(d.policyType)}</strong> policy has been adjusted mid-term.
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-        ${row("Application ID", `<span style="font-family:monospace">${d.appId}</span>`)}
+        ${row("Application ID", `<span style="font-family:monospace">${esc(d.appId)}</span>`)}
         ${row("Coverage Amount", `${fmt(d.oldCoverage)} &rarr; <strong>${fmt(d.newCoverage)}</strong>`)}
         ${row("Annual Premium", `${fmt(d.oldAnnual)} &rarr; <strong>${fmt(d.newAnnual)}</strong>`)}
-        ${d.reason ? row("Reason", d.reason) : ""}
+        ${d.reason ? row("Reason", esc(d.reason)) : ""}
       </table>
       <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
         <tr><td style="padding:16px;text-align:center">
@@ -592,7 +605,7 @@ export async function sendAdjustmentEmail(d: AdjustmentData): Promise<SendResult
         </td></tr>
       </table>
       <p style="margin:16px 0 0;font-size:13px;color:#64748b">
-        Your broker <strong>${d.brokerName}</strong> will be in touch about ${isAP ? "the additional premium" : "your refund"}.
+        Your broker <strong>${esc(d.brokerName)}</strong> will be in touch about ${isAP ? "the additional premium" : "your refund"}.
       </p>
     </td></tr>
     <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:16px 32px;text-align:center">
@@ -648,10 +661,10 @@ export async function sendPaymentReceiptEmail(
       <p style="margin:4px 0 0;font-size:13px;color:#c7d2fe">Payment Receipt</p>
     </td></tr>
     <tr><td style="background:#ffffff;padding:28px 32px">
-      <p style="margin:0 0 16px;font-size:14px;color:#0f172a">Dear ${d.applicantName}, thank you — your payment has been received.</p>
+      <p style="margin:0 0 16px;font-size:14px;color:#0f172a">Dear ${esc(d.applicantName)}, thank you — your payment has been received.</p>
       <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">Policy Type</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${d.policyType}</td></tr>
-        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Application ID</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;font-family:monospace">${d.appId}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px;width:45%">Policy Type</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${esc(d.policyType)}</td></tr>
+        <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Application ID</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600;font-family:monospace">${esc(d.appId)}</td></tr>
         <tr><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#64748b;font-size:13px">Date Paid</td><td style="padding:10px 16px;border-bottom:1px solid #e2e8f0;color:#0f172a;font-size:13px;font-weight:600">${paidOn}</td></tr>
         <tr><td style="padding:14px 16px;color:#64748b;font-size:13px">Amount Paid</td><td style="padding:14px 16px;color:#059669;font-size:18px;font-weight:700">${fmt(d.amount)}</td></tr>
       </table>
@@ -692,7 +705,7 @@ export interface ChangeRequestData {
 }
 
 export async function sendChangeRequestEmail(d: ChangeRequestData): Promise<SendResult> {
-  const safeMessage = d.message.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const safeMessage = esc(d.message);
 
   const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"></head>
@@ -704,8 +717,8 @@ export async function sendChangeRequestEmail(d: ChangeRequestData): Promise<Send
     </td></tr>
     <tr><td style="background:#ffffff;padding:28px 32px">
       <p style="margin:0 0 16px;font-size:14px;color:#0f172a">
-        Hi ${d.brokerName}, <strong>${d.applicantName}</strong> has requested a change to their
-        <strong>${d.policyType}</strong> policy (${d.appId}).
+        Hi ${esc(d.brokerName)}, <strong>${esc(d.applicantName)}</strong> has requested a change to their
+        <strong>${esc(d.policyType)}</strong> policy (${esc(d.appId)}).
       </p>
       <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
         <tr><td style="padding:16px 18px;font-size:14px;color:#0f172a;white-space:pre-wrap">${safeMessage}</td></tr>

@@ -4,8 +4,8 @@ import { isPortalTokenExpired, portalTokenExpiry, PORTAL_TOKEN_TTL_DAYS } from "
 describe("portalToken", () => {
   const now = new Date("2026-06-24T00:00:00Z");
 
-  it("treats a null expiry (legacy token) as not expired", () => {
-    expect(isPortalTokenExpired(null, now)).toBe(false);
+  it("fails closed: a null expiry (legacy token) is treated as expired", () => {
+    expect(isPortalTokenExpired(null, now)).toBe(true);
   });
 
   it("is expired when the expiry is in the past", () => {
