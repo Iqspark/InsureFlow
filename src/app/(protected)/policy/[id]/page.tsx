@@ -12,6 +12,7 @@ import PropertyMap from "@/components/PropertyMap";
 import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
 import BuyPolicyButton from "@/components/BuyPolicyButton";
+import SendForSignatureButton from "@/components/SendForSignatureButton";
 import CancelPolicyButton from "@/components/CancelPolicyButton";
 import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
@@ -98,6 +99,8 @@ const AUDIT_LABELS: Record<string, { label: string; dot: string }> = {
   change_requested:    { label: "Change requested",       dot: "bg-sky-500" },
   deleted:             { label: "Quote deleted",           dot: "bg-red-500" },
   restored:            { label: "Quote restored",          dot: "bg-indigo-500" },
+  proposal_sent:       { label: "Proposal sent",           dot: "bg-indigo-400" },
+  signed:              { label: "Proposal signed",         dot: "bg-emerald-500" },
 };
 
 // ── Page ─────────────────────────────────────────────────────
@@ -199,6 +202,40 @@ export default async function PolicyDetailPage({
             </div>
             <div className="shrink-0">
               <BuyPolicyButton submissionId={sub.id} purchased={sub.purchased} />
+            </div>
+          </div>
+        )}
+
+        {/* Proposal & e-signature (broker/commercial flow) */}
+        {isOwnerOrAdmin && sub.status !== "draft" && sub.decision === "accept" &&
+          !sub.purchased && !sub.cancelledAt && (
+          <div className="rounded-xl border border-slate-200 bg-white shadow-xs overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Proposal &amp; E-Signature</h2>
+              {(() => {
+                const map: Record<string, { label: string; cls: string }> = {
+                  signed:              { label: "Signed",             cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                  awaiting_signature:  { label: "Awaiting signature", cls: "bg-amber-100 text-amber-700 border-amber-200" },
+                };
+                const s = map[sub.coverageStatus] ?? { label: "Not sent", cls: "bg-slate-100 text-slate-600 border-slate-200" };
+                return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${s.cls}`}>{s.label}</span>;
+              })()}
+            </div>
+            <div className="px-5 py-4">
+              {sub.coverageStatus === "signed" ? (
+                <p className="text-sm text-emerald-700">
+                  Signed by the client{sub.signedAt ? ` on ${fmtDate(sub.signedAt)}` : ""}. Ready to bind.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-slate-500 mb-3">
+                    {sub.coverageStatus === "awaiting_signature"
+                      ? "Waiting for the client to review and e-sign the proposal. You can resend the link if needed."
+                      : "Email the client a link to review and e-sign the proposal."}
+                  </p>
+                  <SendForSignatureButton submissionId={sub.id} alreadySent={sub.coverageStatus === "awaiting_signature"} />
+                </>
+              )}
             </div>
           </div>
         )}

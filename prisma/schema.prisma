@@ -91,6 +91,14 @@ model Submission {
   // ── Soft delete (preserves the row + audit trail) ────────
   deletedAt  DateTime?
 
+  // ── Proposal e-signature (broker/commercial flow, Phase A) ──
+  // quoted → awaiting_signature → signed → bound (Phase B) → …
+  coverageStatus         String   @default("quoted")
+  proposalToken          String?  @unique // public capability URL for the sign page
+  proposalTokenExpiresAt DateTime?
+  signedAt               DateTime?
+  signatures             PolicySignature[]
+
   // ── Purchase state ───────────────────────────────────────
   // false = quote only · true = bound policy (Buy This Policy pressed)
   purchased  Boolean @default(false)
@@ -160,6 +168,24 @@ model WebhookEvent {
   id         String   @id // Stripe event id, e.g. "evt_..."
   type       String
   receivedAt DateTime @default(now())
+}
+
+// Captured proposal e-signature — the non-repudiation record. Binds the signer to
+// the exact proposal they reviewed via documentHash + declarationVersion.
+model PolicySignature {
+  id            String     @id @default(cuid())
+  submissionId  String
+  submission    Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  signerName    String
+  method        String     // "typed" | "drawn"
+  signatureRef  String     // typed name, or stored signature reference
+  declarationVersion String
+  documentHash  String     // SHA-256 of the exact proposal facts the signer accepted
+  ip            String?
+  userAgent     String?
+  signedAt      DateTime   @default(now())
+
+  @@index([submissionId])
 }
 
 // Append-only lifecycle log: who did what to a submission, and when.

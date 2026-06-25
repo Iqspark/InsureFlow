@@ -9,7 +9,9 @@ export type AuditAction =
   | "reviewed"
   | "change_requested"
   | "deleted"
-  | "restored";
+  | "restored"
+  | "proposal_sent"
+  | "signed";
 
 // Append a lifecycle event. Best-effort: a logging failure never blocks the
 // action that triggered it.

@@ -487,6 +487,70 @@ export async function sendPaymentRequestEmail(
   });
 }
 
+// ── Applicant: proposal ready to review + e-sign ──────────────
+export interface ProposalEmailData {
+  to:            string; // applicant email
+  applicantName: string;
+  appId:         string;
+  policyType:    string;
+  amount:        number;
+  signUrl:       string;
+  brokerName:    string;
+}
+
+export async function sendProposalEmail(d: ProposalEmailData): Promise<SendResult> {
+  const fmt = (n: number) =>
+    new Intl.NumberFormat("en-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 }).format(n);
+
+  const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"></head>
+<body style="margin:0;padding:24px 16px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
+    <tr><td style="background:#4f46e5;border-radius:12px 12px 0 0;padding:28px 32px;text-align:center">
+      <p style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.5px">InsureFlow</p>
+      <p style="margin:6px 0 0;font-size:13px;color:#c7d2fe">Review &amp; Sign Your Proposal</p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:32px 32px 8px;text-align:center">
+      <h1 style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a">Your proposal is ready</h1>
+      <p style="margin:0;font-size:14px;color:#64748b">
+        Dear ${esc(d.applicantName)}, your broker ${esc(d.brokerName)} has prepared a
+        <strong>${esc(d.policyType)}</strong> proposal for you. Please review the details
+        and sign to proceed — your broker will then bind the policy.
+      </p>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:20px 32px 8px;text-align:center">
+      <div style="display:inline-block;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:18px 28px">
+        <p style="margin:0 0 2px;font-size:11px;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px">Annual Premium</p>
+        <p style="margin:0;font-size:30px;font-weight:700;color:#4f46e5">${fmt(d.amount)}</p>
+        <p style="margin:2px 0 0;font-size:11px;color:#94a3b8">Application ID ${esc(d.appId)}</p>
+      </div>
+    </td></tr>
+    <tr><td style="background:#ffffff;padding:24px 32px 32px;text-align:center">
+      <a href="${d.signUrl}" style="display:inline-block;background:#4f46e5;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 36px;border-radius:10px">Review &amp; Sign</a>
+      <p style="margin:16px 0 0;font-size:12px;color:#94a3b8">Or paste this link into your browser:<br><span style="color:#6366f1;word-break:break-all">${d.signUrl}</span></p>
+    </td></tr>
+    <tr><td style="background:#0f172a;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center">
+      <p style="margin:0;font-size:11px;color:#475569">Secure proposal · © ${new Date().getFullYear()} InsureFlow</p>
+    </td></tr>
+  </table>
+</body></html>`;
+
+  return deliver({
+    to:      d.to,
+    subject: `Review & sign your proposal — ${d.policyType} (${d.appId})`,
+    html,
+    label:   "Proposal for signature",
+    text: [
+      `Review & Sign Your Proposal — InsureFlow`,
+      ``,
+      `Dear ${d.applicantName}, your broker ${d.brokerName} has prepared a ${d.policyType} proposal for you.`,
+      `Annual premium: ${fmt(d.amount)} (Application ID ${d.appId})`,
+      ``,
+      `Review and sign here: ${d.signUrl}`,
+    ].join("\n"),
+  });
+}
+
 // ── Applicant: policy cancellation confirmation ───────────────
 export interface CancellationData {
   to:            string; // applicant email
