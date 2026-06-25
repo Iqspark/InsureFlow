@@ -4,6 +4,7 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { tooMany, clientIp } from "@/lib/rateLimit";
+import { captureError } from "@/lib/observability";
 
 // POST /api/pay/[token]/checkout
 // Public — creates a Stripe Checkout Session for the bound policy and returns
@@ -44,33 +45,38 @@ export async function POST(
   const origin = publicBaseUrl(req);
   const stripe = getStripe();
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "payment",
-    payment_method_types: ["card"],
-    customer_email: sub.contactEmail ?? undefined,
-    client_reference_id: sub.id,
-    metadata: { submissionId: sub.id },
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: "cad",
-          unit_amount: Math.round(amount * 100),
-          product_data: {
-            name: `${sub.policyType} — Policy ${policyNumber(sub)}`,
-            description: sub.applicantName ? `Annual premium for ${sub.applicantName}` : undefined,
+  try {
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+      payment_method_types: ["card"],
+      customer_email: sub.contactEmail ?? undefined,
+      client_reference_id: sub.id,
+      metadata: { submissionId: sub.id },
+      line_items: [
+        {
+          quantity: 1,
+          price_data: {
+            currency: "cad",
+            unit_amount: Math.round(amount * 100),
+            product_data: {
+              name: `${sub.policyType} — Policy ${policyNumber(sub)}`,
+              description: sub.applicantName ? `Annual premium for ${sub.applicantName}` : undefined,
+            },
           },
         },
-      },
-    ],
-    success_url: `${origin}/pay/${token}?paid=1`,
-    cancel_url: `${origin}/pay/${token}`,
-  });
+      ],
+      success_url: `${origin}/pay/${token}?paid=1`,
+      cancel_url: `${origin}/pay/${token}`,
+    });
 
-  await prisma.submission.update({
-    where: { id: sub.id },
-    data: { stripeSessionId: session.id, stripeStatus: "checkout_created" },
-  });
+    await prisma.submission.update({
+      where: { id: sub.id },
+      data: { stripeSessionId: session.id, stripeStatus: "checkout_created" },
+    });
 
-  return NextResponse.json({ url: session.url });
+    return NextResponse.json({ url: session.url });
+  } catch (err) {
+    captureError(err, { area: "payment", message: "Stripe checkout session creation failed", extra: { submissionId: sub.id } });
+    return NextResponse.json({ error: "Could not start checkout. Please try again." }, { status: 502 });
+  }
 }

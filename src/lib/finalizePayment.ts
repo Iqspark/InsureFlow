@@ -3,6 +3,7 @@ import { sendPolicyConfirmationEmail, sendPaymentReceiptEmail } from "@/lib/emai
 import { buildPolicyPdf } from "@/lib/policyDocument";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
+import { captureError } from "@/lib/observability";
 
 type StripeMeta = {
   stripePaymentIntentId?: string | null;
@@ -79,7 +80,7 @@ export async function finalizePaidPolicy(
         const buffer = await buildPolicyPdf(sub);
         pdf = { filename: `InsureFlow-Policy-${policyNumber(sub)}.pdf`, content: buffer };
       } catch (pdfErr) {
-        console.error("[finalizePaidPolicy] policy PDF render failed:", pdfErr);
+        captureError(pdfErr, { area: "email", message: "policy PDF render failed", extra: { submissionId: sub.id } });
       }
       const receipt = await sendPaymentReceiptEmail({
         to,
@@ -92,7 +93,7 @@ export async function finalizePaidPolicy(
       });
       previewUrl = receipt.previewUrl ?? confirm.previewUrl ?? null;
     } catch (err) {
-      console.error("[finalizePaidPolicy] confirmation/receipt email failed:", err);
+      captureError(err, { area: "email", message: "confirmation/receipt email failed", extra: { submissionId: sub.id } });
     }
   }
 

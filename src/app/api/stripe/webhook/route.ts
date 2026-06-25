@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { finalizePaidPolicy } from "@/lib/finalizePayment";
 import { tooMany, clientIp } from "@/lib/rateLimit";
+import { captureError } from "@/lib/observability";
 
 export const runtime = "nodejs";
 
@@ -80,7 +81,7 @@ export async function POST(req: NextRequest) {
     }
   } catch (err) {
     // Unexpected failure — release the dedup claim so Stripe's retry can reprocess.
-    console.error("[stripe webhook] processing error:", err);
+    captureError(err, { area: "webhook", message: "processing error", extra: { eventId: event.id, type: event.type } });
     await prisma.webhookEvent.delete({ where: { id: event.id } }).catch(() => {});
     return NextResponse.json({ error: "Processing failed" }, { status: 500 });
   }

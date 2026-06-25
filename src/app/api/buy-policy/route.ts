@@ -8,6 +8,7 @@ import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
 import { portalTokenExpiry } from "@/lib/portalToken";
+import { captureError } from "@/lib/observability";
 
 // POST /api/buy-policy
 // Binds an accepted quote as a policy (purchased=true, payment pending) and
@@ -120,7 +121,7 @@ export async function POST(req: NextRequest) {
         });
         underwriterNotified = true;
       } catch (err) {
-        console.error("[buy-policy] underwriter notification failed:", err);
+        captureError(err, { area: "email", message: "underwriter notification failed", extra: { submissionId: sub.id } });
       }
     }
 
@@ -132,7 +133,7 @@ export async function POST(req: NextRequest) {
       underwriterNotified,
     });
   } catch (err) {
-    console.error("[POST /api/buy-policy] bind/send failed:", err);
+    captureError(err, { area: "payment", message: "bind/send payment link failed", extra: { submissionId } });
     return NextResponse.json({ error: "Failed to bind policy or send payment link" }, { status: 500 });
   }
 }

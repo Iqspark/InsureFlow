@@ -6,6 +6,7 @@ import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { tooMany, clientIp } from "@/lib/rateLimit";
 import { isPortalTokenExpired } from "@/lib/portalToken";
+import { captureError } from "@/lib/observability";
 
 const MAX_MESSAGE = 2000;
 
@@ -67,7 +68,7 @@ export async function POST(
         policyUrl:     `${publicBaseUrl(req)}/policy/${sub.id}`,
       });
     } catch (err) {
-      console.error("[portal request] broker email failed:", err);
+      captureError(err, { area: "email", message: "change-request broker email failed", extra: { submissionId: sub.id } });
     }
   }
 

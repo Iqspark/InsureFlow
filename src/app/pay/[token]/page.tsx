@@ -4,6 +4,7 @@ import PaymentForm from "@/components/PaymentForm";
 import { isStripeConfigured, getStripe } from "@/lib/stripe";
 import { finalizePaidPolicy } from "@/lib/finalizePayment";
 import { policyNumber } from "@/utils/policyNumber";
+import { captureError } from "@/lib/observability";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export default async function PublicPayPage({
         isPaid = true;
       }
     } catch (err) {
-      console.error("[pay page] Stripe session reconcile failed:", err);
+      captureError(err, { area: "payment", message: "Stripe session reconcile failed", extra: { submissionId: sub.id } });
     }
   }
 
