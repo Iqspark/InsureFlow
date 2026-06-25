@@ -97,6 +97,7 @@ model Submission {
   paidAt        DateTime?
   paidAmount    Float?
   paymentToken  String?  @unique // emailed to the applicant as a public pay link
+  paymentTokenExpiresAt DateTime? // public pay/portal link expiry; null = legacy (no expiry)
 
   // ── Stripe (real checkout — used when STRIPE_SECRET_KEY is set) ──
   stripeSessionId       String?  @unique // Checkout Session id

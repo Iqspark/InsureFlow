@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildPolicyPdf } from "@/lib/policyDocument";
 import { policyNumber } from "@/utils/policyNumber";
+import { isPortalTokenExpired } from "@/lib/portalToken";
 
 export const runtime = "nodejs";
 
@@ -17,6 +18,9 @@ export async function GET(
   const sub = await prisma.submission.findUnique({ where: { paymentToken: token } });
   if (!sub || !sub.purchased) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (isPortalTokenExpired(sub.paymentTokenExpiresAt, new Date())) {
+    return NextResponse.json({ error: "This link has expired" }, { status: 410 });
   }
 
   const appId = policyNumber(sub);

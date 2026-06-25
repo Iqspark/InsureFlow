@@ -5,6 +5,7 @@ import { recordAudit } from "@/lib/audit";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { tooMany, clientIp } from "@/lib/rateLimit";
+import { isPortalTokenExpired } from "@/lib/portalToken";
 
 const MAX_MESSAGE = 2000;
 
@@ -41,6 +42,9 @@ export async function POST(
   });
   if (!sub || !sub.purchased) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  if (isPortalTokenExpired(sub.paymentTokenExpiresAt, new Date())) {
+    return NextResponse.json({ error: "This link has expired" }, { status: 410 });
   }
 
   await recordAudit({

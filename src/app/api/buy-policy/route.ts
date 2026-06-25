@@ -7,6 +7,7 @@ import { sendUnderwriterNotificationEmail, sendPaymentRequestEmail } from "@/lib
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
+import { portalTokenExpiry } from "@/lib/portalToken";
 
 // POST /api/buy-policy
 // Binds an accepted quote as a policy (purchased=true, payment pending) and
@@ -63,10 +64,11 @@ export async function POST(req: NextRequest) {
       termData.expiresAt = expiresAt;
     }
 
-    // Bind (idempotent) and ensure a payment token exists.
+    // Bind (idempotent), ensure a payment token exists, and (re)set its expiry
+    // so each send/resend refreshes the public pay/portal link window.
     await prisma.submission.update({
       where: { id: sub.id },
-      data: { purchased: true, paymentToken: token, ...termData },
+      data: { purchased: true, paymentToken: token, paymentTokenExpiresAt: portalTokenExpiry(new Date()), ...termData },
     });
 
     const cad = (n: number | null) =>
