@@ -149,7 +149,7 @@ export default async function ReviewPage() {
             <div className="flex items-center gap-3">
               <span className="text-xs text-slate-400">{pendingCount} referred · oldest first</span>
               {pendingCount > 5 && (
-                <Link href="/queue" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+                <Link href="/reviews?tab=pending" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
                   View all →
                 </Link>
               )}
@@ -219,7 +219,7 @@ export default async function ReviewPage() {
           <>
             <div className="flex items-center justify-between mb-3">
               <h2 className="font-semibold text-slate-900 text-sm">Recently Reviewed</h2>
-              <Link href="/reviews" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
+              <Link href="/reviews?tab=all" className="text-xs font-medium text-indigo-600 hover:text-indigo-700">
                 View all →
               </Link>
             </div>

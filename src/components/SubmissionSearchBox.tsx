@@ -24,13 +24,21 @@ export default function SubmissionSearchBox({
   basePath,
   placeholder,
   initialValue = "",
+  extraParams = {},
 }: {
   endpoint: string;
   basePath: string;
   placeholder: string;
   initialValue?: string;
+  extraParams?: Record<string, string>;
 }) {
   const router = useRouter();
+  const buildUrl = (q?: string) => {
+    const p = new URLSearchParams(extraParams);
+    if (q) p.set("q", q);
+    const s = p.toString();
+    return s ? `${basePath}?${s}` : basePath;
+  };
   const [value, setValue] = useState(initialValue);
   const [items, setItems] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
@@ -63,8 +71,7 @@ export default function SubmissionSearchBox({
   }, []);
 
   function filterList() {
-    const q = value.trim();
-    router.push(q ? `${basePath}?q=${encodeURIComponent(q)}` : basePath);
+    router.push(buildUrl(value.trim()));
     setOpen(false);
   }
 
@@ -100,7 +107,7 @@ export default function SubmissionSearchBox({
         {value && (
           <button
             type="button"
-            onClick={() => { setValue(""); setItems([]); setOpen(false); router.push(basePath); }}
+            onClick={() => { setValue(""); setItems([]); setOpen(false); router.push(buildUrl()); }}
             aria-label="Clear"
             className="absolute right-2.5 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-full text-slate-400 hover:bg-slate-100"
           >
