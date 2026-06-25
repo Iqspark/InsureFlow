@@ -9,6 +9,9 @@ import StageBadge from "@/components/StageBadge";
 import PaymentBadge from "@/components/PaymentBadge";
 import CancelledBadge from "@/components/CancelledBadge";
 import AdminAnalytics from "@/components/AdminAnalytics";
+import AdminTabs from "@/components/admin/AdminTabs";
+import ConversionFunnel, { type FunnelStage, type FunnelRow } from "@/components/ConversionFunnel";
+import ProductSignals, { type ProductSignal } from "@/components/ProductSignals";
 import ExportCsvButton from "@/components/ExportCsvButton";
 
 function fmtDate(d: Date): string {
@@ -46,7 +49,7 @@ export default async function AdminPage() {
   requireRole(session, ["ADMIN"]);
   const adminName = session!.user.name;
 
-  const [total, accepts, declines, refers, paid, userCount, boundAgg, recent, rows] = await Promise.all([
+  const [total, accepts, declines, refers, paid, userCount, boundAgg, recent, rows, funnelRows] = await Promise.all([
     prisma.submission.count({ where: { status: { not: "draft" } } }),
     prisma.submission.count({ where: { decision: "accept" } }),
     prisma.submission.count({ where: { decision: "decline" } }),
@@ -71,6 +74,15 @@ export default async function AdminPage() {
       select: {
         decision: true, policyType: true, annualPremium: true, createdAt: true,
         purchased: true, broker: { select: { name: true } },
+      },
+    }),
+    // All submissions incl. drafts — funnel "started" counts every quote begun.
+    prisma.submission.findMany({
+      take: 5000,
+      orderBy: { createdAt: "desc" },
+      select: {
+        status: true, decision: true, policyType: true,
+        purchased: true, paymentStatus: true, broker: { select: { name: true } },
       },
     }),
   ]);
@@ -108,6 +120,65 @@ export default async function AdminPage() {
     .sort((a, b) => b.premium - a.premium)
     .slice(0, 5);
 
+  // ── Conversion funnel: started → quoted → bound → paid ────
+  const emptyStage = (): FunnelStage => ({ started: 0, quoted: 0, bound: 0, paid: 0 });
+  const addToStage = (st: FunnelStage, s: { decision: string | null; purchased: boolean; paymentStatus: string }) => {
+    st.started++;
+    if (s.decision === "accept") st.quoted++;
+    if (s.purchased) st.bound++;
+    if (s.paymentStatus === "paid") st.paid++;
+  };
+  const funnelOverall = emptyStage();
+  const productStage: Record<string, FunnelStage> = {};
+  const brokerStage: Record<string, FunnelStage> = {};
+  for (const s of funnelRows) {
+    addToStage(funnelOverall, s);
+    addToStage((productStage[s.policyType] ??= emptyStage()), s);
+    addToStage((brokerStage[s.broker?.name ?? "Unassigned"] ??= emptyStage()), s);
+  }
+  const toFunnelRows = (m: Record<string, FunnelStage>): FunnelRow[] =>
+    Object.entries(m)
+      .map(([label, st]) => ({ label, ...st }))
+      .sort((a, b) => b.started - a.started)
+      .slice(0, 8);
+  const funnelByProduct = toFunnelRows(productStage);
+  const funnelByBroker = toFunnelRows(brokerStage);
+
+  // ── Underwriting signals: decline/refer mix vs portfolio ──
+  const rate = (n: number, d: number) => (d > 0 ? Math.round((n / d) * 100) : 0);
+  type Counts = { accept: number; decline: number; refer: number; completed: number };
+  const prodCounts: Record<string, Counts> = {};
+  let portDecline = 0, portRefer = 0, portCompleted = 0;
+  for (const s of funnelRows) {
+    if (!s.decision) continue; // completed quotes only
+    const c = (prodCounts[s.policyType] ??= { accept: 0, decline: 0, refer: 0, completed: 0 });
+    c.completed++;
+    portCompleted++;
+    if (s.decision === "accept") c.accept++;
+    else if (s.decision === "decline") { c.decline++; portDecline++; }
+    else if (s.decision === "refer") { c.refer++; portRefer++; }
+  }
+  const portDeclineRate = rate(portDecline, portCompleted);
+  const portReferRate = rate(portRefer, portCompleted);
+  const MIN_SAMPLE = 5;
+  const productSignals: ProductSignal[] = Object.entries(prodCounts)
+    .map(([product, c]) => {
+      const acceptRate = rate(c.accept, c.completed);
+      const declineRate = rate(c.decline, c.completed);
+      const referRate = rate(c.refer, c.completed);
+      const flags: ProductSignal["flags"] = [];
+      if (c.completed >= MIN_SAMPLE) {
+        const dDelta = declineRate - portDeclineRate;
+        if (dDelta >= 20) flags.push({ kind: "decline", severity: "high", message: `Decline rate ${declineRate}% is far above the ${portDeclineRate}% portfolio average — rating factors may be too strict or risk appetite misaligned; review underwriting rules.` });
+        else if (dDelta >= 10) flags.push({ kind: "decline", severity: "warn", message: `Decline rate ${declineRate}% is above the ${portDeclineRate}% portfolio average — worth reviewing the rating factors.` });
+        const rDelta = referRate - portReferRate;
+        if (rDelta >= 20) flags.push({ kind: "refer", severity: "high", message: `Referral rate ${referRate}% is far above the ${portReferRate}% portfolio average — consider automating referral thresholds to cut manual review.` });
+        else if (rDelta >= 10) flags.push({ kind: "refer", severity: "warn", message: `Referral rate ${referRate}% is above the ${portReferRate}% portfolio average — referral thresholds may be too sensitive.` });
+      }
+      return { product, completed: c.completed, acceptRate, declineRate, referRate, flags };
+    })
+    .sort((a, b) => b.completed - a.completed);
+
   const boundPremium = boundAgg._sum.annualPremium ?? 0;
   const adminStats = {
     premiumByMonth,
@@ -141,6 +212,8 @@ export default async function AdminPage() {
           <ExportCsvButton label="Export CSV" />
         </div>
 
+        <AdminTabs active="overview" />
+
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
           {statCards.map((c) => (
@@ -159,27 +232,13 @@ export default async function AdminPage() {
         {/* Analytics */}
         {total > 0 && <AdminAnalytics stats={adminStats} />}
 
-        {/* Action buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <Link
-            href="/queue"
-            className="flex items-center justify-center gap-2 px-5 py-3 bg-linear-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold rounded-xl transition-all shadow-md shadow-indigo-100 text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Pending Reviews
-          </Link>
-          <Link
-            href="/admin/users"
-            className="flex items-center justify-center gap-2 px-5 py-3 bg-white hover:bg-slate-50 text-slate-700 font-semibold rounded-xl transition-colors border border-slate-200 shadow-xs text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 100-8 4 4 0 000 8z" />
-            </svg>
-            Manage Users
-          </Link>
-        </div>
+        {/* Conversion funnel + underwriting signals */}
+        {total > 0 && (
+          <ConversionFunnel overall={funnelOverall} byProduct={funnelByProduct} byBroker={funnelByBroker} />
+        )}
+        {productSignals.length > 0 && (
+          <ProductSignals signals={productSignals} portfolio={{ declineRate: portDeclineRate, referRate: portReferRate }} />
+        )}
 
         {/* Recent activity */}
         <div className="flex items-center justify-between mb-3">
