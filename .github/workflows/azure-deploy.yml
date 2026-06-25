@@ -67,6 +67,8 @@ jobs:
           NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY || 'build-time-placeholder' }}
           NEXT_PUBLIC_GOOGLE_MAPS_API_KEY: ${{ secrets.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY }}
+          # Set to "true" only on the demo site to show one-tap demo logins.
+          NEXT_PUBLIC_ENABLE_DEMO: ${{ secrets.NEXT_PUBLIC_ENABLE_DEMO }}
 
       - name: Apply database schema and seed
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -75,6 +77,9 @@ jobs:
           node prisma/seed.js
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Demo accounts (public password) are only seeded when this secret is
+          # set to "true" — leave it unset on any non-demo deployment.
+          ALLOW_DEMO_SEED: ${{ secrets.ALLOW_DEMO_SEED }}
 
       # Assemble the deployment package from the standalone output.
       # standalone/ already contains a trimmed node_modules — no npm install needed on Azure.

@@ -9,6 +9,8 @@ export default withAuth(
     callbacks: {
       authorized: ({ token }) => {
         if (!token) return false;
+        // Deactivated since the token was last refreshed.
+        if (token.active === false) return false;
         // In dev: reject sessions from a previous server run
         if (process.env.SESSION_VERSION && token.v !== process.env.SESSION_VERSION) {
           return false;

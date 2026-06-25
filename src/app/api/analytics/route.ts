@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canManageUsers, type SessionUser } from "@/lib/access";
 
 // ── GET /api/analytics ────────────────────────────────────────
 // Returns aggregated analytics for all submissions.
@@ -18,6 +21,15 @@ import { prisma } from "@/lib/prisma";
 //   dailyVolume:       [last 30 days — date + count]
 // }
 export async function GET() {
+  // Cross-broker portfolio data — admin only.
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!canManageUsers(session.user as unknown as SessionUser)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   try {
     const [
       total,

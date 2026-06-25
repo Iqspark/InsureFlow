@@ -49,11 +49,29 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.name = user.name;
         token.role = (user as { role?: "ADMIN" | "BROKER" | "UNDERWRITER" }).role ?? "BROKER";
+        token.active = true;
         if (process.env.SESSION_VERSION) token.v = process.env.SESSION_VERSION;
+        return token;
+      }
+      // On every subsequent request, re-validate against the DB so deactivation
+      // and role changes take effect immediately instead of waiting up to 8h for
+      // the JWT to expire.
+      if (token.id) {
+        const broker = await prisma.broker.findUnique({
+          where: { id: token.id as string },
+          select: { role: true, active: true },
+        });
+        token.active = !!broker?.active;
+        if (broker?.active) token.role = broker.role as "ADMIN" | "BROKER" | "UNDERWRITER";
       }
       return token;
     },
     async session({ session, token }) {
+      // A deactivated (or deleted) account drops its user so every guard that
+      // checks `session.user` treats the request as logged out.
+      if (token?.active === false) {
+        return { ...session, user: undefined } as unknown as typeof session;
+      }
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.name = token.name as string;

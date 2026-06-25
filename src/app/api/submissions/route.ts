@@ -3,33 +3,42 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { submissionScopeWhere, type SessionUser } from "@/lib/access";
-import { Answer, QuoteDetails } from "@/types";
+import { getProduct, productSlugForPolicyType } from "@/data/products";
+import { Answer } from "@/types";
 
 // ── POST /api/submissions ─────────────────────────────────────
 // Called by the client after a quote is calculated.
 // Saves the full answers + result to the database.
 export async function POST(req: NextRequest) {
   try {
+    // Require an authenticated broker — never create orphan/unowned submissions.
+    const authSession = await getServerSession(authOptions);
+    if (!authSession?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const brokerId = authSession.user.id;
+
     const body = await req.json() as {
       answers: Record<string, Answer>;
-      quoteDetails: QuoteDetails;
       sessionId?: string;
       draftId?: string;
       policyType?: string;
     };
 
-    const { answers, quoteDetails, sessionId, draftId, policyType } = body;
+    const { answers, sessionId, draftId, policyType } = body;
 
-    if (!answers || !quoteDetails) {
+    if (!answers) {
       return NextResponse.json(
-        { error: "answers and quoteDetails are required" },
+        { error: "answers are required" },
         { status: 400 }
       );
     }
 
-    // Attach the authenticated broker to the submission
-    const authSession = await getServerSession(authOptions);
-    const brokerId    = authSession?.user?.id ?? null;
+    // Recompute the underwriting decision + premium SERVER-SIDE from the answers.
+    // The client-sent decision/premium are never trusted: they drive policy
+    // binding and the amount charged at checkout.
+    const product = getProduct(productSlugForPolicyType(policyType ?? "Vacant Home Insurance"));
+    const quoteDetails = product.calculate(answers);
 
     const get = (id: string) => answers[id]?.value;
     const getString = (id: string) => String(get(id) ?? "");
@@ -94,13 +103,26 @@ export async function POST(req: NextRequest) {
       referralReasons: JSON.stringify(quoteDetails.referralReasons ?? []),
     };
 
-    // If a draft exists for this session, promote it to complete
-    const submission = draftId
-      ? await prisma.submission.update({ where: { id: draftId }, data: submissionData })
-      : await prisma.submission.create({ data: submissionData });
+    // If a draft exists for this session, promote it to complete — but only the
+    // caller's OWN draft. Scope the update by broker + status so a draftId can
+    // never overwrite another broker's submission or a bound policy.
+    let submissionId: string;
+    if (draftId) {
+      const promoted = await prisma.submission.updateMany({
+        where: { id: draftId, brokerId, status: "draft" },
+        data: submissionData,
+      });
+      if (promoted.count === 0) {
+        return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+      }
+      submissionId = draftId;
+    } else {
+      const created = await prisma.submission.create({ data: submissionData });
+      submissionId = created.id;
+    }
 
     return NextResponse.json(
-      { success: true, id: submission.id },
+      { success: true, id: submissionId },
       { status: 201 }
     );
   } catch (err) {

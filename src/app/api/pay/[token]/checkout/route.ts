@@ -4,6 +4,7 @@ import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { tooMany, clientIp } from "@/lib/rateLimit";
+import { isPortalTokenExpired } from "@/lib/portalToken";
 import { captureError } from "@/lib/observability";
 
 // POST /api/pay/[token]/checkout
@@ -27,11 +28,15 @@ export async function POST(
     select: {
       id: true, purchased: true, paymentStatus: true, annualPremium: true,
       policyType: true, applicantName: true, contactEmail: true, createdAt: true,
+      paymentTokenExpiresAt: true,
     },
   });
 
   if (!sub || !sub.purchased) {
     return NextResponse.json({ error: "Payment link is invalid" }, { status: 404 });
+  }
+  if (isPortalTokenExpired(sub.paymentTokenExpiresAt, new Date())) {
+    return NextResponse.json({ error: "This link has expired" }, { status: 410 });
   }
   if (sub.paymentStatus === "paid") {
     return NextResponse.json({ error: "This policy is already paid" }, { status: 409 });

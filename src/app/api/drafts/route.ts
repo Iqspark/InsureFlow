@@ -19,7 +19,10 @@ export async function POST(req: NextRequest) {
     const { answers, sessionId, draftId, policyType } = body;
 
     const authSession = await getServerSession(authOptions);
-    const brokerId = authSession?.user?.id ?? null;
+    if (!authSession?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const brokerId = authSession.user.id;
 
     const get = (id: string) => answers[id]?.value;
     const getString = (id: string) => String(get(id) ?? "");
@@ -47,12 +50,15 @@ export async function POST(req: NextRequest) {
 
     let id: string;
     if (draftId) {
-      const updated = await prisma.submission.update({
-        where: { id: draftId },
+      // Only the caller's own draft may be updated — never an arbitrary row.
+      const updated = await prisma.submission.updateMany({
+        where: { id: draftId, brokerId, status: "draft" },
         data,
-        select: { id: true },
       });
-      id = updated.id;
+      if (updated.count === 0) {
+        return NextResponse.json({ error: "Draft not found" }, { status: 404 });
+      }
+      id = draftId;
     } else {
       const created = await prisma.submission.create({
         data,

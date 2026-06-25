@@ -4,6 +4,7 @@ import PaymentForm from "@/components/PaymentForm";
 import { isStripeConfigured, getStripe } from "@/lib/stripe";
 import { finalizePaidPolicy } from "@/lib/finalizePayment";
 import { policyNumber } from "@/utils/policyNumber";
+import { isPortalTokenExpired } from "@/lib/portalToken";
 import { captureError } from "@/lib/observability";
 
 export const dynamic = "force-dynamic";
@@ -36,6 +37,7 @@ export default async function PublicPayPage({
     select: {
       id: true, purchased: true, paymentStatus: true, stripeSessionId: true,
       annualPremium: true, policyType: true, applicantName: true, createdAt: true,
+      paymentTokenExpiresAt: true,
     },
   });
 
@@ -43,6 +45,10 @@ export default async function PublicPayPage({
 
   const appId = policyNumber(sub);
   let isPaid = sub.paymentStatus === "paid";
+
+  // An expired link must not render policy details or allow payment. Already-paid
+  // links still show the confirmation (no charge possible once paid).
+  const linkExpired = !isPaid && isPortalTokenExpired(sub.paymentTokenExpiresAt, new Date());
 
   // Safety net: on return from Stripe (?paid=1), if the webhook hasn't marked the
   // policy paid yet, confirm directly with Stripe and finalize. Idempotent, so a
@@ -101,6 +107,14 @@ export default async function PublicPayPage({
             >
               View your policy
             </a>
+          </div>
+        ) : linkExpired ? (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-8 text-center">
+            <h2 className="text-xl font-bold text-slate-900 mb-1">This payment link has expired</h2>
+            <p className="text-sm text-slate-500">
+              For your security, this link is no longer valid. Please contact your
+              broker to have a new payment link sent to you.
+            </p>
           </div>
         ) : (
           <PaymentForm

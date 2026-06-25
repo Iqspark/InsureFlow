@@ -70,6 +70,9 @@ export default function LoginPage() {
     else window.location.href = "/dashboard";
   }
 
+  // Demo quick-login is a demo-site convenience and exposes a public password.
+  // It only renders when explicitly enabled at build time (off by default).
+  const demoEnabled = process.env.NEXT_PUBLIC_ENABLE_DEMO === "true";
   const demoAccounts = [
     { label: "Broker", email: "broker@demo.com", cls: "from-indigo-500 to-blue-500" },
     { label: "Underwriter", email: "underwriter@demo.com", cls: "from-violet-500 to-fuchsia-500" },
@@ -274,6 +277,7 @@ export default function LoginPage() {
           </form>
 
           {/* Demo quick-login */}
+          {demoEnabled && (
           <div className="mt-6">
             <div className="flex items-center gap-3 mb-3">
               <div className="h-px flex-1 bg-slate-200" />
@@ -298,6 +302,7 @@ export default function LoginPage() {
             </div>
             <p className="text-center text-[11px] text-slate-400 mt-2">One-tap sign-in · password <span className="font-mono">Demo1234!</span></p>
           </div>
+          )}
 
           {/* Security badge — desktop only */}
           <div className="hidden lg:flex items-center justify-center gap-1.5 mt-6 text-slate-400">
