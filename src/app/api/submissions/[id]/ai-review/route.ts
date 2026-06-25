@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canReview, type SessionUser } from "@/lib/access";
+import { canDecideReview, type SessionUser } from "@/lib/access";
 import { getAiUnderwriterVerdict, isAiUnderwriterConfigured } from "@/lib/aiUnderwriter";
 
 export const runtime = "nodejs";
 
 // POST /api/submissions/[id]/ai-review
-// Underwriter/Admin: produce an advisory AI verdict (approve/decline +
-// confidence + reasons) for a referred submission. The human confirms.
+// Underwriter: produce an advisory AI verdict (approve/decline + confidence +
+// reasons) for a referred submission. The human confirms. (Admins are read-only.)
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +19,7 @@ export async function POST(
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  if (!canReview(session.user as unknown as SessionUser)) {
+  if (!canDecideReview(session.user as unknown as SessionUser)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

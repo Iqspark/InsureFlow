@@ -3,6 +3,7 @@ import {
   submissionScopeWhere,
   canViewSubmission,
   canReview,
+  canDecideReview,
   canManageUsers,
   canBindOrPay,
   requireRole,
@@ -52,10 +53,18 @@ describe("canViewSubmission", () => {
 });
 
 describe("canReview", () => {
-  it("allows admins and underwriters, not brokers", () => {
+  it("allows admins and underwriters (view/oversight), not brokers", () => {
     expect(canReview(admin)).toBe(true);
     expect(canReview(underwriter)).toBe(true);
     expect(canReview(broker)).toBe(false);
+  });
+});
+
+describe("canDecideReview", () => {
+  it("allows only underwriters to approve/decline — admins are read-only", () => {
+    expect(canDecideReview(underwriter)).toBe(true);
+    expect(canDecideReview(admin)).toBe(false);
+    expect(canDecideReview(broker)).toBe(false);
   });
 });
 

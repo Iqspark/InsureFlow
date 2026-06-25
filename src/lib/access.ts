@@ -22,8 +22,16 @@ export function canViewSubmission(
   return sub.brokerId === user.id;
 }
 
+// Can view the review area (queue, history) — admins get read-only oversight.
 export function canReview(user: SessionUser): boolean {
   return user.role === "ADMIN" || user.role === "UNDERWRITER";
+}
+
+// Can actually approve/decline a referred quote. Underwriting is a controlled
+// function, kept separate from admin (who manages users/system) for segregation
+// of duties and a clean audit trail.
+export function canDecideReview(user: SessionUser): boolean {
+  return user.role === "UNDERWRITER";
 }
 
 export function canManageUsers(user: SessionUser): boolean {

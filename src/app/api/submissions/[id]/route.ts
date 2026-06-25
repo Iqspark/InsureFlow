@@ -20,7 +20,7 @@ export async function DELETE(
 
   const sub = await prisma.submission.findUnique({
     where: { id },
-    select: { brokerId: true, purchased: true },
+    select: { brokerId: true, purchased: true, decision: true, reviewedAt: true },
   });
 
   const owns = sub && (user.role === "ADMIN" || sub.brokerId === user.id);
@@ -31,6 +31,15 @@ export async function DELETE(
   if (sub.purchased) {
     return NextResponse.json(
       { error: "Bound policies cannot be deleted." },
+      { status: 409 }
+    );
+  }
+
+  // A quote awaiting an underwriter decision is locked — deleting it would
+  // pull pending work from the review queue and erase the audit trail.
+  if (sub.decision === "refer" && !sub.reviewedAt) {
+    return NextResponse.json(
+      { error: "Quotes under review cannot be deleted until the review is resolved." },
       { status: 409 }
     );
   }

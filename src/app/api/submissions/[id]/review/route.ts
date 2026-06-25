@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { canReview, type SessionUser } from "@/lib/access";
+import { canDecideReview, type SessionUser } from "@/lib/access";
 import { sendQuoteApprovedEmail } from "@/lib/email";
 import { publicBaseUrl } from "@/lib/baseUrl";
 import { policyNumber } from "@/utils/policyNumber";
 import { recordAudit } from "@/lib/audit";
 
 // POST /api/submissions/[id]/review
-// Underwriter/Admin approves or declines a referred submission.
+// Underwriter approves or declines a referred submission (admins are read-only).
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -20,7 +20,7 @@ export async function POST(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const user = session.user as unknown as SessionUser;
-  if (!canReview(user)) {
+  if (!canDecideReview(user)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

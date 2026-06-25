@@ -15,7 +15,7 @@ import BuyPolicyButton from "@/components/BuyPolicyButton";
 import CancelPolicyButton from "@/components/CancelPolicyButton";
 import AdjustPolicyButton from "@/components/AdjustPolicyButton";
 import ReviewActions from "@/components/ReviewActions";
-import { canViewSubmission, canReview, canBindOrPay, type SessionUser } from "@/lib/access";
+import { canViewSubmission, canReview, canDecideReview, canBindOrPay, type SessionUser } from "@/lib/access";
 import { policyNumber } from "@/utils/policyNumber";
 
 // ── Helpers ──────────────────────────────────────────────────
@@ -201,9 +201,15 @@ export default async function PolicyDetailPage({
           </div>
         )}
 
-        {/* Underwriter review controls (referred quotes) */}
-        {sub.decision === "refer" && canReview(user) && (
+        {/* Underwriter review controls (referred quotes) — underwriters decide */}
+        {sub.decision === "refer" && canDecideReview(user) && (
           <ReviewActions submissionId={sub.id} />
+        )}
+        {/* Admins get read-only oversight, not decision authority */}
+        {sub.decision === "refer" && !sub.reviewedAt && canReview(user) && !canDecideReview(user) && (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm text-amber-800">
+            Awaiting an underwriter&apos;s decision. Admins have read-only oversight of reviews.
+          </div>
         )}
 
         {/* Reviewer audit */}
