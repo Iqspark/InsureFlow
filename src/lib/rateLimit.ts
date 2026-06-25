@@ -35,9 +35,25 @@ export function rateLimit(
 }
 
 // Best-effort client IP from the proxy's forwarded header.
+//
+// X-Forwarded-For is client-appendable, so the LEFTMOST entry is spoofable. When
+// the number of trusted proxies in front of the app is known, set
+// TRUSTED_PROXY_HOP_COUNT=N and we take the Nth entry from the RIGHT (the value
+// your own infra appended), which a client cannot forge. Defaults to the leftmost
+// entry to preserve existing behavior when unset.
 export function clientIp(req: Request): string {
   const xff = req.headers.get("x-forwarded-for");
-  return xff?.split(",")[0]?.trim() || req.headers.get("x-real-ip")?.trim() || "unknown";
+  if (xff) {
+    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length) {
+      const hops = Number(process.env.TRUSTED_PROXY_HOP_COUNT);
+      if (Number.isInteger(hops) && hops > 0) {
+        return parts[Math.max(0, parts.length - hops)] ?? parts[parts.length - 1];
+      }
+      return parts[0];
+    }
+  }
+  return req.headers.get("x-real-ip")?.trim() || "unknown";
 }
 
 // Returns a 429 Response when over limit, or null when allowed.

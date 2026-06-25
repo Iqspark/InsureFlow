@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -11,11 +12,21 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) return null;
 
+        const email = credentials.email.toLowerCase().trim();
+
+        // Throttle credential stuffing / brute force. Keyed per-account and per-IP;
+        // over the limit we fail closed (return null = "invalid credentials") so
+        // there's no lockout oracle. In-memory + per-process (see rateLimit.ts).
+        const xff = (req?.headers?.["x-forwarded-for"] as string | undefined) ?? "";
+        const ip = xff.split(",")[0]?.trim() || "unknown";
+        if (!rateLimit(`login:${email}`, 10, 5 * 60_000).ok) return null;
+        if (!rateLimit(`login-ip:${ip}`, 50, 5 * 60_000).ok) return null;
+
         const broker = await prisma.broker.findUnique({
-          where: { email: credentials.email.toLowerCase().trim() },
+          where: { email },
         });
 
         if (!broker || !broker.active) return null;

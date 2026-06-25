@@ -10,7 +10,10 @@ export function portalTokenExpiry(from: Date): Date {
   return d;
 }
 
-// Legacy tokens issued before expiry existed have a null expiry and stay valid.
+// Fail closed: a token with no recorded expiry (null) is treated as expired.
+// Every link issued by binding/resending now stamps an expiry, so the only null
+// tokens are legacy ones — resending the payment link refreshes a fresh window.
 export function isPortalTokenExpired(expiresAt: Date | null, now: Date): boolean {
-  return expiresAt != null && expiresAt.getTime() < now.getTime();
+  if (expiresAt == null) return true;
+  return expiresAt.getTime() < now.getTime();
 }

@@ -19,7 +19,9 @@ export async function POST(
 ) {
   const { token } = await params;
 
-  const limited = tooMany(`portal-request:${clientIp(req)}`, 5, 60_000);
+  // Limit by IP and by token: the per-token cap holds even if the IP is spoofed,
+  // so a valid link can't be used to email-bomb the broker.
+  const limited = tooMany(`portal-request:${clientIp(req)}`, 5, 60_000) ?? tooMany(`portal-request-token:${token}`, 5, 60_000);
   if (limited) return limited;
 
   let message: string;

@@ -84,7 +84,7 @@ describe("POST /api/stripe/webhook", () => {
     stubEvent(paidEvent());
     const res = await POST(mkReq("{}"));
     expect(res.status).toBe(200);
-    expect(finalize).toHaveBeenCalledWith("s1", { stripePaymentIntentId: "pi_1", stripeStatus: "paid" });
+    expect(finalize).toHaveBeenCalledWith("s1", { stripePaymentIntentId: "pi_1", stripeStatus: "paid", paidAmount: 1200 });
   });
 
   it("does not finalize when payment_status is not paid", async () => {
@@ -97,7 +97,7 @@ describe("POST /api/stripe/webhook", () => {
     findUnique.mockResolvedValue({ annualPremium: 1200 } as never); // expects 120000¢
     stubEvent(paidEvent({ amount_total: 999 }));
     await POST(mkReq("{}"));
-    expect(finalize).toHaveBeenCalledWith("s1", { stripePaymentIntentId: "pi_1", stripeStatus: "paid_amount_mismatch" });
+    expect(finalize).toHaveBeenCalledWith("s1", { stripePaymentIntentId: "pi_1", stripeStatus: "paid_amount_mismatch", paidAmount: 9.99 });
   });
 
   it("releases the dedup claim and 500s when finalize throws (so Stripe retries)", async () => {

@@ -55,6 +55,21 @@ export async function POST(
   if (Math.round(coverageAmount) === Math.round(oldCoverage)) {
     return NextResponse.json({ error: "New coverage is the same as the current coverage" }, { status: 400 });
   }
+  // Bound a mid-term change to a sane band of the original sum insured. The premium
+  // here is a linear pro-rata of coverage (not a fresh rating), so an unbounded
+  // change could zero out or absurdly inflate the premium without underwriting —
+  // anything outside this band must go through a new quote.
+  const MIN_ADJUST_FACTOR = 0.25;
+  const MAX_ADJUST_FACTOR = 4;
+  if (
+    coverageAmount < oldCoverage * MIN_ADJUST_FACTOR ||
+    coverageAmount > oldCoverage * MAX_ADJUST_FACTOR
+  ) {
+    return NextResponse.json(
+      { error: "Coverage change is too large for a mid-term adjustment. Please create a new quote." },
+      { status: 400 }
+    );
+  }
 
   // Premium scales with the sum insured (sum-insured-driven base premium).
   const newAnnual = Math.round((oldAnnual * coverageAmount) / oldCoverage);

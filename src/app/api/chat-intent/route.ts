@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { tooMany, clientIp } from "@/lib/rateLimit";
 import OpenAI from "openai";
 
 interface QuestionSummary {
@@ -11,9 +12,12 @@ interface QuestionSummary {
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  const limited = tooMany(`chat-intent:${session.user.id ?? clientIp(req)}`, 20, 60_000);
+  if (limited) return limited;
 
   if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "your-openai-api-key-here") {
     return NextResponse.json(
@@ -22,14 +26,17 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { message, questions } = (await req.json()) as {
-    message: string;
-    questions: QuestionSummary[];
-  };
+  let message: string, questions: QuestionSummary[];
+  try {
+    ({ message, questions } = (await req.json()) as { message: string; questions: QuestionSummary[] });
+  } catch {
+    return NextResponse.json({ questionId: null, reply: "Invalid request." }, { status: 400 });
+  }
 
   const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-  const questionList = questions
+  const questionList = (Array.isArray(questions) ? questions : [])
+    .slice(0, 100)
     .map((q) => `ID: ${q.id} | Question: ${q.label} | Current answer: ${q.currentAnswer}`)
     .join("\n");
 
@@ -44,7 +51,7 @@ export async function POST(req: NextRequest) {
       },
       {
         role: "user",
-        content: `User said: "${message}"\n\nQuestions and current answers:\n${questionList}`,
+        content: `User said: "${String(message ?? "").slice(0, 2000)}"\n\nQuestions and current answers:\n${questionList}`,
       },
     ],
     response_format: { type: "json_object" },

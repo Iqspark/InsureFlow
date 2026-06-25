@@ -3,8 +3,11 @@ import { publicBaseUrl } from "./baseUrl";
 import type { NextRequest } from "next/server";
 
 const originalEnv = process.env.NEXTAUTH_URL;
+const originalAllow = process.env.PUBLIC_HOST_ALLOWLIST;
 afterEach(() => {
   process.env.NEXTAUTH_URL = originalEnv;
+  if (originalAllow === undefined) delete process.env.PUBLIC_HOST_ALLOWLIST;
+  else process.env.PUBLIC_HOST_ALLOWLIST = originalAllow;
 });
 
 function mkReq(headers: Record<string, string>, nextUrl: { protocol: string; origin: string }): NextRequest {
@@ -40,5 +43,26 @@ describe("publicBaseUrl", () => {
   it("falls back to the request origin when nothing public is available", () => {
     delete process.env.NEXTAUTH_URL;
     expect(publicBaseUrl(mkReq({}, internal))).toBe("http://internal:8080");
+  });
+
+  it("rejects a forged x-forwarded-host that is not in PUBLIC_HOST_ALLOWLIST", () => {
+    process.env.NEXTAUTH_URL = "http://localhost:3000";
+    process.env.PUBLIC_HOST_ALLOWLIST = "app.azurewebsites.net";
+    const req = mkReq(
+      { "x-forwarded-host": "attacker.example", "x-forwarded-proto": "https" },
+      internal
+    );
+    // Falls through to the (localhost) configured value rather than trusting the spoofed host.
+    expect(publicBaseUrl(req)).toBe("http://localhost:3000");
+  });
+
+  it("accepts an allowlisted x-forwarded-host", () => {
+    process.env.NEXTAUTH_URL = "http://localhost:3000";
+    process.env.PUBLIC_HOST_ALLOWLIST = "app.azurewebsites.net";
+    const req = mkReq(
+      { "x-forwarded-host": "app.azurewebsites.net", "x-forwarded-proto": "https" },
+      internal
+    );
+    expect(publicBaseUrl(req)).toBe("https://app.azurewebsites.net");
   });
 });
