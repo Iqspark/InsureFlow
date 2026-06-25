@@ -4,6 +4,14 @@ import { PrismaClient } from "@prisma/client";
 // as a client extension so we can't miss a query — list/detail/search/analytics
 // all go through here. Writes (update/delete) are untouched so the DELETE route
 // can still set deletedAt on the row.
+// Default to hiding soft-deleted rows, unless the caller explicitly filters on
+// deletedAt (e.g. the admin "Deleted items" view opts in with deletedAt != null).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function notDeleted(where: any) {
+  if (where && "deletedAt" in where) return where;
+  return { ...where, deletedAt: null };
+}
+
 function createPrisma() {
   const base = new PrismaClient({
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
@@ -11,12 +19,12 @@ function createPrisma() {
   return base.$extends({
     query: {
       submission: {
-        async findMany({ args, query }) { args.where = { ...args.where, deletedAt: null }; return query(args); },
-        async findFirst({ args, query }) { args.where = { ...args.where, deletedAt: null }; return query(args); },
-        async findFirstOrThrow({ args, query }) { args.where = { ...args.where, deletedAt: null }; return query(args); },
-        async count({ args, query }) { args.where = { ...args.where, deletedAt: null }; return query(args); },
-        async aggregate({ args, query }) { args.where = { ...args.where, deletedAt: null }; return query(args); },
-        async groupBy({ args, query }) { args.where = { ...args.where, deletedAt: null }; return query(args); },
+        async findMany({ args, query }) { args.where = notDeleted(args.where); return query(args); },
+        async findFirst({ args, query }) { args.where = notDeleted(args.where); return query(args); },
+        async findFirstOrThrow({ args, query }) { args.where = notDeleted(args.where); return query(args); },
+        async count({ args, query }) { args.where = notDeleted(args.where); return query(args); },
+        async aggregate({ args, query }) { args.where = notDeleted(args.where); return query(args); },
+        async groupBy({ args, query }) { args.where = notDeleted(args.where); return query(args); },
       },
     },
   });
